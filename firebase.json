@@ -37,11 +37,13 @@
       }
     }
   },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": {
+    "source": "functions"
+  },
   "emulators": {
-    "apphosting": {
-      "port": 5002,
-      "rootDirectory": "./"
-    },
     "auth": {
       "port": 9099
     },
@@ -50,9 +52,6 @@
     },
     "firestore": {
       "port": 8080
-    },
-    "hosting": {
-      "port": 5000
     },
     "storage": {
       "port": 9199
