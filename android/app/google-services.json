@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "797970173318",
+    "project_id": "aclub2",
+    "storage_bucket": "aclub2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797970173318:android:3a2188bb2731529d4ab007",
+        "android_client_info": {
+          "package_name": "com.aclub.ui"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1QK_lCXF-HhOvokdfhKsvtGlPIGmmAes"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

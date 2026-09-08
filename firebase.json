@@ -1,0 +1,65 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "aclub2",
+          "appId": "1:797970173318:android:3a2188bb2731529d4ab007",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "aclub2",
+          "appId": "1:797970173318:ios:d63409ec36faa2c34ab007",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "aclub2",
+          "appId": "1:797970173318:ios:d63409ec36faa2c34ab007",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "aclub2",
+          "configurations": {
+            "android": "1:797970173318:android:3a2188bb2731529d4ab007",
+            "ios": "1:797970173318:ios:d63409ec36faa2c34ab007",
+            "macos": "1:797970173318:ios:d63409ec36faa2c34ab007",
+            "web": "1:797970173318:web:404706fe4bba57c44ab007"
+          }
+        }
+      }
+    }
+  },
+  "emulators": {
+    "apphosting": {
+      "port": 5002,
+      "rootDirectory": "./"
+    },
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
+  }
+}
