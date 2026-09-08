@@ -14,15 +14,7 @@ enum UserRole { admin, member }
 enum SectionRole { sectionManager, tripLeader, member }
 
 /// The category / activity type of an event.
-enum EventType {
-  hike,
-  climb,
-  alpineSki,
-  skiMountaineering,
-  snowshoe,
-  social,
-  presentation,
-}
+enum EventType { rock, trailRun, hike, climb, alpineSki, skiMountaineering, snowshoe, social, presentation }
 
 /// Lifecycle state of an event.
 enum EventStatus { draft, published }
@@ -31,14 +23,7 @@ enum EventStatus { draft, published }
 enum Difficulty { easy, moderate, hard }
 
 /// A member's registration state for an event.
-enum RegistrationStatus {
-  pending,
-  approved,
-  waitlisted,
-  rejected,
-  attended,
-  absent,
-}
+enum RegistrationStatus { pending, approved, waitlisted, rejected, attended, absent }
 
 /// Delivery channels for a notification.
 enum NotificationChannel { push, email, inApp }

@@ -15,6 +15,8 @@ part 'user_model.g.dart';
 /// Note: a user's role within a specific section (i.e. section manager) is
 /// NOT stored here. It is tracked via [Section.managerIds] on the relevant
 /// section documents.
+///
+/// /// TODO: replace with isAdmin: bool
 @freezed
 abstract class UserModel with _$UserModel {
   const factory UserModel({

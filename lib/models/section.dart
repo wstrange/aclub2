@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+
 import 'firestore_converter.dart';
 
 part 'section.freezed.dart';
@@ -26,14 +27,9 @@ abstract class Section with _$Section {
     String? contactEmail,
     String? contactPhone,
 
-    /// User IDs of members who manage this section.
-    /// These users have section-manager privileges for this section only.
-    @Default([]) List<String> managerIds,
-
     @TimestampConverter() required DateTime createdAt,
     @TimestampConverter() required DateTime updatedAt,
   }) = _Section;
 
-  factory Section.fromJson(Map<String, dynamic> json) =>
-      _$SectionFromJson(json);
+  factory Section.fromJson(Map<String, dynamic> json) => _$SectionFromJson(json);
 }

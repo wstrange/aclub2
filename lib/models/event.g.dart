@@ -79,6 +79,8 @@ Map<String, dynamic> _$EventToJson(_Event instance) => <String, dynamic>{
 };
 
 const _$EventTypeEnumMap = {
+  EventType.rock: 'rock',
+  EventType.trailRun: 'trailRun',
   EventType.hike: 'hike',
   EventType.climb: 'climb',
   EventType.alpineSki: 'alpineSki',

@@ -13,11 +13,6 @@ _Section _$SectionFromJson(Map<String, dynamic> json) => _Section(
   location: json['location'] as String?,
   contactEmail: json['contactEmail'] as String?,
   contactPhone: json['contactPhone'] as String?,
-  managerIds:
-      (json['managerIds'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
   createdAt: const TimestampConverter().fromJson(
     json['createdAt'] as Timestamp,
   ),
@@ -33,7 +28,6 @@ Map<String, dynamic> _$SectionToJson(_Section instance) => <String, dynamic>{
   'location': instance.location,
   'contactEmail': instance.contactEmail,
   'contactPhone': instance.contactPhone,
-  'managerIds': instance.managerIds,
   'createdAt': const TimestampConverter().toJson(instance.createdAt),
   'updatedAt': const TimestampConverter().toJson(instance.updatedAt),
 };

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+
+import 'enums.dart';
 import 'firestore_converter.dart';
 
 part 'section_member.freezed.dart';
@@ -18,6 +20,8 @@ abstract class SectionMember with _$SectionMember {
     /// The section this record belongs to.
     required String sectionId,
 
+    required SectionRole sectionRole,
+
     /// Optional ID from an external membership management system.
     String? externalSystemId,
 
@@ -25,6 +29,5 @@ abstract class SectionMember with _$SectionMember {
     @TimestampConverter() required DateTime joinedAt,
   }) = _SectionMember;
 
-  factory SectionMember.fromJson(Map<String, dynamic> json) =>
-      _$SectionMemberFromJson(json);
+  factory SectionMember.fromJson(Map<String, dynamic> json) => _$SectionMemberFromJson(json);
 }
