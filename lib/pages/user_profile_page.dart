@@ -88,7 +88,7 @@ class CreateUserPage extends HookWidget {
         emergencyContactName: emergencyContactNameController.text.trim(),
         emergencyContactPhone: emergencyContactPhoneController.text.trim(),
         phone: phoneController.text.trim(),
-        notificationPreferences: NotificationPreferences(),
+        // notificationPreferences: NotificationPreferences(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );

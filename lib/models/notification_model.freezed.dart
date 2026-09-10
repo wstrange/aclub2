@@ -21,7 +21,7 @@ mixin _$NotificationModel {
  String get recipientId; String get title; String get message;/// Optional deep-link or in-app route, e.g. "/events/abc123".
  String? get link;/// Which channels were used to deliver this notification.
 /// Valid values: `push`, `email`, `inApp` (see [NotificationChannel]).
-/// Stored as strings because the ODM builder does not support List<Enum>.
+/// Stored as strings because the ODM builder does not support `List<Enum>.`
  List<String> get channels;/// Whether the recipient has marked this notification as read.
  bool get isRead; String? get relatedEventId; String? get relatedSectionId;@TimestampConverter() DateTime get createdAt;
 /// Create a copy of NotificationModel
@@ -244,11 +244,11 @@ class _NotificationModel implements NotificationModel {
 @override final  String? link;
 /// Which channels were used to deliver this notification.
 /// Valid values: `push`, `email`, `inApp` (see [NotificationChannel]).
-/// Stored as strings because the ODM builder does not support List<Enum>.
+/// Stored as strings because the ODM builder does not support `List<Enum>.`
  final  List<String> _channels;
 /// Which channels were used to deliver this notification.
 /// Valid values: `push`, `email`, `inApp` (see [NotificationChannel]).
-/// Stored as strings because the ODM builder does not support List<Enum>.
+/// Stored as strings because the ODM builder does not support `List<Enum>.`
 @override@JsonKey() List<String> get channels {
   if (_channels is EqualUnmodifiableListView) return _channels;
   // ignore: implicit_dynamic_type

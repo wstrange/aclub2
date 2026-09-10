@@ -23,7 +23,7 @@ mixin _$UserModel {
  List<String> get sectionIds;/// Whether this user has global admin access.
 /// All other roles (section manager, trip leader, member) are per-section
 /// and are stored on each [SectionMember] document.
- bool get isAdmin; NotificationPreferences get notificationPreferences;@TimestampConverter() DateTime get createdAt;@TimestampConverter() DateTime get updatedAt;
+ bool get isAdmin;@TimestampConverter() DateTime get createdAt;@TimestampConverter() DateTime get updatedAt;
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -37,20 +37,20 @@ $UserModelCopyWith<UserModel> get copyWith => _$UserModelCopyWithImpl<UserModel>
 @override
 bool operator ==(Object other) {
   final _this = this as UserModel;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.displayName, _this.displayName) || other.displayName == _this.displayName)&&(identical(other.email, _this.email) || other.email == _this.email)&&(identical(other.firstName, _this.firstName) || other.firstName == _this.firstName)&&(identical(other.lastName, _this.lastName) || other.lastName == _this.lastName)&&(identical(other.photoUrl, _this.photoUrl) || other.photoUrl == _this.photoUrl)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.emergencyContactName, _this.emergencyContactName) || other.emergencyContactName == _this.emergencyContactName)&&(identical(other.emergencyContactPhone, _this.emergencyContactPhone) || other.emergencyContactPhone == _this.emergencyContactPhone)&&(identical(other.emergencyContactRelation, _this.emergencyContactRelation) || other.emergencyContactRelation == _this.emergencyContactRelation)&&(identical(other.medicalConditions, _this.medicalConditions) || other.medicalConditions == _this.medicalConditions)&&const DeepCollectionEquality().equals(other.certifications, _this.certifications)&&const DeepCollectionEquality().equals(other.sectionIds, _this.sectionIds)&&(identical(other.isAdmin, _this.isAdmin) || other.isAdmin == _this.isAdmin)&&(identical(other.notificationPreferences, _this.notificationPreferences) || other.notificationPreferences == _this.notificationPreferences)&&(identical(other.createdAt, _this.createdAt) || other.createdAt == _this.createdAt)&&(identical(other.updatedAt, _this.updatedAt) || other.updatedAt == _this.updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.displayName, _this.displayName) || other.displayName == _this.displayName)&&(identical(other.email, _this.email) || other.email == _this.email)&&(identical(other.firstName, _this.firstName) || other.firstName == _this.firstName)&&(identical(other.lastName, _this.lastName) || other.lastName == _this.lastName)&&(identical(other.photoUrl, _this.photoUrl) || other.photoUrl == _this.photoUrl)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.emergencyContactName, _this.emergencyContactName) || other.emergencyContactName == _this.emergencyContactName)&&(identical(other.emergencyContactPhone, _this.emergencyContactPhone) || other.emergencyContactPhone == _this.emergencyContactPhone)&&(identical(other.emergencyContactRelation, _this.emergencyContactRelation) || other.emergencyContactRelation == _this.emergencyContactRelation)&&(identical(other.medicalConditions, _this.medicalConditions) || other.medicalConditions == _this.medicalConditions)&&const DeepCollectionEquality().equals(other.certifications, _this.certifications)&&const DeepCollectionEquality().equals(other.sectionIds, _this.sectionIds)&&(identical(other.isAdmin, _this.isAdmin) || other.isAdmin == _this.isAdmin)&&(identical(other.createdAt, _this.createdAt) || other.createdAt == _this.createdAt)&&(identical(other.updatedAt, _this.updatedAt) || other.updatedAt == _this.updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as UserModel;
-  return Object.hash(runtimeType,_this.id,_this.displayName,_this.email,_this.firstName,_this.lastName,_this.photoUrl,_this.phone,_this.emergencyContactName,_this.emergencyContactPhone,_this.emergencyContactRelation,_this.medicalConditions,const DeepCollectionEquality().hash(_this.certifications),const DeepCollectionEquality().hash(_this.sectionIds),_this.isAdmin,_this.notificationPreferences,_this.createdAt,_this.updatedAt);
+  return Object.hash(runtimeType,_this.id,_this.displayName,_this.email,_this.firstName,_this.lastName,_this.photoUrl,_this.phone,_this.emergencyContactName,_this.emergencyContactPhone,_this.emergencyContactRelation,_this.medicalConditions,const DeepCollectionEquality().hash(_this.certifications),const DeepCollectionEquality().hash(_this.sectionIds),_this.isAdmin,_this.createdAt,_this.updatedAt);
 }
 
 @override
 String toString() {
   final _this = this as UserModel;
-  return 'UserModel(id: ${_this.id}, displayName: ${_this.displayName}, email: ${_this.email}, firstName: ${_this.firstName}, lastName: ${_this.lastName}, photoUrl: ${_this.photoUrl}, phone: ${_this.phone}, emergencyContactName: ${_this.emergencyContactName}, emergencyContactPhone: ${_this.emergencyContactPhone}, emergencyContactRelation: ${_this.emergencyContactRelation}, medicalConditions: ${_this.medicalConditions}, certifications: ${_this.certifications}, sectionIds: ${_this.sectionIds}, isAdmin: ${_this.isAdmin}, notificationPreferences: ${_this.notificationPreferences}, createdAt: ${_this.createdAt}, updatedAt: ${_this.updatedAt})';
+  return 'UserModel(id: ${_this.id}, displayName: ${_this.displayName}, email: ${_this.email}, firstName: ${_this.firstName}, lastName: ${_this.lastName}, photoUrl: ${_this.photoUrl}, phone: ${_this.phone}, emergencyContactName: ${_this.emergencyContactName}, emergencyContactPhone: ${_this.emergencyContactPhone}, emergencyContactRelation: ${_this.emergencyContactRelation}, medicalConditions: ${_this.medicalConditions}, certifications: ${_this.certifications}, sectionIds: ${_this.sectionIds}, isAdmin: ${_this.isAdmin}, createdAt: ${_this.createdAt}, updatedAt: ${_this.updatedAt})';
 }
 
 
@@ -61,11 +61,11 @@ abstract mixin class $UserModelCopyWith<$Res>  {
   factory $UserModelCopyWith(UserModel value, $Res Function(UserModel) _then) = _$UserModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String displayName, String email, String firstName, String lastName, String? photoUrl, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, List<String> sectionIds, bool isAdmin, NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String displayName, String email, String firstName, String lastName, String? photoUrl, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, List<String> sectionIds, bool isAdmin,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
-$NotificationPreferencesCopyWith<$Res> get notificationPreferences;
+
 
 }
 /// @nodoc
@@ -78,7 +78,7 @@ class _$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? email = null,Object? firstName = null,Object? lastName = null,Object? photoUrl = freezed,Object? phone = freezed,Object? emergencyContactName = null,Object? emergencyContactPhone = null,Object? emergencyContactRelation = freezed,Object? medicalConditions = freezed,Object? certifications = null,Object? sectionIds = null,Object? isAdmin = null,Object? notificationPreferences = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? email = null,Object? firstName = null,Object? lastName = null,Object? photoUrl = freezed,Object? phone = freezed,Object? emergencyContactName = null,Object? emergencyContactPhone = null,Object? emergencyContactRelation = freezed,Object? medicalConditions = freezed,Object? certifications = null,Object? sectionIds = null,Object? isAdmin = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(UserModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -94,22 +94,12 @@ as String?,medicalConditions: freezed == medicalConditions ? _self.medicalCondit
 as String?,certifications: null == certifications ? _self.certifications : certifications // ignore: cast_nullable_to_non_nullable
 as List<String>,sectionIds: null == sectionIds ? _self.sectionIds : sectionIds // ignore: cast_nullable_to_non_nullable
 as List<String>,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
-as bool,notificationPreferences: null == notificationPreferences ? _self.notificationPreferences : notificationPreferences // ignore: cast_nullable_to_non_nullable
-as NotificationPreferences,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }
-/// Create a copy of UserModel
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$NotificationPreferencesCopyWith<$Res> get notificationPreferences {
-  
-  return $NotificationPreferencesCopyWith<$Res>(_self.notificationPreferences, (value) {
-    return _then(_self.copyWith(notificationPreferences: value));
-  });
-}
+
 }
 
 
@@ -191,10 +181,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String firstName,  String lastName,  String? photoUrl,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  bool isAdmin,  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String firstName,  String lastName,  String? photoUrl,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  bool isAdmin, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.displayName,_that.email,_that.firstName,_that.lastName,_that.photoUrl,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.sectionIds,_that.isAdmin,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.displayName,_that.email,_that.firstName,_that.lastName,_that.photoUrl,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.sectionIds,_that.isAdmin,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -212,10 +202,10 @@ return $default(_that.id,_that.displayName,_that.email,_that.firstName,_that.las
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String firstName,  String lastName,  String? photoUrl,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  bool isAdmin,  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String firstName,  String lastName,  String? photoUrl,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  bool isAdmin, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _UserModel():
-return $default(_that.id,_that.displayName,_that.email,_that.firstName,_that.lastName,_that.photoUrl,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.sectionIds,_that.isAdmin,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.displayName,_that.email,_that.firstName,_that.lastName,_that.photoUrl,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.sectionIds,_that.isAdmin,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -232,10 +222,10 @@ return $default(_that.id,_that.displayName,_that.email,_that.firstName,_that.las
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  String email,  String firstName,  String lastName,  String? photoUrl,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  bool isAdmin,  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  String email,  String firstName,  String lastName,  String? photoUrl,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  bool isAdmin, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.displayName,_that.email,_that.firstName,_that.lastName,_that.photoUrl,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.sectionIds,_that.isAdmin,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.displayName,_that.email,_that.firstName,_that.lastName,_that.photoUrl,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.sectionIds,_that.isAdmin,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -247,7 +237,7 @@ return $default(_that.id,_that.displayName,_that.email,_that.firstName,_that.las
 @JsonSerializable()
 
 class _UserModel implements UserModel {
-  const _UserModel({required this.id, required this.displayName, required this.email, required this.firstName, required this.lastName, this.photoUrl, this.phone, required this.emergencyContactName, required this.emergencyContactPhone, this.emergencyContactRelation, this.medicalConditions,  List<String> certifications = const [],  List<String> sectionIds = const [], this.isAdmin = false, required this.notificationPreferences, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _certifications = certifications,_sectionIds = sectionIds;
+  const _UserModel({required this.id, required this.displayName, required this.email, required this.firstName, required this.lastName, this.photoUrl, this.phone, required this.emergencyContactName, required this.emergencyContactPhone, this.emergencyContactRelation, this.medicalConditions,  List<String> certifications = const [],  List<String> sectionIds = const [], this.isAdmin = false, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _certifications = certifications,_sectionIds = sectionIds;
   factory _UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
 
 /// Firebase Auth UID — used as the Firestore document ID.
@@ -285,7 +275,6 @@ class _UserModel implements UserModel {
 /// All other roles (section manager, trip leader, member) are per-section
 /// and are stored on each [SectionMember] document.
 @override@JsonKey() final  bool isAdmin;
-@override final  NotificationPreferences notificationPreferences;
 @override@TimestampConverter() final  DateTime createdAt;
 @override@TimestampConverter() final  DateTime updatedAt;
 
@@ -302,18 +291,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.email, email) || other.email == email)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.emergencyContactName, emergencyContactName) || other.emergencyContactName == emergencyContactName)&&(identical(other.emergencyContactPhone, emergencyContactPhone) || other.emergencyContactPhone == emergencyContactPhone)&&(identical(other.emergencyContactRelation, emergencyContactRelation) || other.emergencyContactRelation == emergencyContactRelation)&&(identical(other.medicalConditions, medicalConditions) || other.medicalConditions == medicalConditions)&&const DeepCollectionEquality().equals(other.certifications, _certifications)&&const DeepCollectionEquality().equals(other.sectionIds, _sectionIds)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.notificationPreferences, notificationPreferences) || other.notificationPreferences == notificationPreferences)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.email, email) || other.email == email)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.emergencyContactName, emergencyContactName) || other.emergencyContactName == emergencyContactName)&&(identical(other.emergencyContactPhone, emergencyContactPhone) || other.emergencyContactPhone == emergencyContactPhone)&&(identical(other.emergencyContactRelation, emergencyContactRelation) || other.emergencyContactRelation == emergencyContactRelation)&&(identical(other.medicalConditions, medicalConditions) || other.medicalConditions == medicalConditions)&&const DeepCollectionEquality().equals(other.certifications, _certifications)&&const DeepCollectionEquality().equals(other.sectionIds, _sectionIds)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,displayName,email,firstName,lastName,photoUrl,phone,emergencyContactName,emergencyContactPhone,emergencyContactRelation,medicalConditions,const DeepCollectionEquality().hash(_certifications),const DeepCollectionEquality().hash(_sectionIds),isAdmin,notificationPreferences,createdAt,updatedAt);
+    return Object.hash(runtimeType,id,displayName,email,firstName,lastName,photoUrl,phone,emergencyContactName,emergencyContactPhone,emergencyContactRelation,medicalConditions,const DeepCollectionEquality().hash(_certifications),const DeepCollectionEquality().hash(_sectionIds),isAdmin,createdAt,updatedAt);
 }
 
 @override
 String toString() {
-    return 'UserModel(id: $id, displayName: $displayName, email: $email, firstName: $firstName, lastName: $lastName, photoUrl: $photoUrl, phone: $phone, emergencyContactName: $emergencyContactName, emergencyContactPhone: $emergencyContactPhone, emergencyContactRelation: $emergencyContactRelation, medicalConditions: $medicalConditions, certifications: $certifications, sectionIds: $sectionIds, isAdmin: $isAdmin, notificationPreferences: $notificationPreferences, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'UserModel(id: $id, displayName: $displayName, email: $email, firstName: $firstName, lastName: $lastName, photoUrl: $photoUrl, phone: $phone, emergencyContactName: $emergencyContactName, emergencyContactPhone: $emergencyContactPhone, emergencyContactRelation: $emergencyContactRelation, medicalConditions: $medicalConditions, certifications: $certifications, sectionIds: $sectionIds, isAdmin: $isAdmin, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -324,11 +313,11 @@ abstract mixin class _$UserModelCopyWith<$Res> implements $UserModelCopyWith<$Re
   factory _$UserModelCopyWith(_UserModel value, $Res Function(_UserModel) _then) = __$UserModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String displayName, String email, String firstName, String lastName, String? photoUrl, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, List<String> sectionIds, bool isAdmin, NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String displayName, String email, String firstName, String lastName, String? photoUrl, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, List<String> sectionIds, bool isAdmin,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
-@override $NotificationPreferencesCopyWith<$Res> get notificationPreferences;
+
 
 }
 /// @nodoc
@@ -341,7 +330,7 @@ class __$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? email = null,Object? firstName = null,Object? lastName = null,Object? photoUrl = freezed,Object? phone = freezed,Object? emergencyContactName = null,Object? emergencyContactPhone = null,Object? emergencyContactRelation = freezed,Object? medicalConditions = freezed,Object? certifications = null,Object? sectionIds = null,Object? isAdmin = null,Object? notificationPreferences = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? email = null,Object? firstName = null,Object? lastName = null,Object? photoUrl = freezed,Object? phone = freezed,Object? emergencyContactName = null,Object? emergencyContactPhone = null,Object? emergencyContactRelation = freezed,Object? medicalConditions = freezed,Object? certifications = null,Object? sectionIds = null,Object? isAdmin = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_UserModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -357,23 +346,13 @@ as String?,medicalConditions: freezed == medicalConditions ? _self.medicalCondit
 as String?,certifications: null == certifications ? _self._certifications : certifications // ignore: cast_nullable_to_non_nullable
 as List<String>,sectionIds: null == sectionIds ? _self._sectionIds : sectionIds // ignore: cast_nullable_to_non_nullable
 as List<String>,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
-as bool,notificationPreferences: null == notificationPreferences ? _self.notificationPreferences : notificationPreferences // ignore: cast_nullable_to_non_nullable
-as NotificationPreferences,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
 }
 
-/// Create a copy of UserModel
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$NotificationPreferencesCopyWith<$Res> get notificationPreferences {
-  
-  return $NotificationPreferencesCopyWith<$Res>(_self.notificationPreferences, (value) {
-    return _then(_self.copyWith(notificationPreferences: value));
-  });
-}
+
 }
 
 // dart format on

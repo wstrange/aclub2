@@ -3,7 +3,6 @@ import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'firestore_converter.dart';
-import 'notification_preferences.dart';
 
 part 'user_model.freezed.dart';
 part 'user_model.g.dart';
@@ -57,7 +56,7 @@ abstract class UserModel with _$UserModel {
     @Default(false) bool isAdmin,
 
     // ── Preferences ───────────────────────────────────────────────────────
-    required NotificationPreferences notificationPreferences,
+    // required NotificationPreferences notificationPreferences,
 
     // ── Timestamps ────────────────────────────────────────────────────────
     @TimestampConverter() required DateTime createdAt,

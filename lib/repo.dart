@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 
 import 'models/models.dart';
+import 'app_schema.dart';
 
 class AlpineRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final db = FirestoreODM(appSchema, firestore: FirebaseFirestore.instance);
 
   Stream<List<Section>> streamSections() {
     return _firestore.collection('sections').snapshots().map((snapshot) {
@@ -84,11 +87,11 @@ class AlpineRepository {
   }
 
   Future<void> createTemplate(Template template) async {
-    await _firestore.collection('templates').add(template.toJson());
+    await db.templates.create(template);
   }
 
   Future<void> updateTemplate(Template template) async {
-    await _firestore.collection('templates').doc(template.id).update(template.toJson());
+    await db.templates.set(template);
   }
 
   Future<void> deleteTemplate(Template template) async {
@@ -98,16 +101,14 @@ class AlpineRepository {
   /// User profile
   ///
   Future<UserModel?> getUser(String uid) async {
-    final doc = await _firestore.collection('users').doc(uid).get();
-    if (!doc.exists || doc.data() == null) return null;
-    return UserModel.fromJson({...?doc.data(), 'id': doc.id});
+    return await db.users(uid).get();
   }
 
   Future<void> createUser(UserModel u) async {
-    await _firestore.collection('users').doc(u.id).set(u.toJson());
+    await db.users.create(u);
   }
 
   Future<void> updateUser(UserModel u) async {
-    await _firestore.collection('users').doc(u.id).update(u.toJson());
+    await db.users.set(u);
   }
 }

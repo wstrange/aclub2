@@ -29,9 +29,6 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
           .toList() ??
       const [],
   isAdmin: json['isAdmin'] as bool? ?? false,
-  notificationPreferences: NotificationPreferences.fromJson(
-    json['notificationPreferences'] as Map<String, dynamic>,
-  ),
   createdAt: const TimestampConverter().fromJson(
     json['createdAt'] as Timestamp,
   ),
@@ -56,7 +53,6 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'certifications': instance.certifications,
       'sectionIds': instance.sectionIds,
       'isAdmin': instance.isAdmin,
-      'notificationPreferences': instance.notificationPreferences.toJson(),
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
       'updatedAt': const TimestampConverter().toJson(instance.updatedAt),
     };
@@ -82,9 +78,6 @@ Map<String, dynamic>? UserModelToJson(UserModel? instance) => instance == null
         'certifications': instance.certifications,
         'sectionIds': instance.sectionIds,
         'isAdmin': instance.isAdmin,
-        'notificationPreferences': NotificationPreferencesToJson(
-          instance.notificationPreferences,
-        ),
         'createdAt': instance.createdAt == null
             ? null
             : const TimestampConverter().toJson(instance.createdAt),
@@ -111,9 +104,6 @@ UserModel UserModelFromJson(Map<String, dynamic> json) => UserModel(
   certifications: (json['certifications'] as List<dynamic>).cast<String>(),
   sectionIds: (json['sectionIds'] as List<dynamic>).cast<String>(),
   isAdmin: (json['isAdmin'] as bool),
-  notificationPreferences: NotificationPreferences.fromJson(
-    (json['notificationPreferences'] as Map<String, dynamic>),
-  ),
   createdAt: const TimestampConverter().fromJson(json['createdAt']),
   updatedAt: const TimestampConverter().fromJson(json['updatedAt']),
 );
@@ -231,15 +221,6 @@ class UserModelPatchBuilder extends PatchBuilder<UserModel> {
       return value;
     },
   );
-
-  /// Patch handle for `notificationPreferences` (document field `notificationPreferences`).
-  late final FieldUpdate<NotificationPreferences> notificationPreferences =
-      FieldUpdate(
-        field: const FieldNode(components: ['notificationPreferences']),
-        toJson: (value) {
-          return NotificationPreferencesToJson(value);
-        },
-      );
 
   /// Patch handle for `createdAt` (document field `createdAt`).
   late final DateTimeFieldUpdate createdAt = DateTimeFieldUpdate(
@@ -389,12 +370,6 @@ class UserModelFilterBuilder extends FilterBuilderRoot {
     },
   );
 
-  /// Nested selector for `notificationPreferences`.
-  late final NotificationPreferencesFilterBuilder notificationPreferences =
-      NotificationPreferencesFilterBuilder(
-        field: append('notificationPreferences'),
-      );
-
   /// Selector for `createdAt`.
   late final FilterField<DateTime, DateTime> createdAt =
       FilterField<DateTime, DateTime>(
@@ -517,13 +492,6 @@ class UserModelOrderByBuilder extends OrderByBuilderRoot {
     context: _context,
   );
 
-  /// Nested selector for `notificationPreferences`.
-  late final NotificationPreferencesOrderByBuilder notificationPreferences =
-      NotificationPreferencesOrderByBuilder(
-        field: append('notificationPreferences'),
-        context: _context,
-      );
-
   /// Selector for `createdAt`.
   late final OrderByField<DateTime> createdAt = OrderByField(
     field: append('createdAt'),
@@ -548,13 +516,6 @@ class UserModelAggregateBuilder extends AggregateBuilderRoot {
     : _context = context;
 
   final AggregateContext _context;
-
-  /// Nested selector for `notificationPreferences`.
-  late final NotificationPreferencesAggregateBuilder notificationPreferences =
-      NotificationPreferencesAggregateBuilder(
-        field: append('notificationPreferences'),
-        context: _context,
-      );
 
   @override
   int count() => _context.resolve(const CountOperation('count'));
@@ -688,13 +649,6 @@ class UserModelPipelineSelector extends PipelineFieldNode {
       return value;
     },
   );
-
-  /// Nested selector for `notificationPreferences`.
-  late final NotificationPreferencesPipelineSelector notificationPreferences =
-      NotificationPreferencesPipelineSelector(
-        components: [...components, 'notificationPreferences'],
-        context: $ctx,
-      );
 
   /// Selector for `createdAt`.
   late final PipelineField<DateTime> createdAt = PipelineField(
