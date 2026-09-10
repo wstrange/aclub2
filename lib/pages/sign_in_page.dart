@@ -17,12 +17,13 @@ class SignInPage extends StatelessWidget {
         AuthStateChangeAction<SignedIn>((context, state) async {
           await repository.checkProfile(state.user!);
           if (!context.mounted) return;
-          context.replaceTop(const Home());
+          context.replaceTop(const HomeRoute());
         }),
         // When user creates a new account, route them to the profile screen
         AuthStateChangeAction<UserCreated>((context, state) async {
-          // await repository.checkProfile(state.credential.user!);
+          await repository.checkProfile(state.credential.user!);
 
+          if (!context.mounted) return;
           context.pushOrReplaceTop(const UserProfileRoute());
         }),
       ],

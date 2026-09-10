@@ -15,8 +15,8 @@ sealed class AppRoute extends KaiselRoute {
   const AppRoute();
 }
 
-final class Home extends AppRoute {
-  const Home();
+final class HomeRoute extends AppRoute {
+  const HomeRoute();
 }
 
 final class SignInRoute extends AppRoute {
@@ -41,10 +41,10 @@ final class UserProfileRoute extends AppRoute {
 // // }
 
 final routerConfig = KaiselRouterConfig<AppRoute>(
-  initial: FirebaseAuth.instance.currentUser != null ? const Home() : SignInRoute(),
+  initial: FirebaseAuth.instance.currentUser != null ? const HomeRoute() : SignInRoute(),
   guards: [authGuard],
   builder: (context, route) => switch (route) {
-    Home() => const HomePage(),
+    HomeRoute() => const HomePage(),
     SignInRoute() => SignInPage(),
     UserProfileRoute() => const UserProfilePage(),
 

@@ -52,6 +52,13 @@ class HomePage extends StatelessWidget {
                 // Handle your navigation logic here (e.g., Navigator.push)
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('My Profile'),
+              onTap: () async {
+                context.push(const UserProfileRoute());
+              },
+            ),
           ],
         ),
       ),

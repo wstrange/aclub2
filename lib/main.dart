@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:aclub2/firebase_options.dart';
-import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 
@@ -12,13 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
 import 'admin/setup.dart';
-import 'pages/user_profile_page.dart';
-import 'repo.dart';
 import 'routes.dart';
 
 // import 'firebase_options.dart';
-
-final repo = AlpineRepository();
 
 void main() async {
   Logger.root.level = Level.ALL;
@@ -40,16 +35,13 @@ void main() async {
   await createSections();
 
   runApp(
-    MultiBlocSignalProvider(
-      providers: [BlocSignalProvider<UserModelCubit>(create: (context) => UserModelCubit(repo))],
-      child: MaterialApp.router(
-        routerConfig: routerConfig,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          // Explicitly declare Roboto (already bundled with Flutter Web) to
-          // prevent the "Could not find Noto fonts" warning in Chrome.
-          fontFamily: 'Roboto',
-        ),
+    MaterialApp.router(
+      routerConfig: routerConfig,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        // Explicitly declare Roboto (already bundled with Flutter Web) to
+        // prevent the "Could not find Noto fonts" warning in Chrome.
+        fontFamily: 'Roboto',
       ),
     ),
   );
@@ -76,7 +68,10 @@ Future<void> _connectToFirebaseEmulator() async {
     FirebaseFirestore.instance.useFirestoreEmulator(localHost, 8080);
 
     // Optional: Turn off SSL/Persistence constraints if hitting emulator sync lags
-    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false, sslEnabled: false);
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: false,
+      sslEnabled: false,
+    );
 
     // Connect Storage Emulator if you use it (default port: 9199)
     // await FirebaseStorage.instance.useStorageEmulator(localHost, 9199);

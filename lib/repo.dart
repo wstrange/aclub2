@@ -113,11 +113,11 @@ class AlpineRepository {
     return await db.users(uid).get();
   }
 
-  Future<void> createUser(UserProfile u) async {
+  Future<void> createUserProfile(UserProfile u) async {
     await db.users.set(u);
   }
 
-  Future<void> updateUser(UserProfile u) async {
+  Future<void> updateUserProfile(UserProfile u) async {
     await db.users.set(u);
   }
 
@@ -184,7 +184,7 @@ class AlpineRepository {
         signedWaiver: false,
       );
 
-      await createUser(user);
+      await createUserProfile(user);
 
       await addMemberToSection(sectionId: defaultSectionId, userId: user.id);
 
