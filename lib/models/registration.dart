@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'enums.dart';
 import 'firestore_converter.dart';
@@ -14,6 +15,7 @@ part 'registration.g.dart';
 ///   or [RegistrationStatus.waitlisted] once capacity is reached.
 /// - A member can add a guest by setting [guestName].
 @freezed
+@firestoreOdm
 abstract class Registration with _$Registration {
   const factory Registration({
     /// Firestore document ID.

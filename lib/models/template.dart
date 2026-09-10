@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+
 import 'firestore_converter.dart';
 
 part 'template.freezed.dart';
@@ -11,10 +13,13 @@ part 'template.g.dart';
 /// description fields (or any other markdown-accepting field). Supports
 /// bilingual content via [language].
 @freezed
+@firestoreOdm
 abstract class Template with _$Template {
+  const Template._();
+
   const factory Template({
     /// Firestore document ID.
-    required String id,
+    @DocumentIdField() required String id,
 
     /// ISO language code — "en" or "fr".
     required String language,
@@ -32,6 +37,5 @@ abstract class Template with _$Template {
     @TimestampConverter() required DateTime updatedAt,
   }) = _Template;
 
-  factory Template.fromJson(Map<String, dynamic> json) =>
-      _$TemplateFromJson(json);
+  factory Template.fromJson(Map<String, dynamic> json) => _$TemplateFromJson(json);
 }

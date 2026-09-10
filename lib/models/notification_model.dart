@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+
 import 'enums.dart';
 import 'firestore_converter.dart';
 
@@ -12,6 +14,7 @@ part 'notification_model.g.dart';
 /// be sent via multiple channels (push, email, in-app) and can be marked as
 /// read or unread.
 @freezed
+@firestoreOdm
 abstract class NotificationModel with _$NotificationModel {
   const factory NotificationModel({
     /// Firestore document ID.
@@ -27,7 +30,9 @@ abstract class NotificationModel with _$NotificationModel {
     String? link,
 
     /// Which channels were used to deliver this notification.
-    @Default([]) List<NotificationChannel> channels,
+    /// Valid values: `push`, `email`, `inApp` (see [NotificationChannel]).
+    /// Stored as strings because the ODM builder does not support `List<Enum>.`
+    @Default([]) List<String> channels,
 
     /// Whether the recipient has marked this notification as read.
     @Default(false) bool isRead,
@@ -39,6 +44,5 @@ abstract class NotificationModel with _$NotificationModel {
     @TimestampConverter() required DateTime createdAt,
   }) = _NotificationModel;
 
-  factory NotificationModel.fromJson(Map<String, dynamic> json) =>
-      _$NotificationModelFromJson(json);
+  factory NotificationModel.fromJson(Map<String, dynamic> json) => _$NotificationModelFromJson(json);
 }

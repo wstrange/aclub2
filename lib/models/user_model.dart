@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'firestore_converter.dart';
@@ -18,6 +19,7 @@ part 'user_model.g.dart';
 ///
 /// /// TODO: replace with isAdmin: bool
 @freezed
+@firestoreOdm
 abstract class UserModel with _$UserModel {
   const factory UserModel({
     /// Firebase Auth UID — used as the Firestore document ID.
@@ -25,6 +27,9 @@ abstract class UserModel with _$UserModel {
 
     required String displayName,
     required String email,
+
+    required String firstName,
+    required String lastName,
 
     /// URL to the member's profile picture.
     String? photoUrl,

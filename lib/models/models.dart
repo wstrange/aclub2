@@ -4,7 +4,7 @@
 /// ```dart
 /// import 'package:aclub2/models/models.dart';
 /// ```
-library models;
+library;
 
 export 'carpool_option.dart';
 export 'enums.dart';

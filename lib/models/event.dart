@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'carpool_option.dart';
 import 'enums.dart';
@@ -14,6 +15,7 @@ part 'event.g.dart';
 /// New events are created as [EventStatus.draft] and must be explicitly
 /// published before they appear in public listings.
 @freezed
+@firestoreOdm
 abstract class Event with _$Event {
   const factory Event({
     /// Firestore document ID.

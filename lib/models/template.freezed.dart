@@ -17,7 +17,7 @@ T _$identity<T>(T value) => value;
 mixin _$Template {
 
 /// Firestore document ID.
- String get id;/// ISO language code — "en" or "fr".
+@DocumentIdField() String get id;/// ISO language code — "en" or "fr".
  String get language;/// Short admin-visible name for this template.
  String get title;/// The full markdown body of the template.
  String get markdownText;/// User ID of the admin who created the template.
@@ -59,7 +59,7 @@ abstract mixin class $TemplateCopyWith<$Res>  {
   factory $TemplateCopyWith(Template value, $Res Function(Template) _then) = _$TemplateCopyWithImpl;
 @useResult
 $Res call({
- String id, String language, String title, String markdownText, String createdBy,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+@DocumentIdField() String id, String language, String title, String markdownText, String createdBy,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -170,7 +170,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String language,  String title,  String markdownText,  String createdBy, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String language,  String title,  String markdownText,  String createdBy, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Template() when $default != null:
 return $default(_that.id,_that.language,_that.title,_that.markdownText,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
@@ -191,7 +191,7 @@ return $default(_that.id,_that.language,_that.title,_that.markdownText,_that.cre
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String language,  String title,  String markdownText,  String createdBy, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String language,  String title,  String markdownText,  String createdBy, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Template():
 return $default(_that.id,_that.language,_that.title,_that.markdownText,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
@@ -211,7 +211,7 @@ return $default(_that.id,_that.language,_that.title,_that.markdownText,_that.cre
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String language,  String title,  String markdownText,  String createdBy, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@DocumentIdField()  String id,  String language,  String title,  String markdownText,  String createdBy, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Template() when $default != null:
 return $default(_that.id,_that.language,_that.title,_that.markdownText,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
@@ -225,12 +225,12 @@ return $default(_that.id,_that.language,_that.title,_that.markdownText,_that.cre
 /// @nodoc
 @JsonSerializable()
 
-class _Template implements Template {
-  const _Template({required this.id, required this.language, required this.title, required this.markdownText, required this.createdBy, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt});
+class _Template extends Template {
+  const _Template({@DocumentIdField() required this.id, required this.language, required this.title, required this.markdownText, required this.createdBy, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): super._();
   factory _Template.fromJson(Map<String, dynamic> json) => _$TemplateFromJson(json);
 
 /// Firestore document ID.
-@override final  String id;
+@override@DocumentIdField() final  String id;
 /// ISO language code — "en" or "fr".
 @override final  String language;
 /// Short admin-visible name for this template.
@@ -277,7 +277,7 @@ abstract mixin class _$TemplateCopyWith<$Res> implements $TemplateCopyWith<$Res>
   factory _$TemplateCopyWith(_Template value, $Res Function(_Template) _then) = __$TemplateCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String language, String title, String markdownText, String createdBy,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+@DocumentIdField() String id, String language, String title, String markdownText, String createdBy,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 

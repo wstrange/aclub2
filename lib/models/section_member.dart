@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
@@ -12,6 +13,7 @@ part 'section_member.g.dart';
 /// Join record linking a user to a section. Supports syncing membership from
 /// an external system via [externalSystemId].
 @freezed
+@firestoreOdm
 abstract class SectionMember with _$SectionMember {
   const factory SectionMember({
     /// Firestore document ID — matches the Firebase Auth UID.

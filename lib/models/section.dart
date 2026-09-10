@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'firestore_converter.dart';
@@ -12,6 +13,7 @@ part 'section.g.dart';
 /// have multiple members. Section managers are users listed in [managerIds];
 /// their elevated permissions apply only within this section.
 @freezed
+@firestoreOdm
 abstract class Section with _$Section {
   const factory Section({
     /// Firestore document ID.

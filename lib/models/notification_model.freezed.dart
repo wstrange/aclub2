@@ -20,7 +20,9 @@ mixin _$NotificationModel {
  String get id;/// The user this notification is addressed to.
  String get recipientId; String get title; String get message;/// Optional deep-link or in-app route, e.g. "/events/abc123".
  String? get link;/// Which channels were used to deliver this notification.
- List<NotificationChannel> get channels;/// Whether the recipient has marked this notification as read.
+/// Valid values: `push`, `email`, `inApp` (see [NotificationChannel]).
+/// Stored as strings because the ODM builder does not support List<Enum>.
+ List<String> get channels;/// Whether the recipient has marked this notification as read.
  bool get isRead; String? get relatedEventId; String? get relatedSectionId;@TimestampConverter() DateTime get createdAt;
 /// Create a copy of NotificationModel
 /// with the given fields replaced by the non-null parameter values.
@@ -59,7 +61,7 @@ abstract mixin class $NotificationModelCopyWith<$Res>  {
   factory $NotificationModelCopyWith(NotificationModel value, $Res Function(NotificationModel) _then) = _$NotificationModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String recipientId, String title, String message, String? link, List<NotificationChannel> channels, bool isRead, String? relatedEventId, String? relatedSectionId,@TimestampConverter() DateTime createdAt
+ String id, String recipientId, String title, String message, String? link, List<String> channels, bool isRead, String? relatedEventId, String? relatedSectionId,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -84,7 +86,7 @@ as String,title: null == title ? _self.title : title // ignore: cast_nullable_to
 as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,link: freezed == link ? _self.link : link // ignore: cast_nullable_to_non_nullable
 as String?,channels: null == channels ? _self.channels : channels // ignore: cast_nullable_to_non_nullable
-as List<NotificationChannel>,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
+as List<String>,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
 as bool,relatedEventId: freezed == relatedEventId ? _self.relatedEventId : relatedEventId // ignore: cast_nullable_to_non_nullable
 as String?,relatedSectionId: freezed == relatedSectionId ? _self.relatedSectionId : relatedSectionId // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
@@ -173,7 +175,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String recipientId,  String title,  String message,  String? link,  List<NotificationChannel> channels,  bool isRead,  String? relatedEventId,  String? relatedSectionId, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String recipientId,  String title,  String message,  String? link,  List<String> channels,  bool isRead,  String? relatedEventId,  String? relatedSectionId, @TimestampConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _NotificationModel() when $default != null:
 return $default(_that.id,_that.recipientId,_that.title,_that.message,_that.link,_that.channels,_that.isRead,_that.relatedEventId,_that.relatedSectionId,_that.createdAt);case _:
@@ -194,7 +196,7 @@ return $default(_that.id,_that.recipientId,_that.title,_that.message,_that.link,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String recipientId,  String title,  String message,  String? link,  List<NotificationChannel> channels,  bool isRead,  String? relatedEventId,  String? relatedSectionId, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String recipientId,  String title,  String message,  String? link,  List<String> channels,  bool isRead,  String? relatedEventId,  String? relatedSectionId, @TimestampConverter()  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _NotificationModel():
 return $default(_that.id,_that.recipientId,_that.title,_that.message,_that.link,_that.channels,_that.isRead,_that.relatedEventId,_that.relatedSectionId,_that.createdAt);case _:
@@ -214,7 +216,7 @@ return $default(_that.id,_that.recipientId,_that.title,_that.message,_that.link,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String recipientId,  String title,  String message,  String? link,  List<NotificationChannel> channels,  bool isRead,  String? relatedEventId,  String? relatedSectionId, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String recipientId,  String title,  String message,  String? link,  List<String> channels,  bool isRead,  String? relatedEventId,  String? relatedSectionId, @TimestampConverter()  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _NotificationModel() when $default != null:
 return $default(_that.id,_that.recipientId,_that.title,_that.message,_that.link,_that.channels,_that.isRead,_that.relatedEventId,_that.relatedSectionId,_that.createdAt);case _:
@@ -229,7 +231,7 @@ return $default(_that.id,_that.recipientId,_that.title,_that.message,_that.link,
 @JsonSerializable()
 
 class _NotificationModel implements NotificationModel {
-  const _NotificationModel({required this.id, required this.recipientId, required this.title, required this.message, this.link,  List<NotificationChannel> channels = const [], this.isRead = false, this.relatedEventId, this.relatedSectionId, @TimestampConverter() required this.createdAt}): _channels = channels;
+  const _NotificationModel({required this.id, required this.recipientId, required this.title, required this.message, this.link,  List<String> channels = const [], this.isRead = false, this.relatedEventId, this.relatedSectionId, @TimestampConverter() required this.createdAt}): _channels = channels;
   factory _NotificationModel.fromJson(Map<String, dynamic> json) => _$NotificationModelFromJson(json);
 
 /// Firestore document ID.
@@ -241,9 +243,13 @@ class _NotificationModel implements NotificationModel {
 /// Optional deep-link or in-app route, e.g. "/events/abc123".
 @override final  String? link;
 /// Which channels were used to deliver this notification.
- final  List<NotificationChannel> _channels;
+/// Valid values: `push`, `email`, `inApp` (see [NotificationChannel]).
+/// Stored as strings because the ODM builder does not support List<Enum>.
+ final  List<String> _channels;
 /// Which channels were used to deliver this notification.
-@override@JsonKey() List<NotificationChannel> get channels {
+/// Valid values: `push`, `email`, `inApp` (see [NotificationChannel]).
+/// Stored as strings because the ODM builder does not support List<Enum>.
+@override@JsonKey() List<String> get channels {
   if (_channels is EqualUnmodifiableListView) return _channels;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_channels);
@@ -290,7 +296,7 @@ abstract mixin class _$NotificationModelCopyWith<$Res> implements $NotificationM
   factory _$NotificationModelCopyWith(_NotificationModel value, $Res Function(_NotificationModel) _then) = __$NotificationModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String recipientId, String title, String message, String? link, List<NotificationChannel> channels, bool isRead, String? relatedEventId, String? relatedSectionId,@TimestampConverter() DateTime createdAt
+ String id, String recipientId, String title, String message, String? link, List<String> channels, bool isRead, String? relatedEventId, String? relatedSectionId,@TimestampConverter() DateTime createdAt
 });
 
 
@@ -315,7 +321,7 @@ as String,title: null == title ? _self.title : title // ignore: cast_nullable_to
 as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,link: freezed == link ? _self.link : link // ignore: cast_nullable_to_non_nullable
 as String?,channels: null == channels ? _self._channels : channels // ignore: cast_nullable_to_non_nullable
-as List<NotificationChannel>,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
+as List<String>,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
 as bool,relatedEventId: freezed == relatedEventId ? _self.relatedEventId : relatedEventId // ignore: cast_nullable_to_non_nullable
 as String?,relatedSectionId: freezed == relatedSectionId ? _self.relatedSectionId : relatedSectionId // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
