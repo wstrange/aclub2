@@ -27,12 +27,12 @@ class UserFormError extends UserFormState {
   const UserFormError(this.message);
 }
 
-class UserCubit extends CubitSignal<UserFormState> {
+class UserModelCubit extends CubitSignal<UserFormState> {
   final AlpineRepository repository;
 
-  UserCubit(this.repository) : super(initialState: const UserFormInitial());
+  UserModelCubit(this.repository) : super(initialState: const UserFormInitial());
 
-  Future<void> createUser({required UserModel user}) async {
+  Future<void> createUser({required UserProfile user}) async {
     emit(const UserFormSaving());
 
     try {
@@ -45,55 +45,36 @@ class UserCubit extends CubitSignal<UserFormState> {
   }
 }
 
-class CreateUserPage extends HookWidget {
-  const CreateUserPage({super.key});
+class UserProfilePage extends HookWidget {
+  const UserProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final formKey = useMemoized(() => GlobalKey<FormState>());
-
-    final nameController = useTextEditingController();
-    final emailController = useTextEditingController();
     final emergencyContactNameController = useTextEditingController();
     final emergencyContactPhoneController = useTextEditingController();
     final phoneController = useTextEditingController();
     final firstNameController = useTextEditingController();
     final lastNameController = useTextEditingController();
-    // final addressController = useTextEditingController();
-    // final cityController = useTextEditingController();
-    // final provinceController = useTextEditingController();
-    // final postalCodeController = useTextEditingController();
-    // final countryController = useTextEditingController();
-    // final dateOfBirthController = useTextEditingController();
-    // final genderController = useTextEditingController();
-    // final profilePictureController = useTextEditingController();
-    // final bioController = useTextEditingController();
-    // final websiteController = useTextEditingController();
-    // final facebookController = useTextEditingController();
-    // final twitterController = useTextEditingController();
-    // final instagramController = useTextEditingController();
-    // final linkedinController = useTextEditingController();
 
     void submit() async {
       if (!formKey.currentState!.validate()) {
         return;
       }
 
-      final user = UserModel(
-        displayName: nameController.text.trim(),
-        email: emailController.text.trim(),
+      final user = UserProfile(
         id: '1234',
         firstName: firstNameController.text.trim(),
         lastName: lastNameController.text.trim(),
         emergencyContactName: emergencyContactNameController.text.trim(),
         emergencyContactPhone: emergencyContactPhoneController.text.trim(),
         phone: phoneController.text.trim(),
-        // notificationPreferences: NotificationPreferences(),
+        notificationPreferences: NotificationPreferences(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
       try {
-        await context.read<UserCubit>().createUser(user: user);
+        await context.read<UserModelCubit>().createUser(user: user);
       } catch (e) {
         print(e);
       }
@@ -108,8 +89,8 @@ class CreateUserPage extends HookWidget {
           child: Column(
             children: [
               TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
+                controller: firstNameController,
+                decoration: const InputDecoration(labelText: 'First Name'),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Enter a name';
@@ -121,12 +102,12 @@ class CreateUserPage extends HookWidget {
               const SizedBox(height: 16),
 
               TextFormField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email'),
+                controller: lastNameController,
+                keyboardType: TextInputType.text,
+                decoration: const InputDecoration(labelText: 'Last Name'),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Enter an email';
+                    return 'Enter a last name';
                   }
                   return null;
                 },
@@ -134,7 +115,7 @@ class CreateUserPage extends HookWidget {
 
               const SizedBox(height: 24),
 
-              BlocSignalBuilder<UserCubit, UserFormState>(
+              BlocSignalBuilder<UserModelCubit, UserFormState>(
                 builder: (context, state) {
                   final isSaving = state is UserFormSaving;
 

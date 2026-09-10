@@ -1,8 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 
 import 'models/models.dart';
 import 'app_schema.dart';
+
+import 'package:logging/logging.dart';
+
+final _log = Logger("Repository");
+
+const String defaultSectionId = "national";
+
+final repository = AlpineRepository();
 
 class AlpineRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -100,15 +109,86 @@ class AlpineRepository {
 
   /// User profile
   ///
-  Future<UserModel?> getUser(String uid) async {
+  Future<UserProfile?> getUser(String uid) async {
     return await db.users(uid).get();
   }
 
-  Future<void> createUser(UserModel u) async {
-    await db.users.create(u);
+  Future<void> createUser(UserProfile u) async {
+    await db.users.set(u);
   }
 
-  Future<void> updateUser(UserModel u) async {
+  Future<void> updateUser(UserProfile u) async {
     await db.users.set(u);
+  }
+
+  Future<String> createSection(Section section) async {
+    if (section.id.isNotEmpty) {
+      await db.sections.set(section);
+      return section.id;
+    }
+    return await db.sections.create(section);
+  }
+
+  Future<void> updateSection(Section section) async {
+    await db.sections.set(section);
+  }
+
+  Future<List<Section>> getSections() async {
+    return await db.sections.get();
+  }
+
+  Future<Section?> getSection(String sectionId) async {
+    return await db.sections(sectionId).get();
+  }
+
+  Future<void> deleteSection(Section section) async {
+    await db.sections.delete(section.id);
+  }
+
+  Future<UserProfile?> getUserProfile(String uid) async {
+    return await db.users(uid).get();
+  }
+
+  // Add to section
+  Future<void> addMemberToSection({required String sectionId, required String userId}) async {
+    _log.info("Adding user $userId to section $sectionId");
+    var s = SectionMember(
+      sectionId: sectionId,
+      id: userId,
+      sectionRole: SectionRole.tripLeader,
+      joinedAt: DateTime.now(),
+    );
+    await db.sectionsMembers(sectionId).set(s);
+  }
+
+  // Called on login. Checks to see if the user has a complated profile.
+  // if not, creates a stub profile for them.
+
+  Future<void> checkProfile(User userInfo) async {
+    final up = await getUserProfile(userInfo.uid);
+
+    if (up == null) {
+      _log.info("Creating stub profile for ${userInfo.email}");
+
+      final user = UserProfile(
+        id: userInfo.uid,
+        firstName: '',
+        lastName: '',
+        phone: '555-1212',
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        notificationPreferences: NotificationPreferences(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        complatedProfile: false,
+        signedWaiver: false,
+      );
+
+      await createUser(user);
+
+      await addMemberToSection(sectionId: defaultSectionId, userId: user.id);
+
+      _log.info("Created stub profile for ${userInfo.email}");
+    }
   }
 }

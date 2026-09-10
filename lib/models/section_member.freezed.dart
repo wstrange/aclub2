@@ -17,7 +17,7 @@ T _$identity<T>(T value) => value;
 mixin _$SectionMember {
 
 /// Firestore document ID — matches the Firebase Auth UID.
- String get userId;/// The section this record belongs to.
+@DocumentIdField() String get id;/// The section this record belongs to.
  String get sectionId; SectionRole get sectionRole;/// Optional ID from an external membership management system.
  String? get externalSystemId;/// When the user joined this section.
 @TimestampConverter() DateTime get joinedAt;
@@ -34,20 +34,20 @@ $SectionMemberCopyWith<SectionMember> get copyWith => _$SectionMemberCopyWithImp
 @override
 bool operator ==(Object other) {
   final _this = this as SectionMember;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SectionMember&&(identical(other.userId, _this.userId) || other.userId == _this.userId)&&(identical(other.sectionId, _this.sectionId) || other.sectionId == _this.sectionId)&&(identical(other.sectionRole, _this.sectionRole) || other.sectionRole == _this.sectionRole)&&(identical(other.externalSystemId, _this.externalSystemId) || other.externalSystemId == _this.externalSystemId)&&(identical(other.joinedAt, _this.joinedAt) || other.joinedAt == _this.joinedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SectionMember&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.sectionId, _this.sectionId) || other.sectionId == _this.sectionId)&&(identical(other.sectionRole, _this.sectionRole) || other.sectionRole == _this.sectionRole)&&(identical(other.externalSystemId, _this.externalSystemId) || other.externalSystemId == _this.externalSystemId)&&(identical(other.joinedAt, _this.joinedAt) || other.joinedAt == _this.joinedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as SectionMember;
-  return Object.hash(runtimeType,_this.userId,_this.sectionId,_this.sectionRole,_this.externalSystemId,_this.joinedAt);
+  return Object.hash(runtimeType,_this.id,_this.sectionId,_this.sectionRole,_this.externalSystemId,_this.joinedAt);
 }
 
 @override
 String toString() {
   final _this = this as SectionMember;
-  return 'SectionMember(userId: ${_this.userId}, sectionId: ${_this.sectionId}, sectionRole: ${_this.sectionRole}, externalSystemId: ${_this.externalSystemId}, joinedAt: ${_this.joinedAt})';
+  return 'SectionMember(id: ${_this.id}, sectionId: ${_this.sectionId}, sectionRole: ${_this.sectionRole}, externalSystemId: ${_this.externalSystemId}, joinedAt: ${_this.joinedAt})';
 }
 
 
@@ -58,7 +58,7 @@ abstract mixin class $SectionMemberCopyWith<$Res>  {
   factory $SectionMemberCopyWith(SectionMember value, $Res Function(SectionMember) _then) = _$SectionMemberCopyWithImpl;
 @useResult
 $Res call({
- String userId, String sectionId, SectionRole sectionRole, String? externalSystemId,@TimestampConverter() DateTime joinedAt
+@DocumentIdField() String id, String sectionId, SectionRole sectionRole, String? externalSystemId,@TimestampConverter() DateTime joinedAt
 });
 
 
@@ -75,9 +75,9 @@ class _$SectionMemberCopyWithImpl<$Res>
 
 /// Create a copy of SectionMember
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? sectionId = null,Object? sectionRole = null,Object? externalSystemId = freezed,Object? joinedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? sectionId = null,Object? sectionRole = null,Object? externalSystemId = freezed,Object? joinedAt = null,}) {
   return _then(SectionMember(
-userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,sectionId: null == sectionId ? _self.sectionId : sectionId // ignore: cast_nullable_to_non_nullable
 as String,sectionRole: null == sectionRole ? _self.sectionRole : sectionRole // ignore: cast_nullable_to_non_nullable
 as SectionRole,externalSystemId: freezed == externalSystemId ? _self.externalSystemId : externalSystemId // ignore: cast_nullable_to_non_nullable
@@ -167,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String userId,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SectionMember() when $default != null:
-return $default(_that.userId,_that.sectionId,_that.sectionRole,_that.externalSystemId,_that.joinedAt);case _:
+return $default(_that.id,_that.sectionId,_that.sectionRole,_that.externalSystemId,_that.joinedAt);case _:
   return orElse();
 
 }
@@ -188,10 +188,10 @@ return $default(_that.userId,_that.sectionId,_that.sectionRole,_that.externalSys
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String userId,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)  $default,) {final _that = this;
 switch (_that) {
 case _SectionMember():
-return $default(_that.userId,_that.sectionId,_that.sectionRole,_that.externalSystemId,_that.joinedAt);case _:
+return $default(_that.id,_that.sectionId,_that.sectionRole,_that.externalSystemId,_that.joinedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -208,10 +208,10 @@ return $default(_that.userId,_that.sectionId,_that.sectionRole,_that.externalSys
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String userId,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@DocumentIdField()  String id,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _SectionMember() when $default != null:
-return $default(_that.userId,_that.sectionId,_that.sectionRole,_that.externalSystemId,_that.joinedAt);case _:
+return $default(_that.id,_that.sectionId,_that.sectionRole,_that.externalSystemId,_that.joinedAt);case _:
   return null;
 
 }
@@ -223,11 +223,11 @@ return $default(_that.userId,_that.sectionId,_that.sectionRole,_that.externalSys
 @JsonSerializable()
 
 class _SectionMember implements SectionMember {
-  const _SectionMember({required this.userId, required this.sectionId, required this.sectionRole, this.externalSystemId, @TimestampConverter() required this.joinedAt});
+  const _SectionMember({@DocumentIdField() required this.id, required this.sectionId, required this.sectionRole, this.externalSystemId, @TimestampConverter() required this.joinedAt});
   factory _SectionMember.fromJson(Map<String, dynamic> json) => _$SectionMemberFromJson(json);
 
 /// Firestore document ID — matches the Firebase Auth UID.
-@override final  String userId;
+@override@DocumentIdField() final  String id;
 /// The section this record belongs to.
 @override final  String sectionId;
 @override final  SectionRole sectionRole;
@@ -249,18 +249,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SectionMember&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.sectionRole, sectionRole) || other.sectionRole == sectionRole)&&(identical(other.externalSystemId, externalSystemId) || other.externalSystemId == externalSystemId)&&(identical(other.joinedAt, joinedAt) || other.joinedAt == joinedAt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SectionMember&&(identical(other.id, id) || other.id == id)&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&(identical(other.sectionRole, sectionRole) || other.sectionRole == sectionRole)&&(identical(other.externalSystemId, externalSystemId) || other.externalSystemId == externalSystemId)&&(identical(other.joinedAt, joinedAt) || other.joinedAt == joinedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,userId,sectionId,sectionRole,externalSystemId,joinedAt);
+    return Object.hash(runtimeType,id,sectionId,sectionRole,externalSystemId,joinedAt);
 }
 
 @override
 String toString() {
-    return 'SectionMember(userId: $userId, sectionId: $sectionId, sectionRole: $sectionRole, externalSystemId: $externalSystemId, joinedAt: $joinedAt)';
+    return 'SectionMember(id: $id, sectionId: $sectionId, sectionRole: $sectionRole, externalSystemId: $externalSystemId, joinedAt: $joinedAt)';
 }
 
 
@@ -271,7 +271,7 @@ abstract mixin class _$SectionMemberCopyWith<$Res> implements $SectionMemberCopy
   factory _$SectionMemberCopyWith(_SectionMember value, $Res Function(_SectionMember) _then) = __$SectionMemberCopyWithImpl;
 @override @useResult
 $Res call({
- String userId, String sectionId, SectionRole sectionRole, String? externalSystemId,@TimestampConverter() DateTime joinedAt
+@DocumentIdField() String id, String sectionId, SectionRole sectionRole, String? externalSystemId,@TimestampConverter() DateTime joinedAt
 });
 
 
@@ -288,9 +288,9 @@ class __$SectionMemberCopyWithImpl<$Res>
 
 /// Create a copy of SectionMember
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? sectionId = null,Object? sectionRole = null,Object? externalSystemId = freezed,Object? joinedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? sectionId = null,Object? sectionRole = null,Object? externalSystemId = freezed,Object? joinedAt = null,}) {
   return _then(_SectionMember(
-userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,sectionId: null == sectionId ? _self.sectionId : sectionId // ignore: cast_nullable_to_non_nullable
 as String,sectionRole: null == sectionRole ? _self.sectionRole : sectionRole // ignore: cast_nullable_to_non_nullable
 as SectionRole,externalSystemId: freezed == externalSystemId ? _self.externalSystemId : externalSystemId // ignore: cast_nullable_to_non_nullable

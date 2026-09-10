@@ -1,18 +1,15 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'user_model.dart';
+part of 'user_profile.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-_UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
+_UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
   id: json['id'] as String,
-  displayName: json['displayName'] as String,
-  email: json['email'] as String,
   firstName: json['firstName'] as String,
   lastName: json['lastName'] as String,
-  photoUrl: json['photoUrl'] as String?,
   phone: json['phone'] as String?,
   emergencyContactName: json['emergencyContactName'] as String,
   emergencyContactPhone: json['emergencyContactPhone'] as String,
@@ -29,6 +26,11 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
           .toList() ??
       const [],
   isAdmin: json['isAdmin'] as bool? ?? false,
+  complatedProfile: json['complatedProfile'] as bool? ?? false,
+  signedWaiver: json['signedWaiver'] as bool? ?? false,
+  notificationPreferences: NotificationPreferences.fromJson(
+    json['notificationPreferences'] as Map<String, dynamic>,
+  ),
   createdAt: const TimestampConverter().fromJson(
     json['createdAt'] as Timestamp,
   ),
@@ -37,14 +39,11 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
   ),
 );
 
-Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
+Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'displayName': instance.displayName,
-      'email': instance.email,
       'firstName': instance.firstName,
       'lastName': instance.lastName,
-      'photoUrl': instance.photoUrl,
       'phone': instance.phone,
       'emergencyContactName': instance.emergencyContactName,
       'emergencyContactPhone': instance.emergencyContactPhone,
@@ -53,6 +52,9 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'certifications': instance.certifications,
       'sectionIds': instance.sectionIds,
       'isAdmin': instance.isAdmin,
+      'complatedProfile': instance.complatedProfile,
+      'signedWaiver': instance.signedWaiver,
+      'notificationPreferences': instance.notificationPreferences.toJson(),
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
       'updatedAt': const TimestampConverter().toJson(instance.updatedAt),
     };
@@ -61,15 +63,13 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
 // ModelBuilderGenerator
 // **************************************************************************
 
-Map<String, dynamic>? UserModelToJson(UserModel? instance) => instance == null
+Map<String, dynamic>? UserProfileToJson(UserProfile? instance) =>
+    instance == null
     ? null
     : {
         'id': instance.id,
-        'displayName': instance.displayName,
-        'email': instance.email,
         'firstName': instance.firstName,
         'lastName': instance.lastName,
-        'photoUrl': instance.photoUrl,
         'phone': instance.phone,
         'emergencyContactName': instance.emergencyContactName,
         'emergencyContactPhone': instance.emergencyContactPhone,
@@ -78,6 +78,11 @@ Map<String, dynamic>? UserModelToJson(UserModel? instance) => instance == null
         'certifications': instance.certifications,
         'sectionIds': instance.sectionIds,
         'isAdmin': instance.isAdmin,
+        'complatedProfile': instance.complatedProfile,
+        'signedWaiver': instance.signedWaiver,
+        'notificationPreferences': NotificationPreferencesToJson(
+          instance.notificationPreferences,
+        ),
         'createdAt': instance.createdAt == null
             ? null
             : const TimestampConverter().toJson(instance.createdAt),
@@ -85,13 +90,10 @@ Map<String, dynamic>? UserModelToJson(UserModel? instance) => instance == null
             ? null
             : const TimestampConverter().toJson(instance.updatedAt),
       };
-UserModel UserModelFromJson(Map<String, dynamic> json) => UserModel(
+UserProfile UserProfileFromJson(Map<String, dynamic> json) => UserProfile(
   id: (json['id'] as String),
-  displayName: (json['displayName'] as String),
-  email: (json['email'] as String),
   firstName: (json['firstName'] as String),
   lastName: (json['lastName'] as String),
-  photoUrl: json['photoUrl'] == null ? null : (json['photoUrl'] as String?),
   phone: json['phone'] == null ? null : (json['phone'] as String?),
   emergencyContactName: (json['emergencyContactName'] as String),
   emergencyContactPhone: (json['emergencyContactPhone'] as String),
@@ -104,29 +106,18 @@ UserModel UserModelFromJson(Map<String, dynamic> json) => UserModel(
   certifications: (json['certifications'] as List<dynamic>).cast<String>(),
   sectionIds: (json['sectionIds'] as List<dynamic>).cast<String>(),
   isAdmin: (json['isAdmin'] as bool),
+  complatedProfile: (json['complatedProfile'] as bool),
+  signedWaiver: (json['signedWaiver'] as bool),
+  notificationPreferences: NotificationPreferences.fromJson(
+    (json['notificationPreferences'] as Map<String, dynamic>),
+  ),
   createdAt: const TimestampConverter().fromJson(json['createdAt']),
   updatedAt: const TimestampConverter().fromJson(json['updatedAt']),
 );
 
-class UserModelPatchBuilder extends PatchBuilder<UserModel> {
-  /// Creates a patch builder for `UserModel`.
-  UserModelPatchBuilder();
-
-  /// Patch handle for `displayName` (document field `displayName`).
-  late final FieldUpdate<String> displayName = FieldUpdate(
-    field: const FieldNode(components: ['displayName']),
-    toJson: (value) {
-      return value;
-    },
-  );
-
-  /// Patch handle for `email` (document field `email`).
-  late final FieldUpdate<String> email = FieldUpdate(
-    field: const FieldNode(components: ['email']),
-    toJson: (value) {
-      return value;
-    },
-  );
+class UserProfilePatchBuilder extends PatchBuilder<UserProfile> {
+  /// Creates a patch builder for `UserProfile`.
+  UserProfilePatchBuilder();
 
   /// Patch handle for `firstName` (document field `firstName`).
   late final FieldUpdate<String> firstName = FieldUpdate(
@@ -139,14 +130,6 @@ class UserModelPatchBuilder extends PatchBuilder<UserModel> {
   /// Patch handle for `lastName` (document field `lastName`).
   late final FieldUpdate<String> lastName = FieldUpdate(
     field: const FieldNode(components: ['lastName']),
-    toJson: (value) {
-      return value;
-    },
-  );
-
-  /// Patch handle for `photoUrl` (document field `photoUrl`).
-  late final FieldUpdate<String?> photoUrl = FieldUpdate(
-    field: const FieldNode(components: ['photoUrl']),
     toJson: (value) {
       return value;
     },
@@ -222,6 +205,31 @@ class UserModelPatchBuilder extends PatchBuilder<UserModel> {
     },
   );
 
+  /// Patch handle for `complatedProfile` (document field `complatedProfile`).
+  late final FieldUpdate<bool> complatedProfile = FieldUpdate(
+    field: const FieldNode(components: ['complatedProfile']),
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Patch handle for `signedWaiver` (document field `signedWaiver`).
+  late final FieldUpdate<bool> signedWaiver = FieldUpdate(
+    field: const FieldNode(components: ['signedWaiver']),
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Patch handle for `notificationPreferences` (document field `notificationPreferences`).
+  late final FieldUpdate<NotificationPreferences> notificationPreferences =
+      FieldUpdate(
+        field: const FieldNode(components: ['notificationPreferences']),
+        toJson: (value) {
+          return NotificationPreferencesToJson(value);
+        },
+      );
+
   /// Patch handle for `createdAt` (document field `createdAt`).
   late final DateTimeFieldUpdate createdAt = DateTimeFieldUpdate(
     field: const FieldNode(components: ['createdAt']),
@@ -239,29 +247,12 @@ class UserModelPatchBuilder extends PatchBuilder<UserModel> {
   );
 }
 
-class UserModelFilterBuilder extends FilterBuilderRoot {
-  UserModelFilterBuilder({super.field});
+class UserProfileFilterBuilder extends FilterBuilderRoot {
+  UserProfileFilterBuilder({super.field});
 
   /// Selector for `id`.
   late final FilterField<String, String> id = FilterField<String, String>(
     field: append('id'),
-    toJson: (value) {
-      return value;
-    },
-  );
-
-  /// Selector for `displayName`.
-  late final FilterField<String, String> displayName =
-      FilterField<String, String>(
-        field: append('displayName'),
-        toJson: (value) {
-          return value;
-        },
-      );
-
-  /// Selector for `email`.
-  late final FilterField<String, String> email = FilterField<String, String>(
-    field: append('email'),
     toJson: (value) {
       return value;
     },
@@ -283,15 +274,6 @@ class UserModelFilterBuilder extends FilterBuilderRoot {
       return value;
     },
   );
-
-  /// Selector for `photoUrl`.
-  late final FilterField<String?, String?> photoUrl =
-      FilterField<String?, String?>(
-        field: append('photoUrl'),
-        toJson: (value) {
-          return value;
-        },
-      );
 
   /// Selector for `phone`.
   late final FilterField<String?, String?> phone =
@@ -370,6 +352,28 @@ class UserModelFilterBuilder extends FilterBuilderRoot {
     },
   );
 
+  /// Selector for `complatedProfile`.
+  late final FilterField<bool, bool> complatedProfile = FilterField<bool, bool>(
+    field: append('complatedProfile'),
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Selector for `signedWaiver`.
+  late final FilterField<bool, bool> signedWaiver = FilterField<bool, bool>(
+    field: append('signedWaiver'),
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Nested selector for `notificationPreferences`.
+  late final NotificationPreferencesFilterBuilder notificationPreferences =
+      NotificationPreferencesFilterBuilder(
+        field: append('notificationPreferences'),
+      );
+
   /// Selector for `createdAt`.
   late final FilterField<DateTime, DateTime> createdAt =
       FilterField<DateTime, DateTime>(
@@ -402,8 +406,8 @@ class UserModelFilterBuilder extends FilterBuilderRoot {
       );
 }
 
-class UserModelOrderByBuilder extends OrderByBuilderRoot {
-  UserModelOrderByBuilder({super.field, required OrderByContext context})
+class UserProfileOrderByBuilder extends OrderByBuilderRoot {
+  UserProfileOrderByBuilder({super.field, required OrderByContext context})
     : _context = context;
 
   final OrderByContext _context;
@@ -411,18 +415,6 @@ class UserModelOrderByBuilder extends OrderByBuilderRoot {
   /// Selector for `id`.
   late final OrderByField<String> id = OrderByField(
     field: append('id'),
-    context: _context,
-  );
-
-  /// Selector for `displayName`.
-  late final OrderByField<String> displayName = OrderByField(
-    field: append('displayName'),
-    context: _context,
-  );
-
-  /// Selector for `email`.
-  late final OrderByField<String> email = OrderByField(
-    field: append('email'),
     context: _context,
   );
 
@@ -435,12 +427,6 @@ class UserModelOrderByBuilder extends OrderByBuilderRoot {
   /// Selector for `lastName`.
   late final OrderByField<String> lastName = OrderByField(
     field: append('lastName'),
-    context: _context,
-  );
-
-  /// Selector for `photoUrl`.
-  late final OrderByField<String?> photoUrl = OrderByField(
-    field: append('photoUrl'),
     context: _context,
   );
 
@@ -492,6 +478,25 @@ class UserModelOrderByBuilder extends OrderByBuilderRoot {
     context: _context,
   );
 
+  /// Selector for `complatedProfile`.
+  late final OrderByField<bool> complatedProfile = OrderByField(
+    field: append('complatedProfile'),
+    context: _context,
+  );
+
+  /// Selector for `signedWaiver`.
+  late final OrderByField<bool> signedWaiver = OrderByField(
+    field: append('signedWaiver'),
+    context: _context,
+  );
+
+  /// Nested selector for `notificationPreferences`.
+  late final NotificationPreferencesOrderByBuilder notificationPreferences =
+      NotificationPreferencesOrderByBuilder(
+        field: append('notificationPreferences'),
+        context: _context,
+      );
+
   /// Selector for `createdAt`.
   late final OrderByField<DateTime> createdAt = OrderByField(
     field: append('createdAt'),
@@ -511,40 +516,29 @@ class UserModelOrderByBuilder extends OrderByBuilderRoot {
   );
 }
 
-class UserModelAggregateBuilder extends AggregateBuilderRoot {
-  UserModelAggregateBuilder({super.field, required AggregateContext context})
+class UserProfileAggregateBuilder extends AggregateBuilderRoot {
+  UserProfileAggregateBuilder({super.field, required AggregateContext context})
     : _context = context;
 
   final AggregateContext _context;
+
+  /// Nested selector for `notificationPreferences`.
+  late final NotificationPreferencesAggregateBuilder notificationPreferences =
+      NotificationPreferencesAggregateBuilder(
+        field: append('notificationPreferences'),
+        context: _context,
+      );
 
   @override
   int count() => _context.resolve(const CountOperation('count'));
 }
 
-class UserModelPipelineSelector extends PipelineFieldNode {
-  UserModelPipelineSelector({super.components, super.context});
+class UserProfilePipelineSelector extends PipelineFieldNode {
+  UserProfilePipelineSelector({super.components, super.context});
 
   /// Selector for `id`.
   late final PipelineField<String> id = PipelineField(
     components: [...components, 'id'],
-    context: $ctx,
-    toJson: (value) {
-      return value;
-    },
-  );
-
-  /// Selector for `displayName`.
-  late final PipelineField<String> displayName = PipelineField(
-    components: [...components, 'displayName'],
-    context: $ctx,
-    toJson: (value) {
-      return value;
-    },
-  );
-
-  /// Selector for `email`.
-  late final PipelineField<String> email = PipelineField(
-    components: [...components, 'email'],
     context: $ctx,
     toJson: (value) {
       return value;
@@ -563,15 +557,6 @@ class UserModelPipelineSelector extends PipelineFieldNode {
   /// Selector for `lastName`.
   late final PipelineField<String> lastName = PipelineField(
     components: [...components, 'lastName'],
-    context: $ctx,
-    toJson: (value) {
-      return value;
-    },
-  );
-
-  /// Selector for `photoUrl`.
-  late final PipelineField<String?> photoUrl = PipelineField(
-    components: [...components, 'photoUrl'],
     context: $ctx,
     toJson: (value) {
       return value;
@@ -650,6 +635,31 @@ class UserModelPipelineSelector extends PipelineFieldNode {
     },
   );
 
+  /// Selector for `complatedProfile`.
+  late final PipelineField<bool> complatedProfile = PipelineField(
+    components: [...components, 'complatedProfile'],
+    context: $ctx,
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Selector for `signedWaiver`.
+  late final PipelineField<bool> signedWaiver = PipelineField(
+    components: [...components, 'signedWaiver'],
+    context: $ctx,
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Nested selector for `notificationPreferences`.
+  late final NotificationPreferencesPipelineSelector notificationPreferences =
+      NotificationPreferencesPipelineSelector(
+        components: [...components, 'notificationPreferences'],
+        context: $ctx,
+      );
+
   /// Selector for `createdAt`.
   late final PipelineField<DateTime> createdAt = PipelineField(
     components: [...components, 'createdAt'],
@@ -669,21 +679,21 @@ class UserModelPipelineSelector extends PipelineFieldNode {
   );
 }
 
-extension UserModelPipelineExtension<S extends FirestoreSchema>
+extension UserProfilePipelineExtension<S extends FirestoreSchema>
     on
         FirestoreCollection<
           S,
-          UserModel,
-          UserModelPatchBuilder,
-          UserModelFilterBuilder,
-          UserModelOrderByBuilder,
-          UserModelAggregateBuilder
+          UserProfile,
+          UserProfilePatchBuilder,
+          UserProfileFilterBuilder,
+          UserProfileOrderByBuilder,
+          UserProfileAggregateBuilder
         > {
-  TypedPipeline<UserModel, UserModelPipelineSelector> pipeline() =>
+  TypedPipeline<UserProfile, UserProfilePipelineSelector> pipeline() =>
       TypedPipeline(
         ref.firestore.pipeline().collection(ref.path),
-        UserModelFromJson,
+        UserProfileFromJson,
         'id',
-        (context) => UserModelPipelineSelector(context: context),
+        (context) => UserProfilePipelineSelector(context: context),
       );
 }

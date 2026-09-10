@@ -1,8 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-
-import 'firestore_converter.dart';
 
 part 'section.freezed.dart';
 part 'section.g.dart';
@@ -17,7 +14,7 @@ part 'section.g.dart';
 abstract class Section with _$Section {
   const factory Section({
     /// Firestore document ID.
-    required String id,
+    @DocumentIdField() required String id,
 
     required String name,
 
@@ -29,8 +26,8 @@ abstract class Section with _$Section {
     String? contactEmail,
     String? contactPhone,
 
-    @TimestampConverter() required DateTime createdAt,
-    @TimestampConverter() required DateTime updatedAt,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) = _Section;
 
   factory Section.fromJson(Map<String, dynamic> json) => _$SectionFromJson(json);

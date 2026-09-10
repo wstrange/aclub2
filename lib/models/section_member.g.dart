@@ -8,7 +8,7 @@ part of 'section_member.dart';
 
 _SectionMember _$SectionMemberFromJson(Map<String, dynamic> json) =>
     _SectionMember(
-      userId: json['userId'] as String,
+      id: json['id'] as String,
       sectionId: json['sectionId'] as String,
       sectionRole: $enumDecode(_$SectionRoleEnumMap, json['sectionRole']),
       externalSystemId: json['externalSystemId'] as String?,
@@ -19,7 +19,7 @@ _SectionMember _$SectionMemberFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$SectionMemberToJson(_SectionMember instance) =>
     <String, dynamic>{
-      'userId': instance.userId,
+      'id': instance.id,
       'sectionId': instance.sectionId,
       'sectionRole': _$SectionRoleEnumMap[instance.sectionRole]!,
       'externalSystemId': instance.externalSystemId,
@@ -40,7 +40,7 @@ Map<String, dynamic>? SectionMemberToJson(SectionMember? instance) =>
     instance == null
     ? null
     : {
-        'userId': instance.userId,
+        'id': instance.id,
         'sectionId': instance.sectionId,
         'sectionRole': _$SectionMemberSectionRoleToJson(instance.sectionRole),
         'externalSystemId': instance.externalSystemId,
@@ -49,7 +49,7 @@ Map<String, dynamic>? SectionMemberToJson(SectionMember? instance) =>
             : const TimestampConverter().toJson(instance.joinedAt),
       };
 SectionMember SectionMemberFromJson(Map<String, dynamic> json) => SectionMember(
-  userId: (json['userId'] as String),
+  id: (json['id'] as String),
   sectionId: (json['sectionId'] as String),
   sectionRole: _$SectionMemberSectionRoleFromJson(json['sectionRole']),
   externalSystemId: json['externalSystemId'] == null
@@ -76,14 +76,6 @@ SectionRole _$SectionMemberSectionRoleFromJson(Object? value) {
 class SectionMemberPatchBuilder extends PatchBuilder<SectionMember> {
   /// Creates a patch builder for `SectionMember`.
   SectionMemberPatchBuilder();
-
-  /// Patch handle for `userId` (document field `userId`).
-  late final FieldUpdate<String> userId = FieldUpdate(
-    field: const FieldNode(components: ['userId']),
-    toJson: (value) {
-      return value;
-    },
-  );
 
   /// Patch handle for `sectionId` (document field `sectionId`).
   late final FieldUpdate<String> sectionId = FieldUpdate(
@@ -121,9 +113,9 @@ class SectionMemberPatchBuilder extends PatchBuilder<SectionMember> {
 class SectionMemberFilterBuilder extends FilterBuilderRoot {
   SectionMemberFilterBuilder({super.field});
 
-  /// Selector for `userId`.
-  late final FilterField<String, String> userId = FilterField<String, String>(
-    field: append('userId'),
+  /// Selector for `id`.
+  late final FilterField<String, String> id = FilterField<String, String>(
+    field: append('id'),
     toJson: (value) {
       return value;
     },
@@ -183,9 +175,9 @@ class SectionMemberOrderByBuilder extends OrderByBuilderRoot {
 
   final OrderByContext _context;
 
-  /// Selector for `userId`.
-  late final OrderByField<String> userId = OrderByField(
-    field: append('userId'),
+  /// Selector for `id`.
+  late final OrderByField<String> id = OrderByField(
+    field: append('id'),
     context: _context,
   );
 
@@ -236,9 +228,9 @@ class SectionMemberAggregateBuilder extends AggregateBuilderRoot {
 class SectionMemberPipelineSelector extends PipelineFieldNode {
   SectionMemberPipelineSelector({super.components, super.context});
 
-  /// Selector for `userId`.
-  late final PipelineField<String> userId = PipelineField(
-    components: [...components, 'userId'],
+  /// Selector for `id`.
+  late final PipelineField<String> id = PipelineField(
+    components: [...components, 'id'],
     context: $ctx,
     toJson: (value) {
       return value;
@@ -296,7 +288,7 @@ extension SectionMemberPipelineExtension<S extends FirestoreSchema>
       TypedPipeline(
         ref.firestore.pipeline().collection(ref.path),
         SectionMemberFromJson,
-        null,
+        'id',
         (context) => SectionMemberPipelineSelector(context: context),
       );
 }

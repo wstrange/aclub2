@@ -17,8 +17,8 @@ T _$identity<T>(T value) => value;
 mixin _$Section {
 
 /// Firestore document ID.
- String get id; String get name; String? get description;/// Geographic location or region of the section, e.g. "Vancouver, BC".
- String? get location; String? get contactEmail; String? get contactPhone;@TimestampConverter() DateTime get createdAt;@TimestampConverter() DateTime get updatedAt;
+@DocumentIdField() String get id; String get name; String? get description;/// Geographic location or region of the section, e.g. "Vancouver, BC".
+ String? get location; String? get contactEmail; String? get contactPhone; DateTime? get createdAt; DateTime? get updatedAt;
 /// Create a copy of Section
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -56,7 +56,7 @@ abstract mixin class $SectionCopyWith<$Res>  {
   factory $SectionCopyWith(Section value, $Res Function(Section) _then) = _$SectionCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String? description, String? location, String? contactEmail, String? contactPhone,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+@DocumentIdField() String id, String name, String? description, String? location, String? contactEmail, String? contactPhone, DateTime? createdAt, DateTime? updatedAt
 });
 
 
@@ -73,7 +73,7 @@ class _$SectionCopyWithImpl<$Res>
 
 /// Create a copy of Section
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? location = freezed,Object? contactEmail = freezed,Object? contactPhone = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? location = freezed,Object? contactEmail = freezed,Object? contactPhone = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(Section(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -81,9 +81,9 @@ as String,description: freezed == description ? _self.description : description 
 as String?,location: freezed == location ? _self.location : location // ignore: cast_nullable_to_non_nullable
 as String?,contactEmail: freezed == contactEmail ? _self.contactEmail : contactEmail // ignore: cast_nullable_to_non_nullable
 as String?,contactPhone: freezed == contactPhone ? _self.contactPhone : contactPhone // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -168,7 +168,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone,  DateTime? createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Section() when $default != null:
 return $default(_that.id,_that.name,_that.description,_that.location,_that.contactEmail,_that.contactPhone,_that.createdAt,_that.updatedAt);case _:
@@ -189,7 +189,7 @@ return $default(_that.id,_that.name,_that.description,_that.location,_that.conta
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone,  DateTime? createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Section():
 return $default(_that.id,_that.name,_that.description,_that.location,_that.contactEmail,_that.contactPhone,_that.createdAt,_that.updatedAt);case _:
@@ -209,7 +209,7 @@ return $default(_that.id,_that.name,_that.description,_that.location,_that.conta
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@DocumentIdField()  String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone,  DateTime? createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Section() when $default != null:
 return $default(_that.id,_that.name,_that.description,_that.location,_that.contactEmail,_that.contactPhone,_that.createdAt,_that.updatedAt);case _:
@@ -224,19 +224,19 @@ return $default(_that.id,_that.name,_that.description,_that.location,_that.conta
 @JsonSerializable()
 
 class _Section implements Section {
-  const _Section({required this.id, required this.name, this.description, this.location, this.contactEmail, this.contactPhone, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt});
+  const _Section({@DocumentIdField() required this.id, required this.name, this.description, this.location, this.contactEmail, this.contactPhone, this.createdAt, this.updatedAt});
   factory _Section.fromJson(Map<String, dynamic> json) => _$SectionFromJson(json);
 
 /// Firestore document ID.
-@override final  String id;
+@override@DocumentIdField() final  String id;
 @override final  String name;
 @override final  String? description;
 /// Geographic location or region of the section, e.g. "Vancouver, BC".
 @override final  String? location;
 @override final  String? contactEmail;
 @override final  String? contactPhone;
-@override@TimestampConverter() final  DateTime createdAt;
-@override@TimestampConverter() final  DateTime updatedAt;
+@override final  DateTime? createdAt;
+@override final  DateTime? updatedAt;
 
 /// Create a copy of Section
 /// with the given fields replaced by the non-null parameter values.
@@ -273,7 +273,7 @@ abstract mixin class _$SectionCopyWith<$Res> implements $SectionCopyWith<$Res> {
   factory _$SectionCopyWith(_Section value, $Res Function(_Section) _then) = __$SectionCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String? description, String? location, String? contactEmail, String? contactPhone,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+@DocumentIdField() String id, String name, String? description, String? location, String? contactEmail, String? contactPhone, DateTime? createdAt, DateTime? updatedAt
 });
 
 
@@ -290,7 +290,7 @@ class __$SectionCopyWithImpl<$Res>
 
 /// Create a copy of Section
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? location = freezed,Object? contactEmail = freezed,Object? contactPhone = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? location = freezed,Object? contactEmail = freezed,Object? contactPhone = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(_Section(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -298,9 +298,9 @@ as String,description: freezed == description ? _self.description : description 
 as String?,location: freezed == location ? _self.location : location // ignore: cast_nullable_to_non_nullable
 as String?,contactEmail: freezed == contactEmail ? _self.contactEmail : contactEmail // ignore: cast_nullable_to_non_nullable
 as String?,contactPhone: freezed == contactPhone ? _self.contactPhone : contactPhone // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

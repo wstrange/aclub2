@@ -21,7 +21,7 @@ class AppSchema extends FirestoreSchema {
 /// /templates/{templateId}
 /// ```
 @Schema()
-@Collection<UserModel>('users')
+@Collection<UserProfile>('users')
 @Collection<Section>('sections')
 @Collection<SectionMember>('sections/*/members')
 @Collection<Event>('sections/*/events')

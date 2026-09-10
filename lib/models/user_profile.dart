@@ -3,14 +3,15 @@ import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'firestore_converter.dart';
+import 'notification_preferences.dart';
 
-part 'user_model.freezed.dart';
-part 'user_model.g.dart';
+part 'user_profile.freezed.dart';
+part 'user_profile.g.dart';
 
 /// Firestore path: `/users/{userId}`
 ///
 /// The document ID matches the Firebase Auth UID. Stores profile and
-/// preference data beyond what Firebase Auth provides.
+/// preference data beyond what Firebase Auth provides in the `User` class.
 ///
 /// Note: a user's role within a specific section (i.e. section manager) is
 /// NOT stored here. It is tracked via [Section.managerIds] on the relevant
@@ -19,19 +20,13 @@ part 'user_model.g.dart';
 /// /// TODO: replace with isAdmin: bool
 @freezed
 @firestoreOdm
-abstract class UserModel with _$UserModel {
-  const factory UserModel({
+abstract class UserProfile with _$UserProfile {
+  const factory UserProfile({
     /// Firebase Auth UID — used as the Firestore document ID.
-    required String id,
-
-    required String displayName,
-    required String email,
+    @DocumentIdField() required String id,
 
     required String firstName,
     required String lastName,
-
-    /// URL to the member's profile picture.
-    String? photoUrl,
 
     String? phone,
 
@@ -55,13 +50,17 @@ abstract class UserModel with _$UserModel {
     /// and are stored on each [SectionMember] document.
     @Default(false) bool isAdmin,
 
+    @Default(false) bool complatedProfile,
+
+    @Default(false) bool signedWaiver,
+
     // ── Preferences ───────────────────────────────────────────────────────
-    // required NotificationPreferences notificationPreferences,
+    required NotificationPreferences notificationPreferences,
 
     // ── Timestamps ────────────────────────────────────────────────────────
     @TimestampConverter() required DateTime createdAt,
     @TimestampConverter() required DateTime updatedAt,
-  }) = _UserModel;
+  }) = _UserProfile;
 
-  factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
+  factory UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
 }

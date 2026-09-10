@@ -9,7 +9,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 
+import 'admin/setup.dart';
 import 'pages/user_profile_page.dart';
 import 'repo.dart';
 import 'routes.dart';
@@ -19,6 +21,10 @@ import 'routes.dart';
 final repo = AlpineRepository();
 
 void main() async {
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.message}');
+  });
   WidgetsFlutterBinding.ensureInitialized();
   // 1. Still initialize Firebase normally first!
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -31,27 +37,14 @@ void main() async {
     await _connectToFirebaseEmulator();
   }
 
+  await createSections();
+
   runApp(
     MultiBlocSignalProvider(
-      providers: [BlocSignalProvider<UserCubit>(create: (context) => UserCubit(repo))],
+      providers: [BlocSignalProvider<UserModelCubit>(create: (context) => UserModelCubit(repo))],
       child: MaterialApp.router(
         routerConfig: routerConfig,
         theme: ThemeData(
-          // This is the theme of your application.
-          //
-          // TRY THIS: Try running your application with "flutter run". You'll see
-          // the application has a purple toolbar. Then, without quitting the app,
-          // try changing the seedColor in the colorScheme below to Colors.green
-          // and then invoke "hot reload" (save your changes or press the "hot
-          // reload" button in a Flutter-supported IDE, or press "r" if you used
-          // the command line to start the app).
-          //
-          // Notice that the counter didn't reset back to zero; the application
-          // state is not lost during the reload. To reset the state, use hot
-          // restart instead.
-          //
-          // This works for code too, not just values: Most code changes can be
-          // tested with just a hot reload.
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           // Explicitly declare Roboto (already bundled with Flutter Web) to
           // prevent the "Could not find Noto fonts" warning in Chrome.

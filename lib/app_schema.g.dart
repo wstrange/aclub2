@@ -9,24 +9,25 @@ part of 'app_schema.dart';
 extension AppSchemaFirestoreODMExtension on FirestoreODM<AppSchema> {
   FirestoreCollection<
     AppSchema,
-    UserModel,
-    UserModelPatchBuilder,
-    UserModelFilterBuilder,
-    UserModelOrderByBuilder,
-    UserModelAggregateBuilder
+    UserProfile,
+    UserProfilePatchBuilder,
+    UserProfileFilterBuilder,
+    UserProfileOrderByBuilder,
+    UserProfileAggregateBuilder
   >
   get users => FirestoreCollection(
     ref: firestore.collection('users'),
-    toJson: (UserModel value) {
-      return UserModelToJson(value) ?? const <String, dynamic>{};
+    toJson: (UserProfile value) {
+      return UserProfileToJson(value) ?? const <String, dynamic>{};
     },
-    fromJson: UserModelFromJson,
+    fromJson: UserProfileFromJson,
     documentIdField: 'id',
-    patchBuilderFactory: () => UserModelPatchBuilder(),
-    filterBuilder: UserModelFilterBuilder(),
-    orderByBuilderFunc: (context) => UserModelOrderByBuilder(context: context),
+    patchBuilderFactory: () => UserProfilePatchBuilder(),
+    filterBuilder: UserProfileFilterBuilder(),
+    orderByBuilderFunc: (context) =>
+        UserProfileOrderByBuilder(context: context),
     aggregateBuilderFunc: (context) =>
-        UserModelAggregateBuilder(context: context),
+        UserProfileAggregateBuilder(context: context),
   );
 
   FirestoreCollection<
@@ -65,7 +66,7 @@ extension AppSchemaFirestoreODMExtension on FirestoreODM<AppSchema> {
       return SectionMemberToJson(value) ?? const <String, dynamic>{};
     },
     fromJson: SectionMemberFromJson,
-    documentIdField: null,
+    documentIdField: 'id',
     patchBuilderFactory: () => SectionMemberPatchBuilder(),
     filterBuilder: SectionMemberFilterBuilder(),
     orderByBuilderFunc: (context) =>

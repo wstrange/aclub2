@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:logging/logging.dart';
 
 import 'pages/home_page.dart';
 import 'pages/sign_in_page.dart';
@@ -7,6 +8,8 @@ import 'pages/user_profile_page.dart';
 
 // import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 // import 'package:signals_core/signals_core.dart ';
+
+final _log = Logger('route');
 
 sealed class AppRoute extends KaiselRoute {
   const AppRoute();
@@ -24,8 +27,8 @@ final class SignInRoute extends AppRoute {
 //   const Users();
 // }
 
-final class CreateUser extends AppRoute {
-  const CreateUser();
+final class UserProfileRoute extends AppRoute {
+  const UserProfileRoute();
 }
 
 // final class UserDetail extends AppRoute {
@@ -38,15 +41,14 @@ final class CreateUser extends AppRoute {
 // // }
 
 final routerConfig = KaiselRouterConfig<AppRoute>(
-  initial: const Home(),
+  initial: FirebaseAuth.instance.currentUser != null ? const Home() : SignInRoute(),
   guards: [authGuard],
   builder: (context, route) => switch (route) {
     Home() => const HomePage(),
     SignInRoute() => SignInPage(),
+    UserProfileRoute() => const UserProfilePage(),
 
     // Users() => const UsersPage(),
-    CreateUser() => const CreateUserPage(),
-
     // UserDetail(:final id) => UserDetailPage(userId: id),
   },
 );
@@ -65,6 +67,7 @@ List<AppRoute> authGuard(List<AppRoute> current, List<AppRoute> proposed) {
     return [const SignInRoute()];
   }
 
+  _log.info('Auth guard: isLoggedIn: $isLoggedIn, headingToLogin: $headingToLogin, proposed: $proposed');
   // Otherwise, allow the proposed navigation stack to proceed normally
   return proposed;
 }

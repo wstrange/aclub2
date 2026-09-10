@@ -13,12 +13,12 @@ _Section _$SectionFromJson(Map<String, dynamic> json) => _Section(
   location: json['location'] as String?,
   contactEmail: json['contactEmail'] as String?,
   contactPhone: json['contactPhone'] as String?,
-  createdAt: const TimestampConverter().fromJson(
-    json['createdAt'] as Timestamp,
-  ),
-  updatedAt: const TimestampConverter().fromJson(
-    json['updatedAt'] as Timestamp,
-  ),
+  createdAt: json['createdAt'] == null
+      ? null
+      : DateTime.parse(json['createdAt'] as String),
+  updatedAt: json['updatedAt'] == null
+      ? null
+      : DateTime.parse(json['updatedAt'] as String),
 );
 
 Map<String, dynamic> _$SectionToJson(_Section instance) => <String, dynamic>{
@@ -28,8 +28,8 @@ Map<String, dynamic> _$SectionToJson(_Section instance) => <String, dynamic>{
   'location': instance.location,
   'contactEmail': instance.contactEmail,
   'contactPhone': instance.contactPhone,
-  'createdAt': const TimestampConverter().toJson(instance.createdAt),
-  'updatedAt': const TimestampConverter().toJson(instance.updatedAt),
+  'createdAt': instance.createdAt?.toIso8601String(),
+  'updatedAt': instance.updatedAt?.toIso8601String(),
 };
 
 // **************************************************************************
@@ -45,12 +45,8 @@ Map<String, dynamic>? SectionToJson(Section? instance) => instance == null
         'location': instance.location,
         'contactEmail': instance.contactEmail,
         'contactPhone': instance.contactPhone,
-        'createdAt': instance.createdAt == null
-            ? null
-            : const TimestampConverter().toJson(instance.createdAt),
-        'updatedAt': instance.updatedAt == null
-            ? null
-            : const TimestampConverter().toJson(instance.updatedAt),
+        'createdAt': instance.createdAt,
+        'updatedAt': instance.updatedAt,
       };
 Section SectionFromJson(Map<String, dynamic> json) => Section(
   id: (json['id'] as String),
@@ -65,8 +61,12 @@ Section SectionFromJson(Map<String, dynamic> json) => Section(
   contactPhone: json['contactPhone'] == null
       ? null
       : (json['contactPhone'] as String?),
-  createdAt: const TimestampConverter().fromJson(json['createdAt']),
-  updatedAt: const TimestampConverter().fromJson(json['updatedAt']),
+  createdAt: json['createdAt'] == null
+      ? null
+      : dateTimeFromJson(json['createdAt']),
+  updatedAt: json['updatedAt'] == null
+      ? null
+      : dateTimeFromJson(json['updatedAt']),
 );
 
 class SectionPatchBuilder extends PatchBuilder<Section> {
@@ -117,7 +117,7 @@ class SectionPatchBuilder extends PatchBuilder<Section> {
   late final DateTimeFieldUpdate createdAt = DateTimeFieldUpdate(
     field: const FieldNode(components: ['createdAt']),
     toJson: (value) {
-      return value == null ? null : const TimestampConverter().toJson(value);
+      return value;
     },
   );
 
@@ -125,7 +125,7 @@ class SectionPatchBuilder extends PatchBuilder<Section> {
   late final DateTimeFieldUpdate updatedAt = DateTimeFieldUpdate(
     field: const FieldNode(components: ['updatedAt']),
     toJson: (value) {
-      return value == null ? null : const TimestampConverter().toJson(value);
+      return value;
     },
   );
 }
@@ -186,24 +186,20 @@ class SectionFilterBuilder extends FilterBuilderRoot {
       );
 
   /// Selector for `createdAt`.
-  late final FilterField<DateTime, DateTime> createdAt =
-      FilterField<DateTime, DateTime>(
+  late final FilterField<DateTime?, DateTime?> createdAt =
+      FilterField<DateTime?, DateTime?>(
         field: append('createdAt'),
         toJson: (value) {
-          return value == null
-              ? null
-              : const TimestampConverter().toJson(value);
+          return value;
         },
       );
 
   /// Selector for `updatedAt`.
-  late final FilterField<DateTime, DateTime> updatedAt =
-      FilterField<DateTime, DateTime>(
+  late final FilterField<DateTime?, DateTime?> updatedAt =
+      FilterField<DateTime?, DateTime?>(
         field: append('updatedAt'),
         toJson: (value) {
-          return value == null
-              ? null
-              : const TimestampConverter().toJson(value);
+          return value;
         },
       );
 
@@ -260,13 +256,13 @@ class SectionOrderByBuilder extends OrderByBuilderRoot {
   );
 
   /// Selector for `createdAt`.
-  late final OrderByField<DateTime> createdAt = OrderByField(
+  late final OrderByField<DateTime?> createdAt = OrderByField(
     field: append('createdAt'),
     context: _context,
   );
 
   /// Selector for `updatedAt`.
-  late final OrderByField<DateTime> updatedAt = OrderByField(
+  late final OrderByField<DateTime?> updatedAt = OrderByField(
     field: append('updatedAt'),
     context: _context,
   );
@@ -346,20 +342,20 @@ class SectionPipelineSelector extends PipelineFieldNode {
   );
 
   /// Selector for `createdAt`.
-  late final PipelineField<DateTime> createdAt = PipelineField(
+  late final PipelineField<DateTime?> createdAt = PipelineField(
     components: [...components, 'createdAt'],
     context: $ctx,
     toJson: (value) {
-      return value == null ? null : const TimestampConverter().toJson(value);
+      return value;
     },
   );
 
   /// Selector for `updatedAt`.
-  late final PipelineField<DateTime> updatedAt = PipelineField(
+  late final PipelineField<DateTime?> updatedAt = PipelineField(
     components: [...components, 'updatedAt'],
     context: $ctx,
     toJson: (value) {
-      return value == null ? null : const TimestampConverter().toJson(value);
+      return value;
     },
   );
 }

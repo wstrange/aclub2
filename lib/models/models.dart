@@ -17,4 +17,4 @@ export 'registration.dart';
 export 'section.dart';
 export 'section_member.dart';
 export 'template.dart';
-export 'user_model.dart';
+export 'user_profile.dart';
