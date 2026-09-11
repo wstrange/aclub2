@@ -1,9 +1,6 @@
-// Holds current state information about the logged in user
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-
-import 'section.dart';
-import 'user_profile.dart';
+import 'package:shared_models/shared_models.dart';
 
 part 'user_state.freezed.dart';
 

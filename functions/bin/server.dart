@@ -1,17 +1,18 @@
-import 'package:firebase_functions/firebase_functions.dart';
+import 'package:functions_framework/serve.dart';
+import 'package:aclub_admin/functions.dart';
 
-void main() {
-  runFunctions((firebase) {
-    // https://firebase.google.com/docs/functions/http-events
-    firebase.https.onRequest(
-      name: 'helloWorld',
-      options: const HttpsOptions(
-        cors: Cors(['*']),
-        // Set maxInstances to control costs during unexpected traffic spikes.
-        // https://firebase.google.com/docs/functions/manage-functions#min-max-instances
-        maxInstances: Instances(10),
-      ),
-      (request) async => Response(200, body: 'Hello from Dart Functions!'),
-    );
-  });
+final Map<String, FunctionTarget> nameToFunctionTargets = {
+  'helloWorld': FunctionTarget.http(
+    helloWorld,
+  ),
+  'adminSeed': FunctionTarget.http(
+    adminSeed,
+  ),
+  'adminStats': FunctionTarget.http(
+    adminStats,
+  ),
+};
+
+Future<void> main(List<String> args) async {
+  await serve(args, (name) => nameToFunctionTargets[name]);
 }
