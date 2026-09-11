@@ -58,5 +58,29 @@ void main() {
       expect(validEnd.isBefore(start), isFalse);
       expect(invalidEnd.isBefore(start), isTrue);
     });
+
+    test('creates new event with default fields', () {
+      final now = DateTime(2026, 9, 10);
+      final newEvent = Event(
+        id: '',
+        sectionId: 'national',
+        title: 'New Event Title',
+        type: EventType.hike,
+        difficulty: Difficulty.moderate,
+        status: EventStatus.published,
+        startDate: DateTime(2026, 9, 25, 9, 0),
+        endDate: DateTime(2026, 9, 25, 17, 0),
+        maxParticipants: 12,
+        creatorId: 'user-2',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      expect(newEvent.id, isEmpty);
+      expect(newEvent.sectionId, equals('national'));
+      expect(newEvent.title, equals('New Event Title'));
+      expect(newEvent.status, equals(EventStatus.published));
+      expect(newEvent.maxParticipants, equals(12));
+    });
   });
 }

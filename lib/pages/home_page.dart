@@ -96,6 +96,21 @@ class HomePage extends StatelessWidget {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.add_circle_outline),
+              title: const Text('Create Event'),
+              onTap: () async {
+                Navigator.of(context).pop();
+                final currentSection = userStateCubit.state.value?.currentSection;
+                if (currentSection != null) {
+                  context.push(EventCreateRoute(sectionId: currentSection.id));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a section first.')),
+                  );
+                }
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.person),
               title: const Text('My Profile'),
               onTap: () async {
@@ -124,6 +139,20 @@ class HomePage extends StatelessWidget {
             onEventTap: (event) {
               context.push(EventEditRoute(sectionId: event.sectionId, eventId: event.id));
             },
+          );
+        },
+      ),
+      floatingActionButton: BlocSignalBuilder<UserStateCubit, UserState?>(
+        builder: (context, state) {
+          if (state == null || state.userSections.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          return FloatingActionButton(
+            tooltip: 'Create Event',
+            onPressed: () {
+              context.push(EventCreateRoute(sectionId: state.currentSection.id));
+            },
+            child: const Icon(Icons.add),
           );
         },
       ),

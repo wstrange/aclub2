@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:kaisel/kaisel.dart';
@@ -5,19 +6,45 @@ import 'package:kaisel/kaisel.dart';
 import '../models/models.dart';
 import '../repo.dart';
 
-/// Page for editing an existing [Event] in a section.
+/// Page for creating or editing an [Event] in a section.
 class EventEditPage extends StatelessWidget {
   const EventEditPage({
     super.key,
     required this.sectionId,
     required this.eventId,
-  });
+  }) : isCreate = false;
+
+  const EventEditPage.create({
+    super.key,
+    required this.sectionId,
+  })  : eventId = '',
+        isCreate = true;
 
   final String sectionId;
   final String eventId;
+  final bool isCreate;
 
   @override
   Widget build(BuildContext context) {
+    if (isCreate) {
+      final now = DateTime.now();
+      final defaultEvent = Event(
+        id: '',
+        sectionId: sectionId,
+        title: '',
+        type: EventType.hike,
+        difficulty: Difficulty.moderate,
+        status: EventStatus.published,
+        startDate: DateTime(now.year, now.month, now.day, 9, 0).add(const Duration(days: 1)),
+        endDate: DateTime(now.year, now.month, now.day, 17, 0).add(const Duration(days: 1)),
+        maxParticipants: 10,
+        creatorId: FirebaseAuth.instance.currentUser?.uid ?? '',
+        createdAt: now,
+        updatedAt: now,
+      );
+      return _EventEditForm(sectionId: sectionId, initialEvent: defaultEvent, isCreate: true);
+    }
+
     return FutureBuilder<Event?>(
       future: repository.getEvent(sectionId, eventId),
       builder: (context, snapshot) {
@@ -47,7 +74,7 @@ class EventEditPage extends StatelessWidget {
           );
         }
 
-        return _EventEditForm(sectionId: sectionId, initialEvent: event);
+        return _EventEditForm(sectionId: sectionId, initialEvent: event, isCreate: false);
       },
     );
   }
@@ -57,10 +84,12 @@ class _EventEditForm extends HookWidget {
   const _EventEditForm({
     required this.sectionId,
     required this.initialEvent,
+    this.isCreate = false,
   });
 
   final String sectionId;
   final Event initialEvent;
+  final bool isCreate;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +107,7 @@ class _EventEditForm extends HookWidget {
       text: initialEvent.minParticipants > 0 ? initialEvent.minParticipants.toString() : '0',
     );
     final maxParticipantsController = useTextEditingController(
-      text: initialEvent.maxParticipants.toString(),
+      text: initialEvent.maxParticipants > 0 ? initialEvent.maxParticipants.toString() : '10',
     );
     final requiresApproval = useState(initialEvent.requiresApproval);
 
@@ -179,35 +208,66 @@ class _EventEditForm extends HookWidget {
           );
         }
 
-        final updatedEvent = initialEvent.copyWith(
-          title: titleController.text.trim(),
-          description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
-          type: type.value,
-          difficulty: difficulty.value,
-          status: status.value,
-          startDate: startDate.value,
-          endDate: endDate.value,
-          minParticipants: minPart,
-          maxParticipants: maxPart,
-          requiresApproval: requiresApproval.value,
-          location: location,
-          carpoolOption: carpool,
-          requiredEquipment: parseList(requiredEquipmentController.text),
-          prerequisites: parseList(prerequisitesController.text),
-          updatedAt: DateTime.now(),
-        );
-
-        await repository.updateEvent(sectionId, updatedEvent);
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Event updated successfully.')),
+        if (isCreate) {
+          final newEvent = initialEvent.copyWith(
+            title: titleController.text.trim(),
+            description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+            type: type.value,
+            difficulty: difficulty.value,
+            status: status.value,
+            startDate: startDate.value,
+            endDate: endDate.value,
+            minParticipants: minPart,
+            maxParticipants: maxPart,
+            requiresApproval: requiresApproval.value,
+            location: location,
+            carpoolOption: carpool,
+            requiredEquipment: parseList(requiredEquipmentController.text),
+            prerequisites: parseList(prerequisitesController.text),
+            creatorId: FirebaseAuth.instance.currentUser?.uid ?? initialEvent.creatorId,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
           );
-          context.pop();
+
+          await repository.createEvent(sectionId, newEvent);
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Event created successfully.')),
+            );
+            context.pop();
+          }
+        } else {
+          final updatedEvent = initialEvent.copyWith(
+            title: titleController.text.trim(),
+            description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+            type: type.value,
+            difficulty: difficulty.value,
+            status: status.value,
+            startDate: startDate.value,
+            endDate: endDate.value,
+            minParticipants: minPart,
+            maxParticipants: maxPart,
+            requiresApproval: requiresApproval.value,
+            location: location,
+            carpoolOption: carpool,
+            requiredEquipment: parseList(requiredEquipmentController.text),
+            prerequisites: parseList(prerequisitesController.text),
+            updatedAt: DateTime.now(),
+          );
+
+          await repository.updateEvent(sectionId, updatedEvent);
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Event updated successfully.')),
+            );
+            context.pop();
+          }
         }
       } catch (e) {
         if (context.mounted) {
-          errorMessage.value = 'Failed to update event: $e';
+          errorMessage.value = isCreate ? 'Failed to create event: $e' : 'Failed to update event: $e';
         }
       } finally {
         isSaving.value = false;
@@ -256,13 +316,14 @@ class _EventEditForm extends HookWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Event'),
+        title: Text(isCreate ? 'Create Event' : 'Edit Event'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Delete Event',
-            onPressed: isSaving.value ? null : delete,
-          ),
+          if (!isCreate)
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Delete Event',
+              onPressed: isSaving.value ? null : delete,
+            ),
         ],
       ),
       body: SafeArea(
@@ -507,7 +568,7 @@ class _EventEditForm extends HookWidget {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Save Changes', style: TextStyle(fontSize: 16)),
+                      : Text(isCreate ? 'Create Event' : 'Save Changes', style: const TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 16),

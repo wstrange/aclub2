@@ -42,6 +42,15 @@ final class EventEditRoute extends AppRoute {
   List<Object?> get props => [sectionId, eventId];
 }
 
+final class EventCreateRoute extends AppRoute {
+  const EventCreateRoute({required this.sectionId});
+
+  final String sectionId;
+
+  @override
+  List<Object?> get props => [sectionId];
+}
+
 final routerConfig = KaiselRouterConfig<AppRoute>(
   initial: FirebaseAuth.instance.currentUser != null ? const HomeRoute() : const SignInRoute(),
   guards: [authGuard, profileCompletionGuard, sectionMembershipGuard],
@@ -50,6 +59,7 @@ final routerConfig = KaiselRouterConfig<AppRoute>(
     SignInRoute() => const SignInPage(),
     UserProfileRoute() => const UserProfilePage(),
     SectionSelectionRoute() => const SectionSelectionPage(),
+    EventCreateRoute(:final sectionId) => EventEditPage.create(sectionId: sectionId),
     EventEditRoute(:final sectionId, :final eventId) => EventEditPage(sectionId: sectionId, eventId: eventId),
   },
 );
