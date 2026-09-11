@@ -275,3 +275,10 @@ Admin-managed markdown templates that can be inserted into event description fie
 | `RegistrationStatus` | `pending`, `approved`, `waitlisted`, `rejected`, `attended`, `absent` |
 | `NotificationChannel` | `push`, `email`, `inApp` |
 | `NotificationFrequency` | `immediate`, `daily`, `weekly` |
+
+
+### TODO:
+
+* UI Actions like edit event should be disabled for users who do not have the tripLeader or sectionAdmin roles.
+* Create a MyEvents filter. That shows events that I am registered for or that I have created or am a trip leader for.
+

@@ -184,6 +184,7 @@ class _EventEditForm extends HookWidget {
             requiredEquipment: parseList(requiredEquipmentController.text),
             prerequisites: parseList(prerequisitesController.text),
             creatorId: FirebaseAuth.instance.currentUser?.uid ?? initialEvent.creatorId,
+            tripLeaderIds: [FirebaseAuth.instance.currentUser?.uid ?? initialEvent.creatorId],
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           );

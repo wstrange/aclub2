@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getMemberData(sectionId) {
+      return get(/databases/$(database)/documents/sections/$(sectionId)/members/$(request.auth.uid)).data;
+    }
+
+    function isSectionMember(sectionId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/sections/$(sectionId)/members/$(request.auth.uid));
+    }
+
+    function hasSectionRole(sectionId, role) {
+      return isSectionMember(sectionId) && getMemberData(sectionId).sectionRole == role;
+    }
+
+    function isSectionAdmin(sectionId) {
+      return isSectionMember(sectionId) &&
+        getMemberData(sectionId).sectionRole in ['sectionAdmin', 'owner'];
+    }
+
+    function isTripLeader(sectionId) {
+      return isSectionMember(sectionId) &&
+        getMemberData(sectionId).sectionRole in ['tripLeader', 'sectionAdmin', 'owner'];
+    }
+
+    // Helper: Check if user is a system-wide global administrator
+    function isGlobalAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+
+    // --- Collection Rules ---
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isUser(userId);
+    }
+
+    // Sections collection & subcollections
+    match /sections/{sectionId} {
+      allow read: if isSignedIn();
+       // Global admins can create completely new sections; section admins can update existing ones
+      allow create, delete: if isGlobalAdmin();
+      allow update: if isSectionAdmin(sectionId) || isGlobalAdmin();
+      allow write: if isSectionAdmin(sectionId); // or a global admin check if needed for creation
+
+      match /members/{userId} {
+        allow read: if isSectionMember(sectionId);
+        // Only section admins can write roles, or users removing themselves
+        allow write: if isSectionAdmin(sectionId) || isUser(userId);
+      }
+
+      match /events/{eventId} {
+        allow read: if isSectionMember(sectionId);
+        // Only trip leaders or admins can modify events
+        allow write: if isTripLeader(sectionId);
+
+        match /registrations/{registrationId} {
+          // Users can read their own registration, or leaders/admins can read all
+          allow read: if isSectionMember(sectionId) && (resource.data.userId == request.auth.uid || isTripLeader(sectionId));
+          // Users can create/update their own registration; leaders can manage any
+          allow create: if isSectionMember(sectionId) && request.resource.data.userId == request.auth.uid;
+          allow update, delete: if isSectionMember(sectionId) && (resource.data.userId == request.auth.uid || isTripLeader(sectionId));
+        }
+      }
+    }
+
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Templates collection
+    match /templates/{templateId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); // Tighten this to a global admin role if required
+    }
+  }
+}
