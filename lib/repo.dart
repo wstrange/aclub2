@@ -45,14 +45,51 @@ class AlpineRepository {
 
   Stream<List<Event>> streamSectionEvents(String sectionId) {
     return _firestore
+        .collection('sections')
+        .doc(sectionId)
         .collection('events')
-        .where('sectionId', isEqualTo: sectionId)
-        .where('status', isEqualTo: 'published')
-        .orderBy('startDateTime')
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) => Event.fromJson({...doc.data(), 'id': doc.id})).toList();
         });
+  }
+
+  Future<List<Event>> getSectionEvents(String sectionId) async {
+    final snapshot = await _firestore.collection('sections').doc(sectionId).collection('events').get();
+    return snapshot.docs.map((doc) => Event.fromJson({...doc.data(), 'id': doc.id})).toList();
+  }
+
+  Future<Event?> getEvent(String sectionId, String eventId) async {
+    final doc = await _firestore.collection('sections').doc(sectionId).collection('events').doc(eventId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return Event.fromJson({...doc.data()!, 'id': doc.id});
+  }
+
+  Future<String> createEvent(String sectionId, Event event) async {
+    if (event.id.isNotEmpty) {
+      await _firestore.collection('sections').doc(sectionId).collection('events').doc(event.id).set(event.toJson());
+      return event.id;
+    }
+    final docRef = await _firestore.collection('sections').doc(sectionId).collection('events').add(event.toJson());
+    return docRef.id;
+  }
+
+  Future<void> updateEvent(String sectionId, Event event) async {
+    await _firestore
+        .collection('sections')
+        .doc(sectionId)
+        .collection('events')
+        .doc(event.id)
+        .set(event.toJson());
+  }
+
+  Future<void> deleteEvent(String sectionId, String eventId) async {
+    await _firestore
+        .collection('sections')
+        .doc(sectionId)
+        .collection('events')
+        .doc(eventId)
+        .delete();
   }
 
   Stream<List<Event>> streamLeaderDrafts(String userUid) {

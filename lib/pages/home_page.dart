@@ -8,6 +8,7 @@ import 'package:kaisel/kaisel.dart';
 import '../models/user_state.dart';
 import '../repo.dart';
 import '../routes.dart';
+import '../widgets/calendar_view.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -83,10 +84,15 @@ class HomePage extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
+              title: const Text('Settings (Load Mock Data)'),
               onTap: () async {
                 await doAdminSetup();
-                // Handle your navigation logic here (e.g., Navigator.push)
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Mock sections and events created!')),
+                  );
+                  Navigator.of(context).pop();
+                }
               },
             ),
             ListTile(
@@ -109,18 +115,15 @@ class HomePage extends StatelessWidget {
       body: BlocSignalBuilder<UserStateCubit, UserState?>(
         builder: (context, state) {
           if (state == null || state.userSections.isEmpty) {
-            return const Text('Home');
+            return const Center(child: Text('No active section.'));
           }
 
-          final profile = state.userProfile;
-          final user = state.user;
-
-          return Column(
-            children: [
-              const Center(child: Text('Home')),
-              Text('Logged in as ${profile.firstName} ${profile.lastName} ${user.email}'),
-              Text('Viewing section ${state.currentSection.name}'),
-            ],
+          return CalendarView(
+            key: ValueKey(state.currentSection.id),
+            sectionId: state.currentSection.id,
+            onEventTap: (event) {
+              context.push(EventEditRoute(sectionId: event.sectionId, eventId: event.id));
+            },
           );
         },
       ),

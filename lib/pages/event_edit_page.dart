@@ -1,0 +1,533 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:kaisel/kaisel.dart';
+
+import '../models/models.dart';
+import '../repo.dart';
+
+/// Page for editing an existing [Event] in a section.
+class EventEditPage extends StatelessWidget {
+  const EventEditPage({
+    super.key,
+    required this.sectionId,
+    required this.eventId,
+  });
+
+  final String sectionId;
+  final String eventId;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Event?>(
+      future: repository.getEvent(sectionId, eventId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Edit Event')),
+            body: Center(
+              child: Text(
+                'Error loading event: ${snapshot.error}',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+          );
+        }
+
+        final event = snapshot.data;
+        if (event == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Edit Event')),
+            body: const Center(child: Text('Event not found.')),
+          );
+        }
+
+        return _EventEditForm(sectionId: sectionId, initialEvent: event);
+      },
+    );
+  }
+}
+
+class _EventEditForm extends HookWidget {
+  const _EventEditForm({
+    required this.sectionId,
+    required this.initialEvent,
+  });
+
+  final String sectionId;
+  final Event initialEvent;
+
+  @override
+  Widget build(BuildContext context) {
+    final formKey = useMemoized(GlobalKey<FormState>.new);
+    final titleController = useTextEditingController(text: initialEvent.title);
+    final descriptionController = useTextEditingController(text: initialEvent.description ?? '');
+    final type = useState(initialEvent.type);
+    final difficulty = useState(initialEvent.difficulty);
+    final status = useState(initialEvent.status);
+
+    final startDate = useState(initialEvent.startDate);
+    final endDate = useState(initialEvent.endDate);
+
+    final minParticipantsController = useTextEditingController(
+      text: initialEvent.minParticipants > 0 ? initialEvent.minParticipants.toString() : '0',
+    );
+    final maxParticipantsController = useTextEditingController(
+      text: initialEvent.maxParticipants.toString(),
+    );
+    final requiresApproval = useState(initialEvent.requiresApproval);
+
+    final locationDescController = useTextEditingController(
+      text: initialEvent.location?.description ?? '',
+    );
+    final locationMapUrlController = useTextEditingController(
+      text: initialEvent.location?.mapUrl ?? '',
+    );
+
+    final hasCarpool = useState(initialEvent.carpoolOption != null);
+    final carpoolTime = useState(initialEvent.carpoolOption?.meetTime ?? initialEvent.startDate);
+    final carpoolPlaceController = useTextEditingController(
+      text: initialEvent.carpoolOption?.meetPlace ?? '',
+    );
+
+    final requiredEquipmentController = useTextEditingController(
+      text: initialEvent.requiredEquipment.join(', '),
+    );
+    final prerequisitesController = useTextEditingController(
+      text: initialEvent.prerequisites.join(', '),
+    );
+
+    final isSaving = useState(false);
+    final errorMessage = useState<String?>(null);
+
+    Future<void> pickDateTime({
+      required BuildContext context,
+      required DateTime initial,
+      required ValueChanged<DateTime> onPicked,
+    }) async {
+      final pickedDate = await showDatePicker(
+        context: context,
+        initialDate: initial,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2035),
+      );
+      if (pickedDate == null || !context.mounted) return;
+
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(initial),
+      );
+      if (pickedTime == null) return;
+
+      onPicked(DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      ));
+    }
+
+    String formatDateTime(DateTime dt) {
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} $hour:$minute';
+    }
+
+    List<String> parseList(String input) {
+      return input
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
+
+    Future<void> save() async {
+      if (!(formKey.currentState?.validate() ?? false)) return;
+
+      if (endDate.value.isBefore(startDate.value)) {
+        errorMessage.value = 'End date cannot be earlier than start date.';
+        return;
+      }
+
+      errorMessage.value = null;
+      isSaving.value = true;
+
+      try {
+        final minPart = int.tryParse(minParticipantsController.text.trim()) ?? 0;
+        final maxPart = int.tryParse(maxParticipantsController.text.trim()) ?? 10;
+
+        EventLocation? location;
+        if (locationDescController.text.trim().isNotEmpty ||
+            locationMapUrlController.text.trim().isNotEmpty) {
+          location = EventLocation(
+            description: locationDescController.text.trim().isEmpty ? null : locationDescController.text.trim(),
+            mapUrl: locationMapUrlController.text.trim().isEmpty ? null : locationMapUrlController.text.trim(),
+          );
+        }
+
+        CarpoolOption? carpool;
+        if (hasCarpool.value && carpoolPlaceController.text.trim().isNotEmpty) {
+          carpool = CarpoolOption(
+            meetTime: carpoolTime.value,
+            meetPlace: carpoolPlaceController.text.trim(),
+          );
+        }
+
+        final updatedEvent = initialEvent.copyWith(
+          title: titleController.text.trim(),
+          description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+          type: type.value,
+          difficulty: difficulty.value,
+          status: status.value,
+          startDate: startDate.value,
+          endDate: endDate.value,
+          minParticipants: minPart,
+          maxParticipants: maxPart,
+          requiresApproval: requiresApproval.value,
+          location: location,
+          carpoolOption: carpool,
+          requiredEquipment: parseList(requiredEquipmentController.text),
+          prerequisites: parseList(prerequisitesController.text),
+          updatedAt: DateTime.now(),
+        );
+
+        await repository.updateEvent(sectionId, updatedEvent);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Event updated successfully.')),
+          );
+          context.pop();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          errorMessage.value = 'Failed to update event: $e';
+        }
+      } finally {
+        isSaving.value = false;
+      }
+    }
+
+    Future<void> delete() async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Delete Event'),
+          content: Text('Are you sure you want to delete "${initialEvent.title}"? This cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true || !context.mounted) return;
+
+      isSaving.value = true;
+      try {
+        await repository.deleteEvent(sectionId, initialEvent.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Event deleted.')),
+          );
+          context.pop();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          errorMessage.value = 'Failed to delete event: $e';
+        }
+      } finally {
+        isSaving.value = false;
+      }
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Edit Event'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete Event',
+            onPressed: isSaving.value ? null : delete,
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Form(
+          key: formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (errorMessage.value != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    errorMessage.value!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+              _sectionHeader('Basic Information'),
+              TextFormField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Event Title *',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Title is required';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: descriptionController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<EventType>(
+                      initialValue: type.value,
+                      decoration: const InputDecoration(
+                        labelText: 'Activity Type',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: EventType.values
+                          .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) type.value = val;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<Difficulty>(
+                      initialValue: difficulty.value,
+                      decoration: const InputDecoration(
+                        labelText: 'Difficulty',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: Difficulty.values
+                          .map((d) => DropdownMenuItem(value: d, child: Text(d.name)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) difficulty.value = val;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<EventStatus>(
+                initialValue: status.value,
+                decoration: const InputDecoration(
+                  labelText: 'Status',
+                  border: OutlineInputBorder(),
+                ),
+                items: EventStatus.values
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) status.value = val;
+                },
+              ),
+
+              _sectionHeader('Schedule'),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Start Date & Time'),
+                subtitle: Text(formatDateTime(startDate.value)),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () => pickDateTime(
+                  context: context,
+                  initial: startDate.value,
+                  onPicked: (dt) {
+                    startDate.value = dt;
+                    if (endDate.value.isBefore(dt)) {
+                      endDate.value = dt.add(const Duration(hours: 2));
+                    }
+                  },
+                ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('End Date & Time'),
+                subtitle: Text(formatDateTime(endDate.value)),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () => pickDateTime(
+                  context: context,
+                  initial: endDate.value,
+                  onPicked: (dt) => endDate.value = dt,
+                ),
+              ),
+
+              _sectionHeader('Capacity & Registration'),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: minParticipantsController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Min Participants',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: maxParticipantsController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Max Participants *',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        final parsed = int.tryParse(value ?? '');
+                        if (parsed == null || parsed < 1) {
+                          return 'Enter a valid number (>= 1)';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Requires Approval'),
+                subtitle: const Text('Registrations go to waitlist until leader approves'),
+                value: requiresApproval.value,
+                onChanged: (val) => requiresApproval.value = val,
+              ),
+
+              _sectionHeader('Location'),
+              TextFormField(
+                controller: locationDescController,
+                decoration: const InputDecoration(
+                  labelText: 'Location Description',
+                  hintText: 'e.g. Canmore Nordic Centre, Trailhead parking',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: locationMapUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Map URL',
+                  hintText: 'e.g. https://maps.google.com/?q=...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+
+              _sectionHeader('Carpooling'),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Offer Carpooling'),
+                value: hasCarpool.value,
+                onChanged: (val) => hasCarpool.value = val,
+              ),
+              if (hasCarpool.value) ...[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Carpool Meet Time'),
+                  subtitle: Text(formatDateTime(carpoolTime.value)),
+                  trailing: const Icon(Icons.access_time),
+                  onTap: () => pickDateTime(
+                    context: context,
+                    initial: carpoolTime.value,
+                    onPicked: (dt) => carpoolTime.value = dt,
+                  ),
+                ),
+                TextFormField(
+                  controller: carpoolPlaceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Carpool Meeting Place',
+                    hintText: 'e.g. Shouldice Park & Ride, Calgary',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+
+              _sectionHeader('Requirements & Prerequisites'),
+              TextFormField(
+                controller: requiredEquipmentController,
+                decoration: const InputDecoration(
+                  labelText: 'Required Equipment (comma-separated)',
+                  hintText: 'Helmet, Harness, Crampons, Ice Axe',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: prerequisitesController,
+                decoration: const InputDecoration(
+                  labelText: 'Prerequisites (comma-separated)',
+                  hintText: 'AST 1, Prior scrambling experience',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: isSaving.value ? null : save,
+                  child: isSaving.value
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save Changes', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}

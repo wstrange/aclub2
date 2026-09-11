@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:logging/logging.dart';
 
+import 'pages/event_edit_page.dart';
 import 'pages/home_page.dart';
 import 'pages/section_selection_page.dart';
 import 'pages/sign_in_page.dart';
@@ -31,6 +32,16 @@ final class SectionSelectionRoute extends AppRoute {
   const SectionSelectionRoute();
 }
 
+final class EventEditRoute extends AppRoute {
+  const EventEditRoute({required this.sectionId, required this.eventId});
+
+  final String sectionId;
+  final String eventId;
+
+  @override
+  List<Object?> get props => [sectionId, eventId];
+}
+
 final routerConfig = KaiselRouterConfig<AppRoute>(
   initial: FirebaseAuth.instance.currentUser != null ? const HomeRoute() : const SignInRoute(),
   guards: [authGuard, profileCompletionGuard, sectionMembershipGuard],
@@ -39,6 +50,7 @@ final routerConfig = KaiselRouterConfig<AppRoute>(
     SignInRoute() => const SignInPage(),
     UserProfileRoute() => const UserProfilePage(),
     SectionSelectionRoute() => const SectionSelectionPage(),
+    EventEditRoute(:final sectionId, :final eventId) => EventEditPage(sectionId: sectionId, eventId: eventId),
   },
 );
 
