@@ -36,6 +36,23 @@ void main() async {
       await _connectToFirebaseEmulator();
     }
 
+    // 3. Keep UserState in sync with the auth session. The router's guards
+    // never run for its initial route, so when a persisted session is restored
+    // at startup the UserState (and current section) would otherwise never be
+    // established.
+    // TODO: Is this the best way to hadndle this?
+    FirebaseAuth.instance.authStateChanges().listen((user) async {
+      try {
+        if (user != null) {
+          await userStateCubit.ensureLoaded(user);
+        } else {
+          userStateCubit.clear();
+        }
+      } catch (e) {
+        print('Error initializing UserState: $e');
+      }
+    });
+
     runApp(
       BlocSignalProvider<UserStateCubit>.value(
         value: userStateCubit,
