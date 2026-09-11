@@ -10,8 +10,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
+import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
+
 import 'admin/setup.dart';
 import 'routes.dart';
+import 'state/user_state_cubit.dart';
 
 // import 'firebase_options.dart';
 
@@ -35,13 +38,16 @@ void main() async {
   await createSections();
 
   runApp(
-    MaterialApp.router(
-      routerConfig: routerConfig,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        // Explicitly declare Roboto (already bundled with Flutter Web) to
-        // prevent the "Could not find Noto fonts" warning in Chrome.
-        fontFamily: 'Roboto',
+    BlocSignalProvider<UserStateCubit>.value(
+      value: userStateCubit,
+      child: MaterialApp.router(
+        routerConfig: routerConfig,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          // Explicitly declare Roboto (already bundled with Flutter Web) to
+          // prevent the "Could not find Noto fonts" warning in Chrome.
+          fontFamily: 'Roboto',
+        ),
       ),
     ),
   );

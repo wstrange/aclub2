@@ -107,18 +107,23 @@ class AlpineRepository {
     await _firestore.collection('templates').doc(template.id).delete();
   }
 
+  // todo: this looks dodgy agy
+  UserProfile? _cachedProfile;
+
   /// User profile
   ///
   Future<UserProfile?> getUser(String uid) async {
-    return await db.users(uid).get();
+    return await getUserProfile(uid);
   }
 
   Future<void> createUserProfile(UserProfile u) async {
     await db.users.set(u);
+    _cachedProfile = u;
   }
 
   Future<void> updateUserProfile(UserProfile u) async {
     await db.users.set(u);
+    _cachedProfile = u;
   }
 
   Future<String> createSection(Section section) async {
@@ -145,20 +150,68 @@ class AlpineRepository {
     await db.sections.delete(section.id);
   }
 
-  Future<UserProfile?> getUserProfile(String uid) async {
-    return await db.users(uid).get();
+  Future<UserProfile?> getUserProfile(String uid, {bool reload = false}) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid != uid) {
+      _cachedProfile = null;
+    }
+    if (!reload && _cachedProfile != null && _cachedProfile!.id == uid) {
+      return _cachedProfile;
+    }
+    _cachedProfile = await db.users(uid).get();
+    return _cachedProfile;
+  }
+
+  void clearProfileCache() {
+    _cachedProfile = null;
   }
 
   // Add to section
-  Future<void> addMemberToSection({required String sectionId, required String userId}) async {
+  Future<void> addMemberToSection({
+    required String sectionId,
+    required String userId,
+    SectionRole sectionRole = SectionRole.member,
+  }) async {
     _log.info("Adding user $userId to section $sectionId");
     var s = SectionMember(
       sectionId: sectionId,
       id: userId,
-      sectionRole: SectionRole.tripLeader,
+      sectionRole: sectionRole,
       joinedAt: DateTime.now(),
     );
     await db.sectionsMembers(sectionId).set(s);
+  }
+
+  // Remove from section
+  Future<void> removeMemberFromSection({required String sectionId, required String userId}) async {
+    _log.info("Removing user $userId from section $sectionId");
+    await db.sectionsMembers(sectionId).delete(userId);
+  }
+
+  // Set user's chosen sections, syncing both SectionMember subcollections and UserProfile.sectionIds
+  Future<void> setUserSections({required String userId, required List<String> sectionIds}) async {
+    final profile = await getUserProfile(userId, reload: true);
+    final currentSectionIds = profile?.sectionIds ?? const [];
+
+    for (final sectionId in sectionIds) {
+      if (!currentSectionIds.contains(sectionId)) {
+        await addMemberToSection(sectionId: sectionId, userId: userId);
+      }
+    }
+
+    for (final currentId in currentSectionIds) {
+      if (!sectionIds.contains(currentId)) {
+        await removeMemberFromSection(sectionId: currentId, userId: userId);
+      }
+    }
+
+    if (profile != null) {
+      final updated = profile.copyWith(
+        sectionIds: sectionIds,
+        updatedAt: DateTime.now(),
+      );
+      await updateUserProfile(updated);
+    }
   }
 
   // Called on login. Checks to see if the user has a complated profile.
@@ -185,8 +238,6 @@ class AlpineRepository {
       );
 
       await createUserProfile(user);
-
-      await addMemberToSection(sectionId: defaultSectionId, userId: user.id);
 
       _log.info("Created stub profile for ${userInfo.email}");
     }

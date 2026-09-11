@@ -7,6 +7,7 @@ import 'package:kaisel/kaisel.dart';
 
 import '../models/models.dart';
 import '../routes.dart';
+import '../state/user_state_cubit.dart';
 
 sealed class UserProfileFormState {
   const UserProfileFormState();
@@ -57,6 +58,7 @@ class UserProfileCubit extends CubitSignal<UserProfileFormState> {
       }
       await repository.updateUserProfile(updatedUser);
       user = updatedUser;
+      await userStateCubit.refresh();
       emit(UserFormSuccess(updatedUser));
     } on FirebaseAuthException catch (e) {
       emit(UserFormError(e.message ?? e.code));
@@ -111,7 +113,7 @@ class _UserProfileForm extends HookWidget {
     final currentAuthUser = authUser ?? FirebaseAuth.instance.currentUser;
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final displayName = useTextEditingController(text: currentAuthUser?.displayName ?? '');
-    final phoneAuth = useTextEditingController(text: currentAuthUser?.phoneNumber ?? '');
+    // final phoneAuth = useTextEditingController(text: currentAuthUser?.phoneNumber ?? '');
     final email = useTextEditingController(text: currentAuthUser?.email ?? '');
     final firstName = useTextEditingController(text: user.firstName);
     final lastName = useTextEditingController(text: user.lastName);
@@ -136,6 +138,7 @@ class _UserProfileForm extends HookWidget {
     Future<void> submit() async {
       if (!(formKey.currentState?.validate() ?? false)) return;
 
+      completedProfile.value = true;
       final updatedUser = user.copyWith(
         firstName: firstName.text.trim(),
         lastName: lastName.text.trim(),
@@ -147,7 +150,7 @@ class _UserProfileForm extends HookWidget {
         certifications: splitList(certifications.text),
         sectionIds: splitList(sectionIds.text),
         isAdmin: isAdmin.value,
-        complatedProfile: completedProfile.value,
+        complatedProfile: true,
         signedWaiver: signedWaiver.value,
         notificationPreferences: user.notificationPreferences.copyWith(
           pushEnabled: pushEnabled.value,

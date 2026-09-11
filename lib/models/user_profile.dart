@@ -45,6 +45,9 @@ abstract class UserProfile with _$UserProfile {
     /// IDs of the sections this user belongs to.
     @Default([]) List<String> sectionIds,
 
+    // The default section to login as
+    String? defaultSectionId,
+
     /// Whether this user has global admin access.
     /// All other roles (section manager, trip leader, member) are per-section
     /// and are stored on each [SectionMember] document.

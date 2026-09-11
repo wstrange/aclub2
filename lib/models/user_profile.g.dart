@@ -25,6 +25,7 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
           ?.map((e) => e as String)
           .toList() ??
       const [],
+  defaultSectionId: json['defaultSectionId'] as String?,
   isAdmin: json['isAdmin'] as bool? ?? false,
   complatedProfile: json['complatedProfile'] as bool? ?? false,
   signedWaiver: json['signedWaiver'] as bool? ?? false,
@@ -51,6 +52,7 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'medicalConditions': instance.medicalConditions,
       'certifications': instance.certifications,
       'sectionIds': instance.sectionIds,
+      'defaultSectionId': instance.defaultSectionId,
       'isAdmin': instance.isAdmin,
       'complatedProfile': instance.complatedProfile,
       'signedWaiver': instance.signedWaiver,
@@ -77,6 +79,7 @@ Map<String, dynamic>? UserProfileToJson(UserProfile? instance) =>
         'medicalConditions': instance.medicalConditions,
         'certifications': instance.certifications,
         'sectionIds': instance.sectionIds,
+        'defaultSectionId': instance.defaultSectionId,
         'isAdmin': instance.isAdmin,
         'complatedProfile': instance.complatedProfile,
         'signedWaiver': instance.signedWaiver,
@@ -105,6 +108,9 @@ UserProfile UserProfileFromJson(Map<String, dynamic> json) => UserProfile(
       : (json['medicalConditions'] as String?),
   certifications: (json['certifications'] as List<dynamic>).cast<String>(),
   sectionIds: (json['sectionIds'] as List<dynamic>).cast<String>(),
+  defaultSectionId: json['defaultSectionId'] == null
+      ? null
+      : (json['defaultSectionId'] as String?),
   isAdmin: (json['isAdmin'] as bool),
   complatedProfile: (json['complatedProfile'] as bool),
   signedWaiver: (json['signedWaiver'] as bool),
@@ -193,6 +199,14 @@ class UserProfilePatchBuilder extends PatchBuilder<UserProfile> {
       return value;
     },
     elementToJson: (value) {
+      return value;
+    },
+  );
+
+  /// Patch handle for `defaultSectionId` (document field `defaultSectionId`).
+  late final FieldUpdate<String?> defaultSectionId = FieldUpdate(
+    field: const FieldNode(components: ['defaultSectionId']),
+    toJson: (value) {
       return value;
     },
   );
@@ -344,6 +358,15 @@ class UserProfileFilterBuilder extends FilterBuilderRoot {
         },
       );
 
+  /// Selector for `defaultSectionId`.
+  late final FilterField<String?, String?> defaultSectionId =
+      FilterField<String?, String?>(
+        field: append('defaultSectionId'),
+        toJson: (value) {
+          return value;
+        },
+      );
+
   /// Selector for `isAdmin`.
   late final FilterField<bool, bool> isAdmin = FilterField<bool, bool>(
     field: append('isAdmin'),
@@ -469,6 +492,12 @@ class UserProfileOrderByBuilder extends OrderByBuilderRoot {
   /// Selector for `sectionIds`.
   late final OrderByField<List<String>> sectionIds = OrderByField(
     field: append('sectionIds'),
+    context: _context,
+  );
+
+  /// Selector for `defaultSectionId`.
+  late final OrderByField<String?> defaultSectionId = OrderByField(
+    field: append('defaultSectionId'),
     context: _context,
   );
 
@@ -620,6 +649,15 @@ class UserProfilePipelineSelector extends PipelineFieldNode {
   /// Selector for `sectionIds`.
   late final PipelineField<List<String>> sectionIds = PipelineField(
     components: [...components, 'sectionIds'],
+    context: $ctx,
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Selector for `defaultSectionId`.
+  late final PipelineField<String?> defaultSectionId = PipelineField(
+    components: [...components, 'defaultSectionId'],
     context: $ctx,
     toJson: (value) {
       return value;

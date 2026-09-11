@@ -1,8 +1,12 @@
 import 'package:aclub2/admin/setup.dart';
+import 'package:aclub2/state/user_state_cubit.dart';
+import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kaisel/kaisel.dart';
 
+import '../models/user_state.dart';
+import '../repo.dart';
 import '../routes.dart';
 
 class HomePage extends StatelessWidget {
@@ -12,13 +16,44 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: BlocSignalBuilder<UserStateCubit, UserState?>(
+          builder: (context, state) {
+            if (state == null || state.userSections.isEmpty) {
+              return const Text('Home');
+            }
+
+            final currentSectionId = state.currentSection.id;
+            final isCurrentValid = state.userSections.any((s) => s.id == currentSectionId);
+
+            return DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: isCurrentValid ? currentSectionId : state.userSections.first.id,
+                icon: const Icon(Icons.arrow_drop_down),
+                items: state.userSections
+                    .map(
+                      (section) => DropdownMenuItem<String>(
+                        value: section.id,
+                        child: Text(section.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    context.read<UserStateCubit>().setCurrentSectionById(value);
+                  }
+                },
+              ),
+            );
+          },
+        ),
 
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
             onPressed: () async {
+              repository.clearProfileCache();
+              userStateCubit.clear();
               await FirebaseAuth.instance.signOut();
               if (context.mounted) context.replaceTop(const SignInRoute());
             },
@@ -40,6 +75,8 @@ class HomePage extends StatelessWidget {
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
               onTap: () async {
+                repository.clearProfileCache();
+                userStateCubit.clear();
                 await FirebaseAuth.instance.signOut();
                 if (context.mounted) context.replaceTop(const SignInRoute());
               },
@@ -59,20 +96,33 @@ class HomePage extends StatelessWidget {
                 context.push(const UserProfileRoute());
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.group),
+              title: const Text('My Sections'),
+              onTap: () async {
+                context.push(const SectionSelectionRoute());
+              },
+            ),
           ],
         ),
       ),
-      body: Column(
-        children: [
-          const Center(child: Text('Home')),
-          Text('User is ${FirebaseAuth.instance.currentUser}'),
-          ElevatedButton(
-            onPressed: () {
-              context.push(const UserProfileRoute());
-            },
-            child: const Text('Create User'),
-          ),
-        ],
+      body: BlocSignalBuilder<UserStateCubit, UserState?>(
+        builder: (context, state) {
+          if (state == null || state.userSections.isEmpty) {
+            return const Text('Home');
+          }
+
+          final profile = state.userProfile;
+          final user = state.user;
+
+          return Column(
+            children: [
+              const Center(child: Text('Home')),
+              Text('Logged in as ${profile.firstName} ${profile.lastName} ${user.email}'),
+              Text('Viewing section ${state.currentSection.name}'),
+            ],
+          );
+        },
       ),
     );
   }

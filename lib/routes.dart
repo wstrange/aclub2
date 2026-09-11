@@ -3,11 +3,11 @@ import 'package:kaisel/kaisel.dart';
 import 'package:logging/logging.dart';
 
 import 'pages/home_page.dart';
+import 'pages/section_selection_page.dart';
 import 'pages/sign_in_page.dart';
 import 'pages/user_profile_page.dart';
-
-// import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
-// import 'package:signals_core/signals_core.dart ';
+import 'repo.dart';
+import 'state/user_state_cubit.dart';
 
 final _log = Logger('route');
 
@@ -23,37 +23,24 @@ final class SignInRoute extends AppRoute {
   const SignInRoute();
 }
 
-// final class Users extends AppRoute {
-//   const Users();
-// }
-
 final class UserProfileRoute extends AppRoute {
   const UserProfileRoute();
 }
 
-// final class UserDetail extends AppRoute {
-//   const UserDetail(this.id);
-
-// //   final String id;
-
-// @override
-// List<Object?> get props => [id];
-// // }
+final class SectionSelectionRoute extends AppRoute {
+  const SectionSelectionRoute();
+}
 
 final routerConfig = KaiselRouterConfig<AppRoute>(
-  initial: FirebaseAuth.instance.currentUser != null ? const HomeRoute() : SignInRoute(),
-  guards: [authGuard],
+  initial: FirebaseAuth.instance.currentUser != null ? const HomeRoute() : const SignInRoute(),
+  guards: [authGuard, profileCompletionGuard, sectionMembershipGuard],
   builder: (context, route) => switch (route) {
     HomeRoute() => const HomePage(),
-    SignInRoute() => SignInPage(),
+    SignInRoute() => const SignInPage(),
     UserProfileRoute() => const UserProfilePage(),
-
-    // Users() => const UsersPage(),
-    // UserDetail(:final id) => UserDetailPage(userId: id),
+    SectionSelectionRoute() => const SectionSelectionPage(),
   },
 );
-
-// final repo = signal(AlpineRepository());
 
 List<AppRoute> authGuard(List<AppRoute> current, List<AppRoute> proposed) {
   // Check if the user is authenticated with Firebase
@@ -67,7 +54,66 @@ List<AppRoute> authGuard(List<AppRoute> current, List<AppRoute> proposed) {
     return [const SignInRoute()];
   }
 
+  // If they are logged in and heading to login, redirect to home
+  if (isLoggedIn && headingToLogin) {
+    return [const HomeRoute()];
+  }
+
   _log.info('Auth guard: isLoggedIn: $isLoggedIn, headingToLogin: $headingToLogin, proposed: $proposed');
-  // Otherwise, allow the proposed navigation stack to proceed normally
+  return proposed;
+}
+
+/// Redirects authenticated users to complete their profile if it is marked as not completed.
+Future<List<AppRoute>> profileCompletionGuard(List<AppRoute> current, List<AppRoute> proposed) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    return proposed;
+  }
+
+  // Allow navigation if already heading to the profile screen
+  final bool headingToProfile = proposed.any((r) => r is UserProfileRoute);
+  if (headingToProfile) {
+    return proposed;
+  }
+
+  // agy made this a cached lookup. Maybe OK? Will be fast
+  var profile = await repository.getUserProfile(user.uid);
+  if (profile == null) {
+    await repository.checkProfile(user);
+    profile = await repository.getUserProfile(user.uid);
+  }
+
+  if (profile == null || !profile.complatedProfile) {
+    _log.info('Profile incomplete for user ${user.uid}, redirecting to UserProfileRoute');
+    return [const UserProfileRoute()];
+  }
+
+  return proposed;
+}
+
+/// Redirects authenticated users who belong to no sections to [SectionSelectionRoute].
+Future<List<AppRoute>> sectionMembershipGuard(List<AppRoute> current, List<AppRoute> proposed) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    return proposed;
+  }
+
+  // Allow navigation if heading to login, profile, or section selection
+  final bool headingToLogin = proposed.any((r) => r is SignInRoute);
+  final bool headingToProfile = proposed.any((r) => r is UserProfileRoute);
+  final bool headingToSections = proposed.any((r) => r is SectionSelectionRoute);
+  if (headingToLogin || headingToProfile || headingToSections) {
+    return proposed;
+  }
+
+  final profile = await repository.getUserProfile(user.uid);
+  if (profile == null || profile.sectionIds.isEmpty) {
+    _log.info('User ${user.uid} belongs to no sections, redirecting to SectionSelectionRoute');
+    return [const SectionSelectionRoute()];
+  }
+
+  // Once all guards have passed, ensure UserState is fully loaded
+  await userStateCubit.ensureLoaded(user, profile);
+
   return proposed;
 }
