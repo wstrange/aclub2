@@ -23,34 +23,39 @@ void main() async {
   Logger.root.onRecord.listen((record) {
     print('${record.level.name}: ${record.message}');
   });
-  WidgetsFlutterBinding.ensureInitialized();
-  // 1. Still initialize Firebase normally first!
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Configure the auth providers globally
-  FirebaseUIAuth.configureProviders([EmailAuthProvider()]);
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    // 1. Still initialize Firebase normally first!
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // 2. Redirect to Local Emulators only during development
-  if (kDebugMode) {
-    await _connectToFirebaseEmulator();
-  }
+    // Configure the auth providers globally
+    FirebaseUIAuth.configureProviders([EmailAuthProvider()]);
 
-  await createSections();
+    // 2. Redirect to Local Emulators only during development
+    if (kDebugMode) {
+      await _connectToFirebaseEmulator();
+    }
 
-  runApp(
-    BlocSignalProvider<UserStateCubit>.value(
-      value: userStateCubit,
-      child: MaterialApp.router(
-        routerConfig: routerConfig,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          // Explicitly declare Roboto (already bundled with Flutter Web) to
-          // prevent the "Could not find Noto fonts" warning in Chrome.
-          fontFamily: 'Roboto',
+    await createSections();
+
+    runApp(
+      BlocSignalProvider<UserStateCubit>.value(
+        value: userStateCubit,
+        child: MaterialApp.router(
+          routerConfig: routerConfig,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+            // Explicitly declare Roboto (already bundled with Flutter Web) to
+            // prevent the "Could not find Noto fonts" warning in Chrome.
+            fontFamily: 'Roboto',
+          ),
         ),
       ),
-    ),
-  );
+    );
+  } catch (e) {
+    print('Error: $e');
+  }
 }
 
 Future<void> _connectToFirebaseEmulator() async {
@@ -74,10 +79,7 @@ Future<void> _connectToFirebaseEmulator() async {
     FirebaseFirestore.instance.useFirestoreEmulator(localHost, 8080);
 
     // Optional: Turn off SSL/Persistence constraints if hitting emulator sync lags
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: false,
-      sslEnabled: false,
-    );
+    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false, sslEnabled: false);
 
     // Connect Storage Emulator if you use it (default port: 9199)
     // await FirebaseStorage.instance.useStorageEmulator(localHost, 9199);
