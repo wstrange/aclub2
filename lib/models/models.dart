@@ -4,5 +4,4 @@
 /// as well as client-side UI models.
 library;
 
-export 'package:shared_models/shared_models.dart';
 export 'user_state.dart';

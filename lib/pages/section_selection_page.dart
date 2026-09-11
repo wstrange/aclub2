@@ -2,8 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:shared_models/shared_models.dart';
 
-import '../models/models.dart';
 import '../repo.dart';
 import '../routes.dart';
 import '../state/user_state_cubit.dart';
@@ -19,10 +19,7 @@ class SectionSelectionPage extends StatelessWidget {
     }
 
     return FutureBuilder<List<dynamic>>(
-      future: Future.wait([
-        repository.getSections(),
-        repository.getUserProfile(user.uid),
-      ]),
+      future: Future.wait([repository.getSections(), repository.getUserProfile(user.uid)]),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -52,11 +49,7 @@ class SectionSelectionPage extends StatelessWidget {
 }
 
 class _SectionSelectionForm extends HookWidget {
-  const _SectionSelectionForm({
-    required this.userId,
-    required this.sections,
-    required this.initialSelected,
-  });
+  const _SectionSelectionForm({required this.userId, required this.sections, required this.initialSelected});
 
   final String userId;
   final List<Section> sections;
@@ -77,16 +70,11 @@ class _SectionSelectionForm extends HookWidget {
       errorMessage.value = null;
       isSaving.value = true;
       try {
-        await repository.setUserSections(
-          userId: userId,
-          sectionIds: selectedIds.value.toList(),
-        );
+        await repository.setUserSections(userId: userId, sectionIds: selectedIds.value.toList());
         await userStateCubit.refresh();
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sections updated.')),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sections updated.')));
           final popped = await context.pop();
           if (!popped && context.mounted) {
             context.replaceTop(const HomeRoute());
@@ -177,11 +165,7 @@ class _SectionSelectionForm extends HookWidget {
                 child: ElevatedButton(
                   onPressed: isSaving.value ? null : save,
                   child: isSaving.value
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text('Save Sections'),
                 ),
               ),

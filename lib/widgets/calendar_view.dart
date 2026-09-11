@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:shared_models/shared_models.dart';
 
-import '../models/models.dart';
 import '../repo.dart';
 
 const List<String> _monthNames = [
@@ -24,11 +24,7 @@ const List<String> _weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 /// A monthly calendar widget that displays events for a given [sectionId],
 /// allowing navigation through months and showing event titles on scheduled days.
 class CalendarView extends HookWidget {
-  const CalendarView({
-    super.key,
-    required this.sectionId,
-    this.onEventTap,
-  });
+  const CalendarView({super.key, required this.sectionId, this.onEventTap});
 
   final String sectionId;
   final void Function(Event event)? onEventTap;
@@ -39,10 +35,7 @@ class CalendarView extends HookWidget {
     final displayedMonth = useState(DateTime(now.year, now.month));
     final selectedDay = useState<DateTime?>(DateTime(now.year, now.month, now.day));
 
-    final eventsStream = useMemoized(
-      () => repository.streamSectionEvents(sectionId),
-      [sectionId],
-    );
+    final eventsStream = useMemoized(() => repository.streamSectionEvents(sectionId), [sectionId]);
     final eventsSnapshot = useStream(eventsStream);
 
     if (eventsSnapshot.connectionState == ConnectionState.waiting && !eventsSnapshot.hasData) {
@@ -117,21 +110,13 @@ class CalendarView extends HookWidget {
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                if (!isCurrentMonth)
-                  TextButton(
-                    onPressed: goToToday,
-                    child: const Text('Today'),
-                  ),
+                if (!isCurrentMonth) TextButton(onPressed: goToToday, child: const Text('Today')),
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
                   tooltip: 'Previous month',
                   onPressed: goToPreviousMonth,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  tooltip: 'Next month',
-                  onPressed: goToNextMonth,
-                ),
+                IconButton(icon: const Icon(Icons.chevron_right), tooltip: 'Next month', onPressed: goToNextMonth),
               ],
             ),
           ),
@@ -193,7 +178,8 @@ class CalendarView extends HookWidget {
 
                 final normalizedCellDate = DateTime(cellDate.year, cellDate.month, cellDate.day);
                 final isToday = now.year == cellDate.year && now.month == cellDate.month && now.day == cellDate.day;
-                final isSelected = selectedDate != null &&
+                final isSelected =
+                    selectedDate != null &&
                     selectedDate.year == cellDate.year &&
                     selectedDate.month == cellDate.month &&
                     selectedDate.day == cellDate.day;
@@ -249,26 +235,13 @@ class CalendarView extends HookWidget {
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
-                            leading: Icon(
-                              Icons.event,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            title: Text(
-                              event.title,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
+                            leading: Icon(Icons.event, color: Theme.of(context).colorScheme.primary),
+                            title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: event.description != null && event.description!.isNotEmpty
-                                ? Text(
-                                    event.description!,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  )
+                                ? Text(event.description!, maxLines: 2, overflow: TextOverflow.ellipsis)
                                 : null,
                             trailing: Chip(
-                              label: Text(
-                                event.type.name,
-                                style: const TextStyle(fontSize: 11),
-                              ),
+                              label: Text(event.type.name, style: const TextStyle(fontSize: 11)),
                               padding: EdgeInsets.zero,
                             ),
                             onTap: onEventTap != null ? () => onEventTap!(event) : null,
@@ -327,8 +300,8 @@ class _DayCell extends StatelessWidget {
             color: isSelected
                 ? colorScheme.primary
                 : isToday
-                    ? colorScheme.primary.withValues(alpha: 0.5)
-                    : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                ? colorScheme.primary.withValues(alpha: 0.5)
+                : colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -340,12 +313,7 @@ class _DayCell extends StatelessWidget {
             Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: isToday
-                    ? BoxDecoration(
-                        color: colorScheme.primary,
-                        shape: BoxShape.circle,
-                      )
-                    : null,
+                decoration: isToday ? BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle) : null,
                 child: Text(
                   '${date.day}',
                   style: TextStyle(
@@ -354,8 +322,8 @@ class _DayCell extends StatelessWidget {
                     color: isToday
                         ? colorScheme.onPrimary
                         : !isCurrentMonth
-                            ? colorScheme.outline
-                            : colorScheme.onSurface,
+                        ? colorScheme.outline
+                        : colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -396,11 +364,7 @@ class _DayCell extends StatelessWidget {
                 alignment: Alignment.bottomRight,
                 child: Text(
                   '+${events.length - 2}',
-                  style: TextStyle(
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
-                  ),
+                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: colorScheme.primary),
                 ),
               ),
           ],

@@ -1,5 +1,5 @@
-import 'package:aclub2/models/models.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_models/shared_models.dart';
 
 void main() {
   group('Event Model and Editing Logic', () {

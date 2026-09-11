@@ -12,7 +12,6 @@ import 'package:logging/logging.dart';
 
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 
-import 'admin/setup.dart';
 import 'routes.dart';
 import 'state/user_state_cubit.dart';
 
@@ -36,8 +35,6 @@ void main() async {
     if (kDebugMode) {
       await _connectToFirebaseEmulator();
     }
-
-    await createSections();
 
     runApp(
       BlocSignalProvider<UserStateCubit>.value(

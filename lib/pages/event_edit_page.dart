@@ -2,23 +2,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:shared_models/shared_models.dart';
 
-import '../models/models.dart';
 import '../repo.dart';
 
 /// Page for creating or editing an [Event] in a section.
 class EventEditPage extends StatelessWidget {
-  const EventEditPage({
-    super.key,
-    required this.sectionId,
-    required this.eventId,
-  }) : isCreate = false;
+  const EventEditPage({super.key, required this.sectionId, required this.eventId}) : isCreate = false;
 
-  const EventEditPage.create({
-    super.key,
-    required this.sectionId,
-  })  : eventId = '',
-        isCreate = true;
+  const EventEditPage.create({super.key, required this.sectionId}) : eventId = '', isCreate = true;
 
   final String sectionId;
   final String eventId;
@@ -49,9 +41,7 @@ class EventEditPage extends StatelessWidget {
       future: repository.getEvent(sectionId, eventId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
         if (snapshot.hasError) {
@@ -81,11 +71,7 @@ class EventEditPage extends StatelessWidget {
 }
 
 class _EventEditForm extends HookWidget {
-  const _EventEditForm({
-    required this.sectionId,
-    required this.initialEvent,
-    this.isCreate = false,
-  });
+  const _EventEditForm({required this.sectionId, required this.initialEvent, this.isCreate = false});
 
   final String sectionId;
   final Event initialEvent;
@@ -111,25 +97,15 @@ class _EventEditForm extends HookWidget {
     );
     final requiresApproval = useState(initialEvent.requiresApproval);
 
-    final locationDescController = useTextEditingController(
-      text: initialEvent.location?.description ?? '',
-    );
-    final locationMapUrlController = useTextEditingController(
-      text: initialEvent.location?.mapUrl ?? '',
-    );
+    final locationDescController = useTextEditingController(text: initialEvent.location?.description ?? '');
+    final locationMapUrlController = useTextEditingController(text: initialEvent.location?.mapUrl ?? '');
 
     final hasCarpool = useState(initialEvent.carpoolOption != null);
     final carpoolTime = useState(initialEvent.carpoolOption?.meetTime ?? initialEvent.startDate);
-    final carpoolPlaceController = useTextEditingController(
-      text: initialEvent.carpoolOption?.meetPlace ?? '',
-    );
+    final carpoolPlaceController = useTextEditingController(text: initialEvent.carpoolOption?.meetPlace ?? '');
 
-    final requiredEquipmentController = useTextEditingController(
-      text: initialEvent.requiredEquipment.join(', '),
-    );
-    final prerequisitesController = useTextEditingController(
-      text: initialEvent.prerequisites.join(', '),
-    );
+    final requiredEquipmentController = useTextEditingController(text: initialEvent.requiredEquipment.join(', '));
+    final prerequisitesController = useTextEditingController(text: initialEvent.prerequisites.join(', '));
 
     final isSaving = useState(false);
     final errorMessage = useState<String?>(null);
@@ -147,19 +123,10 @@ class _EventEditForm extends HookWidget {
       );
       if (pickedDate == null || !context.mounted) return;
 
-      final pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(initial),
-      );
+      final pickedTime = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(initial));
       if (pickedTime == null) return;
 
-      onPicked(DateTime(
-        pickedDate.year,
-        pickedDate.month,
-        pickedDate.day,
-        pickedTime.hour,
-        pickedTime.minute,
-      ));
+      onPicked(DateTime(pickedDate.year, pickedDate.month, pickedDate.day, pickedTime.hour, pickedTime.minute));
     }
 
     String formatDateTime(DateTime dt) {
@@ -169,11 +136,7 @@ class _EventEditForm extends HookWidget {
     }
 
     List<String> parseList(String input) {
-      return input
-          .split(',')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toList();
+      return input.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     }
 
     Future<void> save() async {
@@ -192,8 +155,7 @@ class _EventEditForm extends HookWidget {
         final maxPart = int.tryParse(maxParticipantsController.text.trim()) ?? 10;
 
         EventLocation? location;
-        if (locationDescController.text.trim().isNotEmpty ||
-            locationMapUrlController.text.trim().isNotEmpty) {
+        if (locationDescController.text.trim().isNotEmpty || locationMapUrlController.text.trim().isNotEmpty) {
           location = EventLocation(
             description: locationDescController.text.trim().isEmpty ? null : locationDescController.text.trim(),
             mapUrl: locationMapUrlController.text.trim().isEmpty ? null : locationMapUrlController.text.trim(),
@@ -202,10 +164,7 @@ class _EventEditForm extends HookWidget {
 
         CarpoolOption? carpool;
         if (hasCarpool.value && carpoolPlaceController.text.trim().isNotEmpty) {
-          carpool = CarpoolOption(
-            meetTime: carpoolTime.value,
-            meetPlace: carpoolPlaceController.text.trim(),
-          );
+          carpool = CarpoolOption(meetTime: carpoolTime.value, meetPlace: carpoolPlaceController.text.trim());
         }
 
         if (isCreate) {
@@ -232,9 +191,7 @@ class _EventEditForm extends HookWidget {
           await repository.createEvent(sectionId, newEvent);
 
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Event created successfully.')),
-            );
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event created successfully.')));
             context.pop();
           }
         } else {
@@ -259,9 +216,7 @@ class _EventEditForm extends HookWidget {
           await repository.updateEvent(sectionId, updatedEvent);
 
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Event updated successfully.')),
-            );
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event updated successfully.')));
             context.pop();
           }
         }
@@ -281,10 +236,7 @@ class _EventEditForm extends HookWidget {
           title: const Text('Delete Event'),
           content: Text('Are you sure you want to delete "${initialEvent.title}"? This cannot be undone.'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
               onPressed: () => Navigator.of(ctx).pop(true),
@@ -300,9 +252,7 @@ class _EventEditForm extends HookWidget {
       try {
         await repository.deleteEvent(sectionId, initialEvent.id);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Event deleted.')),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event deleted.')));
           context.pop();
         }
       } catch (e) {
@@ -337,20 +287,14 @@ class _EventEditForm extends HookWidget {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
                     errorMessage.value!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.bold),
                   ),
                 ),
 
               _sectionHeader('Basic Information'),
               TextFormField(
                 controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Event Title *',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'Event Title *', border: OutlineInputBorder()),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Title is required';
@@ -374,13 +318,8 @@ class _EventEditForm extends HookWidget {
                   Expanded(
                     child: DropdownButtonFormField<EventType>(
                       initialValue: type.value,
-                      decoration: const InputDecoration(
-                        labelText: 'Activity Type',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: EventType.values
-                          .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
-                          .toList(),
+                      decoration: const InputDecoration(labelText: 'Activity Type', border: OutlineInputBorder()),
+                      items: EventType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
                       onChanged: (val) {
                         if (val != null) type.value = val;
                       },
@@ -390,13 +329,8 @@ class _EventEditForm extends HookWidget {
                   Expanded(
                     child: DropdownButtonFormField<Difficulty>(
                       initialValue: difficulty.value,
-                      decoration: const InputDecoration(
-                        labelText: 'Difficulty',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: Difficulty.values
-                          .map((d) => DropdownMenuItem(value: d, child: Text(d.name)))
-                          .toList(),
+                      decoration: const InputDecoration(labelText: 'Difficulty', border: OutlineInputBorder()),
+                      items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
                       onChanged: (val) {
                         if (val != null) difficulty.value = val;
                       },
@@ -407,13 +341,8 @@ class _EventEditForm extends HookWidget {
               const SizedBox(height: 12),
               DropdownButtonFormField<EventStatus>(
                 initialValue: status.value,
-                decoration: const InputDecoration(
-                  labelText: 'Status',
-                  border: OutlineInputBorder(),
-                ),
-                items: EventStatus.values
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
-                    .toList(),
+                decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                items: EventStatus.values.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
                 onChanged: (val) {
                   if (val != null) status.value = val;
                 },
@@ -441,11 +370,8 @@ class _EventEditForm extends HookWidget {
                 title: const Text('End Date & Time'),
                 subtitle: Text(formatDateTime(endDate.value)),
                 trailing: const Icon(Icons.calendar_today),
-                onTap: () => pickDateTime(
-                  context: context,
-                  initial: endDate.value,
-                  onPicked: (dt) => endDate.value = dt,
-                ),
+                onTap: () =>
+                    pickDateTime(context: context, initial: endDate.value, onPicked: (dt) => endDate.value = dt),
               ),
 
               _sectionHeader('Capacity & Registration'),
@@ -455,10 +381,7 @@ class _EventEditForm extends HookWidget {
                     child: TextFormField(
                       controller: minParticipantsController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Min Participants',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Min Participants', border: OutlineInputBorder()),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -466,10 +389,7 @@ class _EventEditForm extends HookWidget {
                     child: TextFormField(
                       controller: maxParticipantsController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Max Participants *',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Max Participants *', border: OutlineInputBorder()),
                       validator: (value) {
                         final parsed = int.tryParse(value ?? '');
                         if (parsed == null || parsed < 1) {
@@ -563,11 +483,7 @@ class _EventEditForm extends HookWidget {
                 child: ElevatedButton(
                   onPressed: isSaving.value ? null : save,
                   child: isSaving.value
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       : Text(isCreate ? 'Create Event' : 'Save Changes', style: const TextStyle(fontSize: 16)),
                 ),
               ),
@@ -582,13 +498,7 @@ class _EventEditForm extends HookWidget {
   Widget _sectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 20, bottom: 10),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
     );
   }
 }

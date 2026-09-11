@@ -201,14 +201,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.7.3"
-  code_builder:
-    dependency: transitive
-    description:
-      name: code_builder
-      sha256: aa5932e94c6c39c2f9ec4e5e06dfdd11a9430a61f6c41b6ba75b28ce0c481baf
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.12.0"
   collection:
     dependency: transitive
     description:
@@ -374,14 +366,6 @@ packages:
     description:
       name: firestore_odm_annotation
       sha256: "839430a0f227e620dbade362cf92bf7631ed9b4da79c879eab7de967cab53f58"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.0.0"
-  firestore_odm_builder:
-    dependency: "direct dev"
-    description:
-      name: firestore_odm_builder
-      sha256: "1759b648f27542caebc5b94ec11965cb4c06b4f38a0adc84516ea75140aaef9b"
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"

@@ -1,10 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firestore_odm/firestore_odm.dart';
-
-import 'models/models.dart';
-import 'app_schema.dart';
-
+import 'package:shared_models/shared_models.dart';
 import 'package:logging/logging.dart';
 
 final _log = Logger("Repository");
@@ -44,14 +41,9 @@ class AlpineRepository {
   }
 
   Stream<List<Event>> streamSectionEvents(String sectionId) {
-    return _firestore
-        .collection('sections')
-        .doc(sectionId)
-        .collection('events')
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) => Event.fromJson({...doc.data(), 'id': doc.id})).toList();
-        });
+    return _firestore.collection('sections').doc(sectionId).collection('events').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => Event.fromJson({...doc.data(), 'id': doc.id})).toList();
+    });
   }
 
   Future<List<Event>> getSectionEvents(String sectionId) async {
@@ -75,21 +67,11 @@ class AlpineRepository {
   }
 
   Future<void> updateEvent(String sectionId, Event event) async {
-    await _firestore
-        .collection('sections')
-        .doc(sectionId)
-        .collection('events')
-        .doc(event.id)
-        .set(event.toJson());
+    await _firestore.collection('sections').doc(sectionId).collection('events').doc(event.id).set(event.toJson());
   }
 
   Future<void> deleteEvent(String sectionId, String eventId) async {
-    await _firestore
-        .collection('sections')
-        .doc(sectionId)
-        .collection('events')
-        .doc(eventId)
-        .delete();
+    await _firestore.collection('sections').doc(sectionId).collection('events').doc(eventId).delete();
   }
 
   Stream<List<Event>> streamLeaderDrafts(String userUid) {
@@ -210,12 +192,7 @@ class AlpineRepository {
     SectionRole sectionRole = SectionRole.member,
   }) async {
     _log.info("Adding user $userId to section $sectionId");
-    var s = SectionMember(
-      sectionId: sectionId,
-      id: userId,
-      sectionRole: sectionRole,
-      joinedAt: DateTime.now(),
-    );
+    var s = SectionMember(sectionId: sectionId, id: userId, sectionRole: sectionRole, joinedAt: DateTime.now());
     await db.sectionsMembers(sectionId).set(s);
   }
 
@@ -243,10 +220,7 @@ class AlpineRepository {
     }
 
     if (profile != null) {
-      final updated = profile.copyWith(
-        sectionIds: sectionIds,
-        updatedAt: DateTime.now(),
-      );
+      final updated = profile.copyWith(sectionIds: sectionIds, updatedAt: DateTime.now());
       await updateUserProfile(updated);
     }
   }

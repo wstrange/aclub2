@@ -1,8 +1,9 @@
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logging/logging.dart';
+import 'package:shared_models/shared_models.dart';
 
-import '../models/models.dart';
+import '../models/user_state.dart';
 import '../repo.dart';
 
 final _log = Logger('UserStateCubit');
@@ -39,20 +40,14 @@ class UserStateCubit extends CubitSignal<UserState?> {
     Section currentSection;
     if (current != null && userSections.any((s) => s.id == current.currentSection.id)) {
       currentSection = userSections.firstWhere((s) => s.id == current.currentSection.id);
-    } else if (profile.defaultSectionId != null &&
-        userSections.any((s) => s.id == profile.defaultSectionId)) {
+    } else if (profile.defaultSectionId != null && userSections.any((s) => s.id == profile.defaultSectionId)) {
       currentSection = userSections.firstWhere((s) => s.id == profile.defaultSectionId);
     } else {
       currentSection = userSections.first;
     }
 
     _log.info('UserState loaded: user=${authUser.email}, currentSection=${currentSection.name}');
-    emit(UserState(
-      userProfile: profile,
-      user: authUser,
-      userSections: userSections,
-      currentSection: currentSection,
-    ));
+    emit(UserState(userProfile: profile, user: authUser, userSections: userSections, currentSection: currentSection));
   }
 
   /// Sets the currently active section for the session.

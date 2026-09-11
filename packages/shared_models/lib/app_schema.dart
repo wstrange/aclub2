@@ -1,6 +1,5 @@
 import 'package:firestore_odm/firestore_odm.dart';
-
-import 'models/models.dart';
+import 'models.dart';
 
 part 'app_schema.g.dart';
 

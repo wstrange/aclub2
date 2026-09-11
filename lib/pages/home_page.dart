@@ -1,4 +1,3 @@
-import 'package:aclub2/admin/setup.dart';
 import 'package:aclub2/state/user_state_cubit.dart';
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -82,19 +81,7 @@ class HomePage extends StatelessWidget {
                 if (context.mounted) context.replaceTop(const SignInRoute());
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings (Load Mock Data)'),
-              onTap: () async {
-                await doAdminSetup();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Mock sections and events created!')),
-                  );
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
+
             ListTile(
               leading: const Icon(Icons.add_circle_outline),
               title: const Text('Create Event'),
@@ -104,9 +91,8 @@ class HomePage extends StatelessWidget {
                 if (currentSection != null) {
                   context.push(EventCreateRoute(sectionId: currentSection.id));
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select a section first.')),
-                  );
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(const SnackBar(content: Text('Please select a section first.')));
                 }
               },
             ),
