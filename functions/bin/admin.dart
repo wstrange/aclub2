@@ -33,13 +33,19 @@ abstract class BaseAdminCommand extends Command<void> {
     final projectId = globalResults?['project'] as String? ?? 'aclub2';
 
     if (useEmulator && emulatorHost != null && emulatorHost.isNotEmpty) {
-      Platform.environment['FIRESTORE_EMULATOR_HOST'] = emulatorHost;
       stdout.writeln('🔌 Connecting to Firestore Emulator at $emulatorHost (Project: $projectId)...');
+      return AdminRepository(
+        projectId: projectId,
+        useEmulator: true,
+        emulatorHost: emulatorHost,
+      );
     } else {
       stdout.writeln('☁️ Connecting to GCP Project $projectId...');
+      return AdminRepository(
+        projectId: projectId,
+        useEmulator: false,
+      );
     }
-
-    return AdminRepository(projectId: projectId);
   }
 }
 

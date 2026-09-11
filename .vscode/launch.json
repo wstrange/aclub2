@@ -1,0 +1,41 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "aclub2",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "aclub2 (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "aclub2 (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "Dart: Seed Admin",
+            "type": "dart",
+            "request": "launch",
+            "program": "functions/bin/admin.dart",
+            "args": [
+                "seed",
+                "--use-emulator",
+            ]
+        },
+        {
+            "name": "shared_models",
+            "cwd": "packages/shared_models",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}

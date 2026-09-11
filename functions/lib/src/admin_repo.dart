@@ -14,27 +14,26 @@ class AdminRepository {
   late final FirebaseAdminApp adminApp;
   late final Firestore firestore;
 
-  AdminRepository({
-    FirebaseAdminApp? app,
-    String projectId = 'aclub2',
-    bool? useEmulator,
-  }) {
+  AdminRepository({FirebaseAdminApp? app, String projectId = 'aclub2', bool? useEmulator, String? emulatorHost}) {
     if (app != null) {
       adminApp = app;
     } else {
-      final effectiveProjectId = Platform.environment['GCLOUD_PROJECT'] ??
-          Platform.environment['FIREBASE_CONFIG_PROJECT_ID'] ??
-          projectId;
+      final effectiveProjectId =
+          Platform.environment['GCLOUD_PROJECT'] ?? Platform.environment['FIREBASE_CONFIG_PROJECT_ID'] ?? projectId;
 
-      adminApp = FirebaseAdminApp.initializeApp(
-        effectiveProjectId,
-        Credential.fromApplicationDefaultCredentials(),
-      );
+      adminApp = FirebaseAdminApp.initializeApp(effectiveProjectId, Credential.fromApplicationDefaultCredentials());
 
-      final shouldEmulate = useEmulator ??
-          Platform.environment.containsKey('FIRESTORE_EMULATOR_HOST');
+      final shouldEmulate =
+          useEmulator ??
+          (emulatorHost != null && emulatorHost.isNotEmpty) ||
+              Platform.environment.containsKey('FIRESTORE_EMULATOR_HOST');
+
       if (shouldEmulate) {
         adminApp.useEmulator();
+        final host = emulatorHost ?? Platform.environment['FIRESTORE_EMULATOR_HOST'];
+        if (host != null && host.isNotEmpty) {
+          //adminApp.firestoreApiHost = Uri.http(host, '/');
+        }
       }
     }
     firestore = Firestore(adminApp);
@@ -54,20 +53,11 @@ class AdminRepository {
   // ── Events ───────────────────────────────────────────────────────────────
 
   Future<void> createEvent(String sectionId, Event event) async {
-    await firestore
-        .collection('sections')
-        .doc(sectionId)
-        .collection('events')
-        .doc(event.id)
-        .set(event.toJson());
+    await firestore.collection('sections').doc(sectionId).collection('events').doc(event.id).set(event.toJson());
   }
 
   Future<List<Event>> listEvents(String sectionId) async {
-    final snapshot = await firestore
-        .collection('sections')
-        .doc(sectionId)
-        .collection('events')
-        .get();
+    final snapshot = await firestore.collection('sections').doc(sectionId).collection('events').get();
     return snapshot.docs.map((doc) => Event.fromJson({...doc.data(), 'id': doc.id})).toList();
   }
 
@@ -78,12 +68,7 @@ class AdminRepository {
   }
 
   Future<void> addSectionMember(String sectionId, SectionMember member) async {
-    await firestore
-        .collection('sections')
-        .doc(sectionId)
-        .collection('members')
-        .doc(member.id)
-        .set(member.toJson());
+    await firestore.collection('sections').doc(sectionId).collection('members').doc(member.id).set(member.toJson());
   }
 
   // ── Templates ────────────────────────────────────────────────────────────
@@ -111,10 +96,7 @@ class AdminRepository {
       eventCount++;
     }
 
-    return {
-      'sections': sectionCount,
-      'events': eventCount,
-    };
+    return {'sections': sectionCount, 'events': eventCount};
   }
 
   /// Clears sections, events, and templates. Primarily intended for emulator environments.
