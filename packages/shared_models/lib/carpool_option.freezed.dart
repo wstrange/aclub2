@@ -18,7 +18,8 @@ mixin _$CarpoolOption {
 
 /// Time and date to meet for carpooling.
 @TimestampConverter() DateTime get meetTime;/// Description of the meeting point, e.g. "Park & Ride on Hwy 1".
- String get meetPlace;
+ String get meetPlace;/// Optional URL to a map of the meeting point.
+ String? get mapUrl;
 /// Create a copy of CarpoolOption
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,20 +33,20 @@ $CarpoolOptionCopyWith<CarpoolOption> get copyWith => _$CarpoolOptionCopyWithImp
 @override
 bool operator ==(Object other) {
   final _this = this as CarpoolOption;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CarpoolOption&&(identical(other.meetTime, _this.meetTime) || other.meetTime == _this.meetTime)&&(identical(other.meetPlace, _this.meetPlace) || other.meetPlace == _this.meetPlace));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CarpoolOption&&(identical(other.meetTime, _this.meetTime) || other.meetTime == _this.meetTime)&&(identical(other.meetPlace, _this.meetPlace) || other.meetPlace == _this.meetPlace)&&(identical(other.mapUrl, _this.mapUrl) || other.mapUrl == _this.mapUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as CarpoolOption;
-  return Object.hash(runtimeType,_this.meetTime,_this.meetPlace);
+  return Object.hash(runtimeType,_this.meetTime,_this.meetPlace,_this.mapUrl);
 }
 
 @override
 String toString() {
   final _this = this as CarpoolOption;
-  return 'CarpoolOption(meetTime: ${_this.meetTime}, meetPlace: ${_this.meetPlace})';
+  return 'CarpoolOption(meetTime: ${_this.meetTime}, meetPlace: ${_this.meetPlace}, mapUrl: ${_this.mapUrl})';
 }
 
 
@@ -56,7 +57,7 @@ abstract mixin class $CarpoolOptionCopyWith<$Res>  {
   factory $CarpoolOptionCopyWith(CarpoolOption value, $Res Function(CarpoolOption) _then) = _$CarpoolOptionCopyWithImpl;
 @useResult
 $Res call({
-@TimestampConverter() DateTime meetTime, String meetPlace
+@TimestampConverter() DateTime meetTime, String meetPlace, String? mapUrl
 });
 
 
@@ -73,11 +74,12 @@ class _$CarpoolOptionCopyWithImpl<$Res>
 
 /// Create a copy of CarpoolOption
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? meetTime = null,Object? meetPlace = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? meetTime = null,Object? meetPlace = null,Object? mapUrl = freezed,}) {
   return _then(CarpoolOption(
 meetTime: null == meetTime ? _self.meetTime : meetTime // ignore: cast_nullable_to_non_nullable
 as DateTime,meetPlace: null == meetPlace ? _self.meetPlace : meetPlace // ignore: cast_nullable_to_non_nullable
-as String,
+as String,mapUrl: freezed == mapUrl ? _self.mapUrl : mapUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -162,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@TimestampConverter()  DateTime meetTime,  String meetPlace)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@TimestampConverter()  DateTime meetTime,  String meetPlace,  String? mapUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CarpoolOption() when $default != null:
-return $default(_that.meetTime,_that.meetPlace);case _:
+return $default(_that.meetTime,_that.meetPlace,_that.mapUrl);case _:
   return orElse();
 
 }
@@ -183,10 +185,10 @@ return $default(_that.meetTime,_that.meetPlace);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@TimestampConverter()  DateTime meetTime,  String meetPlace)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@TimestampConverter()  DateTime meetTime,  String meetPlace,  String? mapUrl)  $default,) {final _that = this;
 switch (_that) {
 case _CarpoolOption():
-return $default(_that.meetTime,_that.meetPlace);case _:
+return $default(_that.meetTime,_that.meetPlace,_that.mapUrl);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +205,10 @@ return $default(_that.meetTime,_that.meetPlace);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@TimestampConverter()  DateTime meetTime,  String meetPlace)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@TimestampConverter()  DateTime meetTime,  String meetPlace,  String? mapUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _CarpoolOption() when $default != null:
-return $default(_that.meetTime,_that.meetPlace);case _:
+return $default(_that.meetTime,_that.meetPlace,_that.mapUrl);case _:
   return null;
 
 }
@@ -218,13 +220,15 @@ return $default(_that.meetTime,_that.meetPlace);case _:
 @JsonSerializable()
 
 class _CarpoolOption implements CarpoolOption {
-  const _CarpoolOption({@TimestampConverter() required this.meetTime, required this.meetPlace});
+  const _CarpoolOption({@TimestampConverter() required this.meetTime, required this.meetPlace, this.mapUrl});
   factory _CarpoolOption.fromJson(Map<String, dynamic> json) => _$CarpoolOptionFromJson(json);
 
 /// Time and date to meet for carpooling.
 @override@TimestampConverter() final  DateTime meetTime;
 /// Description of the meeting point, e.g. "Park & Ride on Hwy 1".
 @override final  String meetPlace;
+/// Optional URL to a map of the meeting point.
+@override final  String? mapUrl;
 
 /// Create a copy of CarpoolOption
 /// with the given fields replaced by the non-null parameter values.
@@ -239,18 +243,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CarpoolOption&&(identical(other.meetTime, meetTime) || other.meetTime == meetTime)&&(identical(other.meetPlace, meetPlace) || other.meetPlace == meetPlace));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CarpoolOption&&(identical(other.meetTime, meetTime) || other.meetTime == meetTime)&&(identical(other.meetPlace, meetPlace) || other.meetPlace == meetPlace)&&(identical(other.mapUrl, mapUrl) || other.mapUrl == mapUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,meetTime,meetPlace);
+    return Object.hash(runtimeType,meetTime,meetPlace,mapUrl);
 }
 
 @override
 String toString() {
-    return 'CarpoolOption(meetTime: $meetTime, meetPlace: $meetPlace)';
+    return 'CarpoolOption(meetTime: $meetTime, meetPlace: $meetPlace, mapUrl: $mapUrl)';
 }
 
 
@@ -261,7 +265,7 @@ abstract mixin class _$CarpoolOptionCopyWith<$Res> implements $CarpoolOptionCopy
   factory _$CarpoolOptionCopyWith(_CarpoolOption value, $Res Function(_CarpoolOption) _then) = __$CarpoolOptionCopyWithImpl;
 @override @useResult
 $Res call({
-@TimestampConverter() DateTime meetTime, String meetPlace
+@TimestampConverter() DateTime meetTime, String meetPlace, String? mapUrl
 });
 
 
@@ -278,11 +282,12 @@ class __$CarpoolOptionCopyWithImpl<$Res>
 
 /// Create a copy of CarpoolOption
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? meetTime = null,Object? meetPlace = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? meetTime = null,Object? meetPlace = null,Object? mapUrl = freezed,}) {
   return _then(_CarpoolOption(
 meetTime: null == meetTime ? _self.meetTime : meetTime // ignore: cast_nullable_to_non_nullable
 as DateTime,meetPlace: null == meetPlace ? _self.meetPlace : meetPlace // ignore: cast_nullable_to_non_nullable
-as String,
+as String,mapUrl: freezed == mapUrl ? _self.mapUrl : mapUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

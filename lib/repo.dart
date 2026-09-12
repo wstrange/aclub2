@@ -57,6 +57,19 @@ class AlpineRepository {
     return Event.fromJson({...doc.data()!, 'id': doc.id});
   }
 
+  Stream<Event?> streamEvent(String sectionId, String eventId) {
+    return _firestore
+        .collection('sections')
+        .doc(sectionId)
+        .collection('events')
+        .doc(eventId)
+        .snapshots()
+        .map((doc) {
+          if (!doc.exists || doc.data() == null) return null;
+          return Event.fromJson({...doc.data()!, 'id': doc.id});
+        });
+  }
+
   Future<String> createEvent(String sectionId, Event event) async {
     _log.fine('Creating event $event');
     if (event.id.isNotEmpty) {
@@ -240,6 +253,7 @@ class AlpineRepository {
         id: userInfo.uid,
         firstName: '',
         lastName: '',
+        email: userInfo.email,
         phone: '555-1212',
         emergencyContactName: '',
         emergencyContactPhone: '',

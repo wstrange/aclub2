@@ -90,6 +90,8 @@ Future<void> _connectToFirebaseEmulator() async {
     // Optional: Turn off SSL/Persistence constraints if hitting emulator sync lags
     FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false, sslEnabled: false);
 
+    // autohost mapping is disabled for running on a usb connected android device vs. an emulator
+
     // Connect Auth Emulator (default port: 9099)
     await FirebaseAuth.instance.useAuthEmulator(localHost, 9099, automaticHostMapping: false);
 

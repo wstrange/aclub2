@@ -103,6 +103,7 @@ class _EventEditForm extends HookWidget {
     final hasCarpool = useState(initialEvent.carpoolOption != null);
     final carpoolTime = useState(initialEvent.carpoolOption?.meetTime ?? initialEvent.startDate);
     final carpoolPlaceController = useTextEditingController(text: initialEvent.carpoolOption?.meetPlace ?? '');
+    final carpoolMapUrlController = useTextEditingController(text: initialEvent.carpoolOption?.mapUrl ?? '');
 
     final requiredEquipmentController = useTextEditingController(text: initialEvent.requiredEquipment.join(', '));
     final prerequisitesController = useTextEditingController(text: initialEvent.prerequisites.join(', '));
@@ -171,7 +172,11 @@ class _EventEditForm extends HookWidget {
 
         CarpoolOption? carpool;
         if (hasCarpool.value && carpoolPlaceController.text.trim().isNotEmpty) {
-          carpool = CarpoolOption(meetTime: carpoolTime.value, meetPlace: carpoolPlaceController.text.trim());
+          carpool = CarpoolOption(
+            meetTime: carpoolTime.value,
+            meetPlace: carpoolPlaceController.text.trim(),
+            mapUrl: carpoolMapUrlController.text.trim().isEmpty ? null : carpoolMapUrlController.text.trim(),
+          );
         }
 
         if (isCreate) {
@@ -488,6 +493,15 @@ class _EventEditForm extends HookWidget {
                   decoration: const InputDecoration(
                     labelText: 'Carpool Meeting Place',
                     hintText: 'e.g. Shouldice Park & Ride, Calgary',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: carpoolMapUrlController,
+                  decoration: const InputDecoration(
+                    labelText: 'Carpool Map URL',
+                    hintText: 'e.g. https://maps.app.goo.gl/...',
                     border: OutlineInputBorder(),
                   ),
                 ),

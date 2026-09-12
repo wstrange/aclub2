@@ -26,6 +26,10 @@ abstract class UserProfile with _$UserProfile {
     required String firstName,
     required String lastName,
 
+    /// Firebase Auth email. Denormalised here so other clients can display
+    /// a user's email without needing Auth admin access.
+    String? email,
+
     String? phone,
 
     // ── Emergency contact (mandatory) ─────────────────────────────────────

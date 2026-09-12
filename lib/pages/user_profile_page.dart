@@ -56,10 +56,12 @@ class UserProfileCubit extends CubitSignal<UserProfileFormState> {
         await currentAuthUser.reload();
         authUser = FirebaseAuth.instance.currentUser;
       }
-      await repository.updateUserProfile(updatedUser);
-      user = updatedUser;
+      // Mirror the auth email into the profile so other clients can display it.
+      final withEmail = updatedUser.copyWith(email: authUser?.email);
+      await repository.updateUserProfile(withEmail);
+      user = withEmail;
       await userStateCubit.refresh();
-      emit(UserFormSuccess(updatedUser));
+      emit(UserFormSuccess(withEmail));
     } on FirebaseAuthException catch (e) {
       emit(UserFormError(e.message ?? e.code));
     } catch (e) {

@@ -10,6 +10,7 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
   id: json['id'] as String,
   firstName: json['firstName'] as String,
   lastName: json['lastName'] as String,
+  email: json['email'] as String?,
   phone: json['phone'] as String?,
   emergencyContactName: json['emergencyContactName'] as String,
   emergencyContactPhone: json['emergencyContactPhone'] as String,
@@ -41,6 +42,7 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'id': instance.id,
       'firstName': instance.firstName,
       'lastName': instance.lastName,
+      'email': instance.email,
       'phone': instance.phone,
       'emergencyContactName': instance.emergencyContactName,
       'emergencyContactPhone': instance.emergencyContactPhone,
@@ -68,6 +70,7 @@ Map<String, dynamic>? UserProfileToJson(UserProfile? instance) =>
         'id': instance.id,
         'firstName': instance.firstName,
         'lastName': instance.lastName,
+        'email': instance.email,
         'phone': instance.phone,
         'emergencyContactName': instance.emergencyContactName,
         'emergencyContactPhone': instance.emergencyContactPhone,
@@ -93,6 +96,7 @@ UserProfile UserProfileFromJson(Map<String, dynamic> json) => UserProfile(
   id: (json['id'] as String),
   firstName: (json['firstName'] as String),
   lastName: (json['lastName'] as String),
+  email: json['email'] == null ? null : (json['email'] as String?),
   phone: json['phone'] == null ? null : (json['phone'] as String?),
   emergencyContactName: (json['emergencyContactName'] as String),
   emergencyContactPhone: (json['emergencyContactPhone'] as String),
@@ -132,6 +136,14 @@ class UserProfilePatchBuilder extends PatchBuilder<UserProfile> {
   /// Patch handle for `lastName` (document field `lastName`).
   late final FieldUpdate<String> lastName = FieldUpdate(
     field: const FieldNode(components: ['lastName']),
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Patch handle for `email` (document field `email`).
+  late final FieldUpdate<String?> email = FieldUpdate(
+    field: const FieldNode(components: ['email']),
     toJson: (value) {
       return value;
     },
@@ -284,6 +296,15 @@ class UserProfileFilterBuilder extends FilterBuilderRoot {
       return value;
     },
   );
+
+  /// Selector for `email`.
+  late final FilterField<String?, String?> email =
+      FilterField<String?, String?>(
+        field: append('email'),
+        toJson: (value) {
+          return value;
+        },
+      );
 
   /// Selector for `phone`.
   late final FilterField<String?, String?> phone =
@@ -449,6 +470,12 @@ class UserProfileOrderByBuilder extends OrderByBuilderRoot {
     context: _context,
   );
 
+  /// Selector for `email`.
+  late final OrderByField<String?> email = OrderByField(
+    field: append('email'),
+    context: _context,
+  );
+
   /// Selector for `phone`.
   late final OrderByField<String?> phone = OrderByField(
     field: append('phone'),
@@ -582,6 +609,15 @@ class UserProfilePipelineSelector extends PipelineFieldNode {
   /// Selector for `lastName`.
   late final PipelineField<String> lastName = PipelineField(
     components: [...components, 'lastName'],
+    context: $ctx,
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Selector for `email`.
+  late final PipelineField<String?> email = PipelineField(
+    components: [...components, 'email'],
     context: $ctx,
     toJson: (value) {
       return value;

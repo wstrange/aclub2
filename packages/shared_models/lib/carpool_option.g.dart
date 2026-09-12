@@ -10,12 +10,14 @@ _CarpoolOption _$CarpoolOptionFromJson(Map<String, dynamic> json) =>
     _CarpoolOption(
       meetTime: const TimestampConverter().fromJson(json['meetTime'] as Object),
       meetPlace: json['meetPlace'] as String,
+      mapUrl: json['mapUrl'] as String?,
     );
 
 Map<String, dynamic> _$CarpoolOptionToJson(_CarpoolOption instance) =>
     <String, dynamic>{
       'meetTime': const TimestampConverter().toJson(instance.meetTime),
       'meetPlace': instance.meetPlace,
+      'mapUrl': instance.mapUrl,
     };
 
 // **************************************************************************
@@ -30,10 +32,12 @@ Map<String, dynamic>? CarpoolOptionToJson(CarpoolOption? instance) =>
             ? null
             : const TimestampConverter().toJson(instance.meetTime),
         'meetPlace': instance.meetPlace,
+        'mapUrl': instance.mapUrl,
       };
 CarpoolOption CarpoolOptionFromJson(Map<String, dynamic> json) => CarpoolOption(
   meetTime: const TimestampConverter().fromJson(json['meetTime']),
   meetPlace: (json['meetPlace'] as String),
+  mapUrl: json['mapUrl'] == null ? null : (json['mapUrl'] as String?),
 );
 
 class CarpoolOptionPatchBuilder extends PatchBuilder<CarpoolOption> {
@@ -51,6 +55,14 @@ class CarpoolOptionPatchBuilder extends PatchBuilder<CarpoolOption> {
   /// Patch handle for `meetPlace` (document field `meetPlace`).
   late final FieldUpdate<String> meetPlace = FieldUpdate(
     field: const FieldNode(components: ['meetPlace']),
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Patch handle for `mapUrl` (document field `mapUrl`).
+  late final FieldUpdate<String?> mapUrl = FieldUpdate(
+    field: const FieldNode(components: ['mapUrl']),
     toJson: (value) {
       return value;
     },
@@ -75,6 +87,15 @@ class CarpoolOptionFilterBuilder extends FilterBuilderRoot {
   late final FilterField<String, String> meetPlace =
       FilterField<String, String>(
         field: append('meetPlace'),
+        toJson: (value) {
+          return value;
+        },
+      );
+
+  /// Selector for `mapUrl`.
+  late final FilterField<String?, String?> mapUrl =
+      FilterField<String?, String?>(
+        field: append('mapUrl'),
         toJson: (value) {
           return value;
         },
@@ -105,6 +126,12 @@ class CarpoolOptionOrderByBuilder extends OrderByBuilderRoot {
   /// Selector for `meetPlace`.
   late final OrderByField<String> meetPlace = OrderByField(
     field: append('meetPlace'),
+    context: _context,
+  );
+
+  /// Selector for `mapUrl`.
+  late final OrderByField<String?> mapUrl = OrderByField(
+    field: append('mapUrl'),
     context: _context,
   );
 
@@ -142,6 +169,15 @@ class CarpoolOptionPipelineSelector extends PipelineFieldNode {
   /// Selector for `meetPlace`.
   late final PipelineField<String> meetPlace = PipelineField(
     components: [...components, 'meetPlace'],
+    context: $ctx,
+    toJson: (value) {
+      return value;
+    },
+  );
+
+  /// Selector for `mapUrl`.
+  late final PipelineField<String?> mapUrl = PipelineField(
+    components: [...components, 'mapUrl'],
     context: $ctx,
     toJson: (value) {
       return value;

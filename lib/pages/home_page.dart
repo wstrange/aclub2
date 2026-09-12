@@ -123,7 +123,7 @@ class HomePage extends StatelessWidget {
             key: ValueKey(state.currentSection.id),
             sectionId: state.currentSection.id,
             onEventTap: (event) {
-              context.push(EventEditRoute(sectionId: event.sectionId, eventId: event.id));
+              context.push(EventDetailRoute(sectionId: event.sectionId, eventId: event.id));
             },
           );
         },

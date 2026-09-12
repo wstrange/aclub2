@@ -21,6 +21,9 @@ abstract class CarpoolOption with _$CarpoolOption {
 
     /// Description of the meeting point, e.g. "Park & Ride on Hwy 1".
     required String meetPlace,
+
+    /// Optional URL to a map of the meeting point.
+    String? mapUrl,
   }) = _CarpoolOption;
 
   factory CarpoolOption.fromJson(Map<String, dynamic> json) => _$CarpoolOptionFromJson(json);

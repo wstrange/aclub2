@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:logging/logging.dart';
 
+import 'pages/event_detail_page.dart';
 import 'pages/event_edit_page.dart';
 import 'pages/home_page.dart';
 import 'pages/section_selection_page.dart';
@@ -42,6 +43,16 @@ final class EventEditRoute extends AppRoute {
   List<Object?> get props => [sectionId, eventId];
 }
 
+final class EventDetailRoute extends AppRoute {
+  const EventDetailRoute({required this.sectionId, required this.eventId});
+
+  final String sectionId;
+  final String eventId;
+
+  @override
+  List<Object?> get props => [sectionId, eventId];
+}
+
 final class EventCreateRoute extends AppRoute {
   const EventCreateRoute({required this.sectionId});
 
@@ -61,6 +72,8 @@ final routerConfig = KaiselRouterConfig<AppRoute>(
     SectionSelectionRoute() => const SectionSelectionPage(),
     EventCreateRoute(:final sectionId) => EventEditPage.create(sectionId: sectionId),
     EventEditRoute(:final sectionId, :final eventId) => EventEditPage(sectionId: sectionId, eventId: eventId),
+    EventDetailRoute(:final sectionId, :final eventId) =>
+      EventDetailPage(sectionId: sectionId, eventId: eventId),
   },
 );
 
