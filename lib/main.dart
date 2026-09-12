@@ -83,17 +83,18 @@ Future<void> _connectToFirebaseEmulator() async {
     localHost = Platform.isAndroid ? '10.0.2.2' : 'localhost';
   }
 
+  localHost = 'localhost';
   print('Connecting to Firebase Emulator at $localHost...');
 
   try {
-    // Connect Auth Emulator (default port: 9099)
-    await FirebaseAuth.instance.useAuthEmulator(localHost, 9099);
-
-    // Connect Firestore Emulator (default port: 8080)
-    FirebaseFirestore.instance.useFirestoreEmulator(localHost, 8080);
-
     // Optional: Turn off SSL/Persistence constraints if hitting emulator sync lags
     FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false, sslEnabled: false);
+
+    // Connect Auth Emulator (default port: 9099)
+    await FirebaseAuth.instance.useAuthEmulator(localHost, 9099, automaticHostMapping: false);
+
+    // Connect Firestore Emulator (default port: 8080)
+    FirebaseFirestore.instance.useFirestoreEmulator(localHost, 8080, automaticHostMapping: false);
 
     // Connect Storage Emulator if you use it (default port: 9199)
     // await FirebaseStorage.instance.useStorageEmulator(localHost, 9199);

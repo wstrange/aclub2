@@ -140,12 +140,19 @@ class _EventEditForm extends HookWidget {
     }
 
     Future<void> save() async {
-      if (!(formKey.currentState?.validate() ?? false)) return;
+      final title = titleController.text.trim();
+      final description = descriptionController.text.trim();
 
-      if (endDate.value.isBefore(startDate.value)) {
-        errorMessage.value = 'End date cannot be earlier than start date.';
+      if (title.isEmpty || description.isEmpty) {
+        errorMessage.value = 'Title and description cannot be empty.';
         return;
       }
+      if (!endDate.value.isAfter(startDate.value)) {
+        errorMessage.value = 'End date must be after start date.';
+        return;
+      }
+
+      if (!(formKey.currentState?.validate() ?? false)) return;
 
       errorMessage.value = null;
       isSaving.value = true;
@@ -169,8 +176,8 @@ class _EventEditForm extends HookWidget {
 
         if (isCreate) {
           final newEvent = initialEvent.copyWith(
-            title: titleController.text.trim(),
-            description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+            title: title,
+            description: description.isEmpty ? null : description,
             type: type.value,
             difficulty: difficulty.value,
             status: status.value,
@@ -197,8 +204,8 @@ class _EventEditForm extends HookWidget {
           }
         } else {
           final updatedEvent = initialEvent.copyWith(
-            title: titleController.text.trim(),
-            description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+            title: title,
+            description: description.isEmpty ? null : description,
             type: type.value,
             difficulty: difficulty.value,
             status: status.value,
@@ -308,36 +315,34 @@ class _EventEditForm extends HookWidget {
                 controller: descriptionController,
                 maxLines: 4,
                 decoration: const InputDecoration(
-                  labelText: 'Description',
+                  labelText: 'Description *',
                   alignLabelWithHint: true,
                   border: OutlineInputBorder(),
                 ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Description is required';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<EventType>(
-                      initialValue: type.value,
-                      decoration: const InputDecoration(labelText: 'Activity Type', border: OutlineInputBorder()),
-                      items: EventType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
-                      onChanged: (val) {
-                        if (val != null) type.value = val;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<Difficulty>(
-                      initialValue: difficulty.value,
-                      decoration: const InputDecoration(labelText: 'Difficulty', border: OutlineInputBorder()),
-                      items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
-                      onChanged: (val) {
-                        if (val != null) difficulty.value = val;
-                      },
-                    ),
-                  ),
-                ],
+              DropdownButtonFormField<EventType>(
+                initialValue: type.value,
+                decoration: const InputDecoration(labelText: 'Activity Type', border: OutlineInputBorder()),
+                items: EventType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+                onChanged: (val) {
+                  if (val != null) type.value = val;
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<Difficulty>(
+                initialValue: difficulty.value,
+                decoration: const InputDecoration(labelText: 'Difficulty', border: OutlineInputBorder()),
+                items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
+                onChanged: (val) {
+                  if (val != null) difficulty.value = val;
+                },
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<EventStatus>(
@@ -366,13 +371,43 @@ class _EventEditForm extends HookWidget {
                   },
                 ),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('End Date & Time'),
-                subtitle: Text(formatDateTime(endDate.value)),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () =>
-                    pickDateTime(context: context, initial: endDate.value, onPicked: (dt) => endDate.value = dt),
+              FormField<DateTime>(
+                initialValue: endDate.value,
+                validator: (value) {
+                  if (value == null || !value.isAfter(startDate.value)) {
+                    return 'End date must be after start date';
+                  }
+                  return null;
+                },
+                builder: (field) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('End Date & Time'),
+                        subtitle: Text(formatDateTime(endDate.value)),
+                        trailing: const Icon(Icons.calendar_today),
+                        onTap: () => pickDateTime(
+                          context: context,
+                          initial: endDate.value,
+                          onPicked: (dt) {
+                            endDate.value = dt;
+                            field.didChange(dt);
+                          },
+                        ),
+                      ),
+                      if (field.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, left: 16),
+                          child: Text(
+                            field.errorText!,
+                            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.error),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
 
               _sectionHeader('Capacity & Registration'),

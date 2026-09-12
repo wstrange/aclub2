@@ -58,6 +58,7 @@ class AlpineRepository {
   }
 
   Future<String> createEvent(String sectionId, Event event) async {
+    _log.fine('Creating event $event');
     if (event.id.isNotEmpty) {
       await _firestore.collection('sections').doc(sectionId).collection('events').doc(event.id).set(event.toJson());
       return event.id;
@@ -67,6 +68,7 @@ class AlpineRepository {
   }
 
   Future<void> updateEvent(String sectionId, Event event) async {
+    _log.fine('Updating event $event');
     await _firestore.collection('sections').doc(sectionId).collection('events').doc(event.id).set(event.toJson());
   }
 
