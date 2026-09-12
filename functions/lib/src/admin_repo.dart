@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dart_firebase_admin/dart_firebase_admin.dart';
+import 'package:dart_firebase_admin/auth.dart';
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:shared_models/shared_models.dart';
 
@@ -63,6 +64,29 @@ class AdminRepository {
 
   // ── Users & Members ──────────────────────────────────────────────────────
 
+  /// Creates a Firebase Auth user from the given [SampleUser], including
+  /// email/password credentials. Skips if a user with the same UID already
+  /// exists so seeding stays idempotent.
+  Future<void> createAuthUser(SampleUser user) async {
+    final auth = Auth(adminApp);
+    try {
+      await auth.getUser(user.uid);
+      stdout.writeln('  ℹ️ Auth user ${user.uid} already exists, skipping.');
+      return;
+    } catch (_) {
+      // Not found — create below.
+    }
+    await auth.createUser(
+      CreateRequest(
+        uid: user.uid,
+        email: user.email,
+        password: samplePassword,
+        displayName: user.displayName,
+        emailVerified: true,
+      ),
+    );
+  }
+
   Future<void> createUserProfile(UserProfile profile) async {
     await firestore.collection('users').doc(profile.id).set(profile.toJson());
   }
@@ -79,10 +103,15 @@ class AdminRepository {
 
   // ── Batch Operations & Seeding ───────────────────────────────────────────
 
-  /// Seeds all default sections and sample events.
-  Future<Map<String, int>> seedAll({List<Section>? sections, List<Event>? events}) async {
+  /// Seeds all default sections, sample events, and sample users.
+  Future<Map<String, int>> seedAll({
+    List<Section>? sections,
+    List<Event>? events,
+    List<SampleUser>? users,
+  }) async {
     final seedSections = sections ?? defaultSampleSections;
     final seedEvents = events ?? defaultSampleEvents;
+    final seedUsers = users ?? defaultSampleUsers;
 
     int sectionCount = 0;
     for (final s in seedSections) {
@@ -96,7 +125,49 @@ class AdminRepository {
       eventCount++;
     }
 
-    return {'sections': sectionCount, 'events': eventCount};
+    int userCount = 0;
+    int memberCount = 0;
+    final now = DateTime.now();
+    for (final u in seedUsers) {
+      await createAuthUser(u);
+      await createUserProfile(
+        UserProfile(
+          id: u.uid,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          email: u.email,
+          emergencyContactName: '${u.firstName} ${u.lastName} (Emergency)',
+          emergencyContactPhone: '555-0100${u.uid.substring(u.uid.length - 1)}',
+          notificationPreferences: const NotificationPreferences(),
+          isAdmin: u.isAdmin,
+          sectionIds: u.sections.keys.toList(),
+          complatedProfile: true,
+          signedWaiver: true,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      for (final entry in u.sections.entries) {
+        await addSectionMember(
+          entry.key,
+          SectionMember(
+            id: u.uid,
+            sectionId: entry.key,
+            sectionRole: entry.value,
+            joinedAt: now,
+          ),
+        );
+        memberCount++;
+      }
+      userCount++;
+    }
+
+    return {
+      'sections': sectionCount,
+      'events': eventCount,
+      'users': userCount,
+      'members': memberCount,
+    };
   }
 
   /// Clears sections, events, and templates. Primarily intended for emulator environments.
@@ -112,6 +183,11 @@ class AdminRepository {
         await memDoc.ref.delete();
       }
       await secDoc.ref.delete();
+    }
+
+    final usersSnap = await firestore.collection('users').get();
+    for (final uDoc in usersSnap.docs) {
+      await uDoc.ref.delete();
     }
 
     final templatesSnap = await firestore.collection('templates').get();

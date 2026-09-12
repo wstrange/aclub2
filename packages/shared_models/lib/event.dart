@@ -1,4 +1,3 @@
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 
@@ -16,7 +15,6 @@ part 'event.g.dart';
 /// New events are created as [EventStatus.draft] and must be explicitly
 /// published before they appear in public listings.
 @freezed
-@firestoreOdm
 abstract class Event with _$Event {
   const factory Event({
     /// Firestore document ID.
@@ -42,7 +40,9 @@ abstract class Event with _$Event {
     @TimestampConverter() required DateTime endDate,
 
     // ── Location & Carpool ────────────────────────────────────────────────
+    @JsonKey(toJson: _eventLocationToJson, fromJson: _eventLocationFromJson)
     EventLocation? location,
+    @JsonKey(toJson: _carpoolOptionToJson, fromJson: _carpoolOptionFromJson)
     CarpoolOption? carpoolOption,
 
     // ── Capacity ──────────────────────────────────────────────────────────
@@ -77,3 +77,10 @@ abstract class Event with _$Event {
 
   factory Event.fromJson(Map<String, dynamic> json) => _$EventFromJson(json);
 }
+
+Map<String, dynamic>? _eventLocationToJson(EventLocation? value) => value?.toJson();
+EventLocation? _eventLocationFromJson(Object? json) =>
+    json is Map<String, dynamic> ? EventLocation.fromJson(json) : null;
+Map<String, dynamic>? _carpoolOptionToJson(CarpoolOption? value) => value?.toJson();
+CarpoolOption? _carpoolOptionFromJson(Object? json) =>
+    json is Map<String, dynamic> ? CarpoolOption.fromJson(json) : null;

@@ -70,7 +70,8 @@ class SeedCommand extends BaseAdminCommand {
 
       stdout.writeln('🌱 Seeding database...');
       final result = await repo.seedAll();
-      stdout.writeln('✅ Successfully seeded: ${result['sections']} sections, ${result['events']} events.');
+      stdout.writeln('✅ Successfully seeded: ${result['sections']} sections, ${result['events']} events, '
+          '${result['users']} users, ${result['members']} section members.');
     } finally {
       await repo.close();
     }

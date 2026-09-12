@@ -1,4 +1,4 @@
-import 'package:firestore_odm/firestore_odm.dart';
+import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'firestore_converter.dart';
 import 'notification_preferences.dart';
@@ -17,7 +17,6 @@ part 'user_profile.g.dart';
 ///
 /// /// TODO: replace with isAdmin: bool
 @freezed
-@firestoreOdm
 abstract class UserProfile with _$UserProfile {
   const factory UserProfile({
     /// Firebase Auth UID — used as the Firestore document ID.
@@ -60,6 +59,7 @@ abstract class UserProfile with _$UserProfile {
     @Default(false) bool signedWaiver,
 
     // ── Preferences ───────────────────────────────────────────────────────
+    @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)
     required NotificationPreferences notificationPreferences,
 
     // ── Timestamps ────────────────────────────────────────────────────────
@@ -69,3 +69,7 @@ abstract class UserProfile with _$UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
 }
+
+Map<String, dynamic>? _notificationPreferencesToJson(NotificationPreferences? value) => value?.toJson();
+NotificationPreferences _notificationPreferencesFromJson(Object? json) =>
+    NotificationPreferences.fromJson(json as Map<String, dynamic>);

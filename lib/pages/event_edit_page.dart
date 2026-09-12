@@ -131,9 +131,11 @@ class _EventEditForm extends HookWidget {
     }
 
     String formatDateTime(DateTime dt) {
+      const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      final weekday = weekdays[dt.weekday - 1];
       final hour = dt.hour.toString().padLeft(2, '0');
       final minute = dt.minute.toString().padLeft(2, '0');
-      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} $hour:$minute';
+      return '$weekday ${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} $hour:$minute';
     }
 
     List<String> parseList(String input) {
@@ -332,87 +334,121 @@ class _EventEditForm extends HookWidget {
                 },
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<EventType>(
-                initialValue: type.value,
-                decoration: const InputDecoration(labelText: 'Activity Type', border: OutlineInputBorder()),
-                items: EventType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
-                onChanged: (val) {
-                  if (val != null) type.value = val;
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<Difficulty>(
-                initialValue: difficulty.value,
-                decoration: const InputDecoration(labelText: 'Difficulty', border: OutlineInputBorder()),
-                items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
-                onChanged: (val) {
-                  if (val != null) difficulty.value = val;
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<EventStatus>(
-                initialValue: status.value,
-                decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
-                items: EventStatus.values.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
-                onChanged: (val) {
-                  if (val != null) status.value = val;
-                },
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<EventType>(
+                      initialValue: type.value,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
+                      items: EventType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name))).toList(),
+                      onChanged: (val) {
+                        if (val != null) type.value = val;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<Difficulty>(
+                      initialValue: difficulty.value,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Difficulty', border: OutlineInputBorder()),
+                      items: Difficulty.values.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
+                      onChanged: (val) {
+                        if (val != null) difficulty.value = val;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<EventStatus>(
+                      initialValue: status.value,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                      items: EventStatus.values.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
+                      onChanged: (val) {
+                        if (val != null) status.value = val;
+                      },
+                    ),
+                  ),
+                ],
               ),
 
               _sectionHeader('Schedule'),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Start Date & Time'),
-                subtitle: Text(formatDateTime(startDate.value)),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () => pickDateTime(
-                  context: context,
-                  initial: startDate.value,
-                  onPicked: (dt) {
-                    startDate.value = dt;
-                    if (endDate.value.isBefore(dt)) {
-                      endDate.value = dt.add(const Duration(hours: 2));
-                    }
-                  },
-                ),
-              ),
-              FormField<DateTime>(
-                initialValue: endDate.value,
-                validator: (value) {
-                  if (value == null || !value.isAfter(startDate.value)) {
-                    return 'End date must be after start date';
-                  }
-                  return null;
-                },
-                builder: (field) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('End Date & Time'),
-                        subtitle: Text(formatDateTime(endDate.value)),
-                        trailing: const Icon(Icons.calendar_today),
-                        onTap: () => pickDateTime(
-                          context: context,
-                          initial: endDate.value,
-                          onPicked: (dt) {
-                            endDate.value = dt;
-                            field.didChange(dt);
-                          },
-                        ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text('Start'),
+                      subtitle: Text(
+                        formatDateTime(startDate.value),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      if (field.hasError)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4, left: 16),
-                          child: Text(
-                            field.errorText!,
-                            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.error),
-                          ),
-                        ),
-                    ],
-                  );
-                },
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () => pickDateTime(
+                        context: context,
+                        initial: startDate.value,
+                        onPicked: (dt) {
+                          startDate.value = dt;
+                          if (endDate.value.isBefore(dt)) {
+                            endDate.value = dt.add(const Duration(hours: 2));
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FormField<DateTime>(
+                      initialValue: endDate.value,
+                      validator: (value) {
+                        if (value == null || !value.isAfter(startDate.value)) {
+                          return 'End must be after start';
+                        }
+                        return null;
+                      },
+                      builder: (field) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              title: const Text('End'),
+                              subtitle: Text(
+                                formatDateTime(endDate.value),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: const Icon(Icons.calendar_today),
+                              onTap: () => pickDateTime(
+                                context: context,
+                                initial: endDate.value,
+                                onPicked: (dt) {
+                                  endDate.value = dt;
+                                  field.didChange(dt);
+                                },
+                              ),
+                            ),
+                            if (field.hasError)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  field.errorText!,
+                                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.error),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
 
               _sectionHeader('Capacity & Registration'),

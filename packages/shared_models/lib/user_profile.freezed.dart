@@ -24,7 +24,7 @@ mixin _$UserProfile {
  List<String> get sectionIds; String? get defaultSectionId;/// Whether this user has global admin access.
 /// All other roles (section manager, trip leader, member) are per-section
 /// and are stored on each [SectionMember] document.
- bool get isAdmin; bool get complatedProfile; bool get signedWaiver; NotificationPreferences get notificationPreferences;@TimestampConverter() DateTime get createdAt;@TimestampConverter() DateTime get updatedAt;
+ bool get isAdmin; bool get complatedProfile; bool get signedWaiver;@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences get notificationPreferences;@TimestampConverter() DateTime get createdAt;@TimestampConverter() DateTime get updatedAt;
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -62,7 +62,7 @@ abstract mixin class $UserProfileCopyWith<$Res>  {
   factory $UserProfileCopyWith(UserProfile value, $Res Function(UserProfile) _then) = _$UserProfileCopyWithImpl;
 @useResult
 $Res call({
-@DocumentIdField() String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, List<String> sectionIds, String? defaultSectionId, bool isAdmin, bool complatedProfile, bool signedWaiver, NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+@DocumentIdField() String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, List<String> sectionIds, String? defaultSectionId, bool isAdmin, bool complatedProfile, bool signedWaiver,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -193,7 +193,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver,  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
 return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.sectionIds,_that.defaultSectionId,_that.isAdmin,_that.complatedProfile,_that.signedWaiver,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
@@ -214,7 +214,7 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver,  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile():
 return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.sectionIds,_that.defaultSectionId,_that.isAdmin,_that.complatedProfile,_that.signedWaiver,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
@@ -234,7 +234,7 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@DocumentIdField()  String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver,  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@DocumentIdField()  String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  List<String> sectionIds,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
 return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.sectionIds,_that.defaultSectionId,_that.isAdmin,_that.complatedProfile,_that.signedWaiver,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
@@ -249,7 +249,7 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 @JsonSerializable()
 
 class _UserProfile implements UserProfile {
-  const _UserProfile({@DocumentIdField() required this.id, required this.firstName, required this.lastName, this.email, this.phone, required this.emergencyContactName, required this.emergencyContactPhone, this.emergencyContactRelation, this.medicalConditions,  List<String> certifications = const [],  List<String> sectionIds = const [], this.defaultSectionId, this.isAdmin = false, this.complatedProfile = false, this.signedWaiver = false, required this.notificationPreferences, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _certifications = certifications,_sectionIds = sectionIds;
+  const _UserProfile({@DocumentIdField() required this.id, required this.firstName, required this.lastName, this.email, this.phone, required this.emergencyContactName, required this.emergencyContactPhone, this.emergencyContactRelation, this.medicalConditions,  List<String> certifications = const [],  List<String> sectionIds = const [], this.defaultSectionId, this.isAdmin = false, this.complatedProfile = false, this.signedWaiver = false, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) required this.notificationPreferences, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _certifications = certifications,_sectionIds = sectionIds;
   factory _UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
 
 /// Firebase Auth UID — used as the Firestore document ID.
@@ -289,7 +289,7 @@ class _UserProfile implements UserProfile {
 @override@JsonKey() final  bool isAdmin;
 @override@JsonKey() final  bool complatedProfile;
 @override@JsonKey() final  bool signedWaiver;
-@override final  NotificationPreferences notificationPreferences;
+@override@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) final  NotificationPreferences notificationPreferences;
 @override@TimestampConverter() final  DateTime createdAt;
 @override@TimestampConverter() final  DateTime updatedAt;
 
@@ -328,7 +328,7 @@ abstract mixin class _$UserProfileCopyWith<$Res> implements $UserProfileCopyWith
   factory _$UserProfileCopyWith(_UserProfile value, $Res Function(_UserProfile) _then) = __$UserProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@DocumentIdField() String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, List<String> sectionIds, String? defaultSectionId, bool isAdmin, bool complatedProfile, bool signedWaiver, NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+@DocumentIdField() String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, List<String> sectionIds, String? defaultSectionId, bool isAdmin, bool complatedProfile, bool signedWaiver,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 

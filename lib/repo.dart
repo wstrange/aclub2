@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:shared_models/shared_models.dart';
 import 'package:logging/logging.dart';
 
@@ -12,7 +11,6 @@ final repository = AlpineRepository();
 
 class AlpineRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final db = FirestoreODM(appSchema, firestore: FirebaseFirestore.instance);
 
   Stream<List<Section>> streamSections() {
     return _firestore.collection('sections').snapshots().map((snapshot) {
@@ -100,14 +98,27 @@ class AlpineRepository {
         });
   }
 
-  Stream<List<Registration>> streamEventRegistrations(String eventId) {
-    return _firestore.collection('events').doc(eventId).collection('registrations').snapshots().map((snapshot) {
+  Stream<List<Registration>> streamEventRegistrations(String sectionId, String eventId) {
+    return _firestore.collection('sections').doc(sectionId).collection('events').doc(eventId).collection('registrations').snapshots().map((snapshot) {
       return snapshot.docs.map((doc) => Registration.fromJson({...doc.data(), 'id': doc.id})).toList();
     });
   }
 
-  Future<void> registerForEvent(String eventId, Registration registration) async {
+  Future<List<Registration>> getEventRegistrations(String sectionId, String eventId) async {
+    final snapshot = await _firestore
+        .collection('sections')
+        .doc(sectionId)
+        .collection('events')
+        .doc(eventId)
+        .collection('registrations')
+        .get();
+    return snapshot.docs.map((doc) => Registration.fromJson({...doc.data(), 'id': doc.id})).toList();
+  }
+
+  Future<void> registerForEvent(String sectionId, String eventId, Registration registration) async {
     await _firestore
+        .collection('sections')
+        .doc(sectionId)
         .collection('events')
         .doc(eventId)
         .collection('registrations')
@@ -115,11 +126,15 @@ class AlpineRepository {
         .set(registration.toJson());
   }
 
-  Future<void> updateRegistrationStatus(String eventId, String userId, String newStatus, String newAttendance) async {
-    await _firestore.collection('events').doc(eventId).collection('registrations').doc(userId).update({
-      'status': newStatus,
-      'attendance': newAttendance,
-    });
+  Future<void> updateRegistrationStatus(String sectionId, String eventId, String userId, String newStatus) async {
+    await _firestore
+        .collection('sections')
+        .doc(sectionId)
+        .collection('events')
+        .doc(eventId)
+        .collection('registrations')
+        .doc(userId)
+        .update({'status': newStatus});
   }
 
   /// Templates
@@ -130,11 +145,11 @@ class AlpineRepository {
   }
 
   Future<void> createTemplate(Template template) async {
-    await db.templates.create(template);
+    await _firestore.collection('templates').doc(template.id).set(template.toJson());
   }
 
   Future<void> updateTemplate(Template template) async {
-    await db.templates.set(template);
+    await _firestore.collection('templates').doc(template.id).set(template.toJson());
   }
 
   Future<void> deleteTemplate(Template template) async {
@@ -151,37 +166,41 @@ class AlpineRepository {
   }
 
   Future<void> createUserProfile(UserProfile u) async {
-    await db.users.set(u);
+    await _firestore.collection('users').doc(u.id).set(u.toJson());
     _cachedProfile = u;
   }
 
   Future<void> updateUserProfile(UserProfile u) async {
-    await db.users.set(u);
+    await _firestore.collection('users').doc(u.id).set(u.toJson());
     _cachedProfile = u;
   }
 
   Future<String> createSection(Section section) async {
     if (section.id.isNotEmpty) {
-      await db.sections.set(section);
+      await _firestore.collection('sections').doc(section.id).set(section.toJson());
       return section.id;
     }
-    return await db.sections.create(section);
+    final ref = await _firestore.collection('sections').add(section.toJson());
+    return ref.id;
   }
 
   Future<void> updateSection(Section section) async {
-    await db.sections.set(section);
+    await _firestore.collection('sections').doc(section.id).set(section.toJson());
   }
 
   Future<List<Section>> getSections() async {
-    return await db.sections.get();
+    final snapshot = await _firestore.collection('sections').get();
+    return snapshot.docs.map((doc) => Section.fromJson({...doc.data(), 'id': doc.id})).toList();
   }
 
   Future<Section?> getSection(String sectionId) async {
-    return await db.sections(sectionId).get();
+    final doc = await _firestore.collection('sections').doc(sectionId).get();
+    if (!doc.exists) return null;
+    return Section.fromJson({...doc.data()!, 'id': doc.id});
   }
 
   Future<void> deleteSection(Section section) async {
-    await db.sections.delete(section.id);
+    await _firestore.collection('sections').doc(section.id).delete();
   }
 
   Future<UserProfile?> getUserProfile(String uid, {bool reload = false}) async {
@@ -192,7 +211,8 @@ class AlpineRepository {
     if (!reload && _cachedProfile != null && _cachedProfile!.id == uid) {
       return _cachedProfile;
     }
-    _cachedProfile = await db.users(uid).get();
+    final doc = await _firestore.collection('users').doc(uid).get();
+    _cachedProfile = doc.exists ? UserProfile.fromJson({...doc.data()!, 'id': doc.id}) : null;
     return _cachedProfile;
   }
 
@@ -208,13 +228,13 @@ class AlpineRepository {
   }) async {
     _log.info("Adding user $userId to section $sectionId");
     var s = SectionMember(sectionId: sectionId, id: userId, sectionRole: sectionRole, joinedAt: DateTime.now());
-    await db.sectionsMembers(sectionId).set(s);
+    await _firestore.collection('sections').doc(sectionId).collection('members').doc(userId).set(s.toJson());
   }
 
   // Remove from section
   Future<void> removeMemberFromSection({required String sectionId, required String userId}) async {
     _log.info("Removing user $userId from section $sectionId");
-    await db.sectionsMembers(sectionId).delete(userId);
+    await _firestore.collection('sections').doc(sectionId).collection('members').doc(userId).delete();
   }
 
   // Set user's chosen sections, syncing both SectionMember subcollections and UserProfile.sectionIds

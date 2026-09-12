@@ -22,7 +22,7 @@ mixin _$Event {
  String? get description; EventType get type;/// Events start as [EventStatus.draft]. Only published events appear in
 /// public listings; draft events are visible only to the creator and trip
 /// leaders.
- EventStatus get status;@TimestampConverter() DateTime get startDate;@TimestampConverter() DateTime get endDate; EventLocation? get location; CarpoolOption? get carpoolOption; int get minParticipants; int get maxParticipants; Difficulty get difficulty;/// When true, registrations go to a waitlist and require approval from a
+ EventStatus get status;@TimestampConverter() DateTime get startDate;@TimestampConverter() DateTime get endDate;@JsonKey(toJson: _eventLocationToJson, fromJson: _eventLocationFromJson) EventLocation? get location;@JsonKey(toJson: _carpoolOptionToJson, fromJson: _carpoolOptionFromJson) CarpoolOption? get carpoolOption; int get minParticipants; int get maxParticipants; Difficulty get difficulty;/// When true, registrations go to a waitlist and require approval from a
 /// trip leader or section manager before being confirmed.
  bool get requiresApproval;/// List of required equipment items (free text or markdown).
  List<String> get requiredEquipment;/// List of prerequisites for participation (free text or markdown).
@@ -66,7 +66,7 @@ abstract mixin class $EventCopyWith<$Res>  {
   factory $EventCopyWith(Event value, $Res Function(Event) _then) = _$EventCopyWithImpl;
 @useResult
 $Res call({
- String id, String sectionId, String title, String? description, EventType type, EventStatus status,@TimestampConverter() DateTime startDate,@TimestampConverter() DateTime endDate, EventLocation? location, CarpoolOption? carpoolOption, int minParticipants, int maxParticipants, Difficulty difficulty, bool requiresApproval, List<String> requiredEquipment, List<String> prerequisites, String creatorId, List<String> tripLeaderIds,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String sectionId, String title, String? description, EventType type, EventStatus status,@TimestampConverter() DateTime startDate,@TimestampConverter() DateTime endDate,@JsonKey(toJson: _eventLocationToJson, fromJson: _eventLocationFromJson) EventLocation? location,@JsonKey(toJson: _carpoolOptionToJson, fromJson: _carpoolOptionFromJson) CarpoolOption? carpoolOption, int minParticipants, int maxParticipants, Difficulty difficulty, bool requiresApproval, List<String> requiredEquipment, List<String> prerequisites, String creatorId, List<String> tripLeaderIds,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -214,7 +214,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String sectionId,  String title,  String? description,  EventType type,  EventStatus status, @TimestampConverter()  DateTime startDate, @TimestampConverter()  DateTime endDate,  EventLocation? location,  CarpoolOption? carpoolOption,  int minParticipants,  int maxParticipants,  Difficulty difficulty,  bool requiresApproval,  List<String> requiredEquipment,  List<String> prerequisites,  String creatorId,  List<String> tripLeaderIds, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String sectionId,  String title,  String? description,  EventType type,  EventStatus status, @TimestampConverter()  DateTime startDate, @TimestampConverter()  DateTime endDate, @JsonKey(toJson: _eventLocationToJson, fromJson: _eventLocationFromJson)  EventLocation? location, @JsonKey(toJson: _carpoolOptionToJson, fromJson: _carpoolOptionFromJson)  CarpoolOption? carpoolOption,  int minParticipants,  int maxParticipants,  Difficulty difficulty,  bool requiresApproval,  List<String> requiredEquipment,  List<String> prerequisites,  String creatorId,  List<String> tripLeaderIds, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Event() when $default != null:
 return $default(_that.id,_that.sectionId,_that.title,_that.description,_that.type,_that.status,_that.startDate,_that.endDate,_that.location,_that.carpoolOption,_that.minParticipants,_that.maxParticipants,_that.difficulty,_that.requiresApproval,_that.requiredEquipment,_that.prerequisites,_that.creatorId,_that.tripLeaderIds,_that.createdAt,_that.updatedAt);case _:
@@ -235,7 +235,7 @@ return $default(_that.id,_that.sectionId,_that.title,_that.description,_that.typ
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String sectionId,  String title,  String? description,  EventType type,  EventStatus status, @TimestampConverter()  DateTime startDate, @TimestampConverter()  DateTime endDate,  EventLocation? location,  CarpoolOption? carpoolOption,  int minParticipants,  int maxParticipants,  Difficulty difficulty,  bool requiresApproval,  List<String> requiredEquipment,  List<String> prerequisites,  String creatorId,  List<String> tripLeaderIds, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String sectionId,  String title,  String? description,  EventType type,  EventStatus status, @TimestampConverter()  DateTime startDate, @TimestampConverter()  DateTime endDate, @JsonKey(toJson: _eventLocationToJson, fromJson: _eventLocationFromJson)  EventLocation? location, @JsonKey(toJson: _carpoolOptionToJson, fromJson: _carpoolOptionFromJson)  CarpoolOption? carpoolOption,  int minParticipants,  int maxParticipants,  Difficulty difficulty,  bool requiresApproval,  List<String> requiredEquipment,  List<String> prerequisites,  String creatorId,  List<String> tripLeaderIds, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Event():
 return $default(_that.id,_that.sectionId,_that.title,_that.description,_that.type,_that.status,_that.startDate,_that.endDate,_that.location,_that.carpoolOption,_that.minParticipants,_that.maxParticipants,_that.difficulty,_that.requiresApproval,_that.requiredEquipment,_that.prerequisites,_that.creatorId,_that.tripLeaderIds,_that.createdAt,_that.updatedAt);case _:
@@ -255,7 +255,7 @@ return $default(_that.id,_that.sectionId,_that.title,_that.description,_that.typ
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String sectionId,  String title,  String? description,  EventType type,  EventStatus status, @TimestampConverter()  DateTime startDate, @TimestampConverter()  DateTime endDate,  EventLocation? location,  CarpoolOption? carpoolOption,  int minParticipants,  int maxParticipants,  Difficulty difficulty,  bool requiresApproval,  List<String> requiredEquipment,  List<String> prerequisites,  String creatorId,  List<String> tripLeaderIds, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String sectionId,  String title,  String? description,  EventType type,  EventStatus status, @TimestampConverter()  DateTime startDate, @TimestampConverter()  DateTime endDate, @JsonKey(toJson: _eventLocationToJson, fromJson: _eventLocationFromJson)  EventLocation? location, @JsonKey(toJson: _carpoolOptionToJson, fromJson: _carpoolOptionFromJson)  CarpoolOption? carpoolOption,  int minParticipants,  int maxParticipants,  Difficulty difficulty,  bool requiresApproval,  List<String> requiredEquipment,  List<String> prerequisites,  String creatorId,  List<String> tripLeaderIds, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Event() when $default != null:
 return $default(_that.id,_that.sectionId,_that.title,_that.description,_that.type,_that.status,_that.startDate,_that.endDate,_that.location,_that.carpoolOption,_that.minParticipants,_that.maxParticipants,_that.difficulty,_that.requiresApproval,_that.requiredEquipment,_that.prerequisites,_that.creatorId,_that.tripLeaderIds,_that.createdAt,_that.updatedAt);case _:
@@ -270,7 +270,7 @@ return $default(_that.id,_that.sectionId,_that.title,_that.description,_that.typ
 @JsonSerializable()
 
 class _Event implements Event {
-  const _Event({required this.id, required this.sectionId, required this.title, this.description, required this.type, this.status = EventStatus.draft, @TimestampConverter() required this.startDate, @TimestampConverter() required this.endDate, this.location, this.carpoolOption, this.minParticipants = 0, required this.maxParticipants, this.difficulty = Difficulty.moderate, this.requiresApproval = false,  List<String> requiredEquipment = const [],  List<String> prerequisites = const [], required this.creatorId,  List<String> tripLeaderIds = const [], @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _requiredEquipment = requiredEquipment,_prerequisites = prerequisites,_tripLeaderIds = tripLeaderIds;
+  const _Event({required this.id, required this.sectionId, required this.title, this.description, required this.type, this.status = EventStatus.draft, @TimestampConverter() required this.startDate, @TimestampConverter() required this.endDate, @JsonKey(toJson: _eventLocationToJson, fromJson: _eventLocationFromJson) this.location, @JsonKey(toJson: _carpoolOptionToJson, fromJson: _carpoolOptionFromJson) this.carpoolOption, this.minParticipants = 0, required this.maxParticipants, this.difficulty = Difficulty.moderate, this.requiresApproval = false,  List<String> requiredEquipment = const [],  List<String> prerequisites = const [], required this.creatorId,  List<String> tripLeaderIds = const [], @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _requiredEquipment = requiredEquipment,_prerequisites = prerequisites,_tripLeaderIds = tripLeaderIds;
   factory _Event.fromJson(Map<String, dynamic> json) => _$EventFromJson(json);
 
 /// Firestore document ID.
@@ -287,8 +287,8 @@ class _Event implements Event {
 @override@JsonKey() final  EventStatus status;
 @override@TimestampConverter() final  DateTime startDate;
 @override@TimestampConverter() final  DateTime endDate;
-@override final  EventLocation? location;
-@override final  CarpoolOption? carpoolOption;
+@override@JsonKey(toJson: _eventLocationToJson, fromJson: _eventLocationFromJson) final  EventLocation? location;
+@override@JsonKey(toJson: _carpoolOptionToJson, fromJson: _carpoolOptionFromJson) final  CarpoolOption? carpoolOption;
 @override@JsonKey() final  int minParticipants;
 @override final  int maxParticipants;
 @override@JsonKey() final  Difficulty difficulty;
@@ -363,7 +363,7 @@ abstract mixin class _$EventCopyWith<$Res> implements $EventCopyWith<$Res> {
   factory _$EventCopyWith(_Event value, $Res Function(_Event) _then) = __$EventCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String sectionId, String title, String? description, EventType type, EventStatus status,@TimestampConverter() DateTime startDate,@TimestampConverter() DateTime endDate, EventLocation? location, CarpoolOption? carpoolOption, int minParticipants, int maxParticipants, Difficulty difficulty, bool requiresApproval, List<String> requiredEquipment, List<String> prerequisites, String creatorId, List<String> tripLeaderIds,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String sectionId, String title, String? description, EventType type, EventStatus status,@TimestampConverter() DateTime startDate,@TimestampConverter() DateTime endDate,@JsonKey(toJson: _eventLocationToJson, fromJson: _eventLocationFromJson) EventLocation? location,@JsonKey(toJson: _carpoolOptionToJson, fromJson: _carpoolOptionFromJson) CarpoolOption? carpoolOption, int minParticipants, int maxParticipants, Difficulty difficulty, bool requiresApproval, List<String> requiredEquipment, List<String> prerequisites, String creatorId, List<String> tripLeaderIds,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 

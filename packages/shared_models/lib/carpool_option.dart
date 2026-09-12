@@ -1,4 +1,3 @@
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 
@@ -13,7 +12,6 @@ part 'carpool_option.g.dart';
 /// place. Individual members indicate their driving preference in
 /// [Registration.isDriver] / [Registration.needsRide].
 @freezed
-@firestoreOdm
 abstract class CarpoolOption with _$CarpoolOption {
   const factory CarpoolOption({
     /// Time and date to meet for carpooling.

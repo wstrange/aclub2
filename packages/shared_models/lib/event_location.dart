@@ -1,4 +1,3 @@
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'event_location.freezed.dart';
@@ -10,7 +9,6 @@ part 'event_location.g.dart';
 /// should be provided. All fields are nullable to support flexible location
 /// descriptions.
 @freezed
-@firestoreOdm
 abstract class EventLocation with _$EventLocation {
   const factory EventLocation({
     /// Free-text description, e.g. "Meet at the base of the north face".

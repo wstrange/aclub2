@@ -26,5 +26,14 @@ void main() {
         expect(reconstructed.title, equals(event.title));
       }
     });
+  test('defaultSampleUsers contains valid user data', () {
+      final users = defaultSampleUsers;
+      expect(users.isNotEmpty, isTrue);
+      expect(users.every((u) => u.uid.isNotEmpty), isTrue);
+      expect(users.every((u) => u.email.contains('@')), isTrue);
+      expect(users.every((u) => u.sections.isNotEmpty), isTrue);
+      expect(users.any((u) => u.sections.containsValue(SectionRole.sectionManager)), isTrue);
+      expect(users.any((u) => u.sections.containsValue(SectionRole.tripLeader)), isTrue);
+    });
   });
 }

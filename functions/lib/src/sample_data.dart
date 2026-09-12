@@ -1,5 +1,88 @@
 import 'package:shared_models/shared_models.dart';
 
+const samplePassword = 'foobar';
+
+/// A sample Auth + Firestore user to seed alongside sections and events.
+class SampleUser {
+  const SampleUser({
+    required this.uid,
+    required this.email,
+    required this.displayName,
+    required this.firstName,
+    required this.lastName,
+    required this.sections,
+    this.isAdmin = false,
+  });
+
+  final String uid;
+  final String email;
+  final String displayName;
+  final String firstName;
+  final String lastName;
+  final bool isAdmin;
+
+  /// sectionId → role held within that section.
+  final Map<String, SectionRole> sections;
+}
+
+List<SampleUser> get defaultSampleUsers => const [
+      SampleUser(
+        uid: 'user-1',
+        email: 'alice@example.com',
+        displayName: 'Alice Parker',
+        firstName: 'Alice',
+        lastName: 'Parker',
+        sections: {
+          'calgary': SectionRole.sectionManager,
+          'national': SectionRole.tripLeader,
+        },
+      ),
+      SampleUser(
+        uid: 'user-2',
+        email: 'ben@example.com',
+        displayName: 'Ben Carter',
+        firstName: 'Ben',
+        lastName: 'Carter',
+        sections: {
+          'vancouver': SectionRole.sectionManager,
+          'edmonton': SectionRole.member,
+        },
+      ),
+      SampleUser(
+        uid: 'user-3',
+        email: 'chloe@example.com',
+        displayName: 'Chloe Nguyen',
+        firstName: 'Chloe',
+        lastName: 'Nguyen',
+        sections: {
+          'calgary': SectionRole.tripLeader,
+          'national': SectionRole.member,
+        },
+      ),
+      SampleUser(
+        uid: 'user-4',
+        email: 'dave@example.com',
+        displayName: 'Dave Simmons',
+        firstName: 'Dave',
+        lastName: 'Simmons',
+        sections: {
+          'calgary': SectionRole.member,
+          'national': SectionRole.member,
+          'vancouver': SectionRole.member,
+        },
+      ),
+      SampleUser(
+        uid: 'user-5',
+        email: 'emma@example.com',
+        displayName: 'Emma Wilson',
+        firstName: 'Emma',
+        lastName: 'Wilson',
+        sections: {
+          'national': SectionRole.member,
+        },
+      ),
+    ];
+
 List<Section> get defaultSampleSections => const [
       Section(
         id: 'national',

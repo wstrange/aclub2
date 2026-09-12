@@ -1,5 +1,4 @@
 
-import 'package:firestore_odm/firestore_odm.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
@@ -14,7 +13,6 @@ part 'notification_model.g.dart';
 /// be sent via multiple channels (push, email, in-app) and can be marked as
 /// read or unread.
 @freezed
-@firestoreOdm
 abstract class NotificationModel with _$NotificationModel {
   const factory NotificationModel({
     /// Firestore document ID.
