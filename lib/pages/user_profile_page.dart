@@ -125,7 +125,6 @@ class _UserProfileForm extends HookWidget {
     final emergencyRelation = useTextEditingController(text: user.emergencyContactRelation ?? '');
     final medicalConditions = useTextEditingController(text: user.medicalConditions ?? '');
     final certifications = useTextEditingController(text: user.certifications.join(', '));
-    final sectionIds = useTextEditingController(text: user.sectionIds.join(', '));
     final isAdmin = useState(user.isAdmin);
     final completedProfile = useState(user.complatedProfile);
     final signedWaiver = useState(user.signedWaiver);
@@ -150,7 +149,6 @@ class _UserProfileForm extends HookWidget {
         emergencyContactRelation: _emptyToNull(emergencyRelation.text),
         medicalConditions: _emptyToNull(medicalConditions.text),
         certifications: splitList(certifications.text),
-        sectionIds: splitList(sectionIds.text),
         isAdmin: isAdmin.value,
         complatedProfile: true,
         signedWaiver: signedWaiver.value,

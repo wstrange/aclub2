@@ -43,8 +43,9 @@ abstract class UserProfile with _$UserProfile {
     @Default([]) List<String> certifications,
 
     // ── Memberships & roles ───────────────────────────────────────────────
-    /// IDs of the sections this user belongs to.
-    @Default([]) List<String> sectionIds,
+    /// Membership is NOT stored on the profile. The source of truth is the
+    /// `sections/{sectionId}/members/{userId}` subcollection. This field was
+    /// removed so section membership can't be accidentally read from here.
 
     // The default section to login as
     String? defaultSectionId,

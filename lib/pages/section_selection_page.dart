@@ -19,7 +19,7 @@ class SectionSelectionPage extends StatelessWidget {
     }
 
     return FutureBuilder<List<dynamic>>(
-      future: Future.wait([repository.getSections(), repository.getUserProfile(user.uid)]),
+      future: Future.wait([repository.getSections(), repository.getUserMemberships(user.uid)]),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -29,7 +29,7 @@ class SectionSelectionPage extends StatelessWidget {
         }
 
         final sections = (snapshot.data?[0] as List<Section>?) ?? [];
-        final profile = snapshot.data?[1] as UserProfile?;
+        final memberships = (snapshot.data?[1] as List<SectionMember>?) ?? const <SectionMember>[];
 
         if (sections.isEmpty) {
           return Scaffold(
@@ -41,7 +41,7 @@ class SectionSelectionPage extends StatelessWidget {
         return _SectionSelectionForm(
           userId: user.uid,
           sections: sections,
-          initialSelected: profile?.sectionIds ?? const [],
+          initialSelected: memberships.map((m) => m.sectionId).toList(),
         );
       },
     );

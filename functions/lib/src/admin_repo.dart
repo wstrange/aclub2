@@ -148,7 +148,6 @@ class AdminRepository {
           emergencyContactPhone: '555-0100${u.uid.substring(u.uid.length - 1)}',
           notificationPreferences: const NotificationPreferences(),
           isAdmin: u.isAdmin,
-          sectionIds: u.sections.keys.toList(),
           complatedProfile: true,
           signedWaiver: true,
           createdAt: now,

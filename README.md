@@ -125,7 +125,6 @@ Stores member profile data beyond what Firebase Auth provides.
 | `emergencyContactRelation` | `String` | | e.g. "Spouse", "Parent" |
 | `medicalConditions` | `String` | | |
 | `certifications` | `String[]` | | e.g. `["First Aid", "AST 2"]` |
-| `sectionIds` | `String[]` | | IDs of sections the user belongs to |
 | `role` | `String` (enum) | ✓ | `admin` \| `tripLeader` \| `member` \| `guest` |
 | `notificationPreferences` | `Map` (embedded) | ✓ | See below |
 | `createdAt` | `Timestamp` | ✓ | |

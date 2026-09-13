@@ -242,6 +242,14 @@ class AlpineRepository {
     _cachedProfile = null;
   }
 
+  /// The sections the user is a member of, sourced from the
+  /// `sections/{sectionId}/members/{userId}` subcollection (the source of
+  /// truth for membership — the profile does not store section membership).
+  Future<List<SectionMember>> getUserMemberships(String uid) async {
+    final snapshot = await _firestore.collectionGroup('members').where(FieldPath.documentId, isEqualTo: uid).get();
+    return snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList();
+  }
+
   // Add to section
   Future<void> addMemberToSection({
     required String sectionId,
@@ -259,10 +267,12 @@ class AlpineRepository {
     await _firestore.collection('sections').doc(sectionId).collection('members').doc(userId).delete();
   }
 
-  // Set user's chosen sections, syncing both SectionMember subcollections and UserProfile.sectionIds
+  // Set user's chosen sections. The authoritative membership record is the
+  // members subcollection (`sections/{sectionId}/members/{userId}`); the
+  // profile does not store section membership.
   Future<void> setUserSections({required String userId, required List<String> sectionIds}) async {
-    final profile = await getUserProfile(userId, reload: true);
-    final currentSectionIds = profile?.sectionIds ?? const [];
+    final currentMemberships = await getUserMemberships(userId);
+    final currentSectionIds = currentMemberships.map((m) => m.sectionId).toSet();
 
     for (final sectionId in sectionIds) {
       if (!currentSectionIds.contains(sectionId)) {
@@ -274,11 +284,6 @@ class AlpineRepository {
       if (!sectionIds.contains(currentId)) {
         await removeMemberFromSection(sectionId: currentId, userId: userId);
       }
-    }
-
-    if (profile != null) {
-      final updated = profile.copyWith(sectionIds: sectionIds, updatedAt: DateTime.now());
-      await updateUserProfile(updated);
     }
   }
 

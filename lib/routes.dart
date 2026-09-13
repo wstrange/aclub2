@@ -160,7 +160,14 @@ Future<List<AppRoute>> sectionMembershipGuard(List<AppRoute> current, List<AppRo
   }
 
   final profile = await repository.getUserProfile(user.uid);
-  if (profile == null || profile.sectionIds.isEmpty) {
+  if (profile == null) {
+    _log.info('User ${user.uid} has no profile, redirecting to SectionSelectionRoute');
+    return [const SectionSelectionRoute()];
+  }
+
+  // Membership is sourced from the members subcollection, not the profile.
+  final memberships = await repository.getUserMemberships(user.uid);
+  if (memberships.isEmpty) {
     _log.info('User ${user.uid} belongs to no sections, redirecting to SectionSelectionRoute');
     return [const SectionSelectionRoute()];
   }

@@ -21,11 +21,6 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
           ?.map((e) => e as String)
           .toList() ??
       const [],
-  sectionIds:
-      (json['sectionIds'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
   defaultSectionId: json['defaultSectionId'] as String?,
   isAdmin: json['isAdmin'] as bool? ?? false,
   complatedProfile: json['complatedProfile'] as bool? ?? false,
@@ -49,7 +44,6 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'emergencyContactRelation': instance.emergencyContactRelation,
       'medicalConditions': instance.medicalConditions,
       'certifications': instance.certifications,
-      'sectionIds': instance.sectionIds,
       'defaultSectionId': instance.defaultSectionId,
       'isAdmin': instance.isAdmin,
       'complatedProfile': instance.complatedProfile,
