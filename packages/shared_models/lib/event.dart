@@ -56,13 +56,6 @@ abstract class Event with _$Event {
     /// trip leader or section manager before being confirmed.
     @Default(false) bool requiresApproval,
 
-    // ── Requirements ─────────────────────────────────────────────────────
-    /// List of required equipment items (free text or markdown).
-    @Default([]) List<String> requiredEquipment,
-
-    /// List of prerequisites for participation (free text or markdown).
-    @Default([]) List<String> prerequisites,
-
     // ── Ownership ─────────────────────────────────────────────────────────
     required String creatorId,
 

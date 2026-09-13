@@ -7,6 +7,8 @@ import 'pages/event_edit_page.dart';
 import 'pages/home_page.dart';
 import 'pages/section_selection_page.dart';
 import 'pages/sign_in_page.dart';
+import 'pages/template_editor_page.dart';
+import 'pages/template_list_page.dart';
 import 'pages/user_profile_page.dart';
 import 'repo.dart';
 import 'state/user_state_cubit.dart';
@@ -62,6 +64,20 @@ final class EventCreateRoute extends AppRoute {
   List<Object?> get props => [sectionId];
 }
 
+final class TemplateListRoute extends AppRoute {
+  const TemplateListRoute();
+}
+
+final class TemplateEditRoute extends AppRoute {
+  const TemplateEditRoute({this.templateId = ''});
+
+  /// Empty [templateId] creates a new template.
+  final String templateId;
+
+  @override
+  List<Object?> get props => [templateId];
+}
+
 final routerConfig = KaiselRouterConfig<AppRoute>(
   initial: FirebaseAuth.instance.currentUser != null ? const HomeRoute() : const SignInRoute(),
   guards: [authGuard, profileCompletionGuard, sectionMembershipGuard],
@@ -74,6 +90,8 @@ final routerConfig = KaiselRouterConfig<AppRoute>(
     EventEditRoute(:final sectionId, :final eventId) => EventEditPage(sectionId: sectionId, eventId: eventId),
     EventDetailRoute(:final sectionId, :final eventId) =>
       EventDetailPage(sectionId: sectionId, eventId: eventId),
+    TemplateListRoute() => const TemplateListPage(),
+    TemplateEditRoute(:final templateId) => TemplateEditPage(templateId: templateId),
   },
 );
 

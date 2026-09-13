@@ -103,15 +103,17 @@ class AdminRepository {
 
   // ── Batch Operations & Seeding ───────────────────────────────────────────
 
-  /// Seeds all default sections, sample events, and sample users.
+  /// Seeds all default sections, sample events, sample users, and templates.
   Future<Map<String, int>> seedAll({
     List<Section>? sections,
     List<Event>? events,
     List<SampleUser>? users,
+    List<Template>? templates,
   }) async {
     final seedSections = sections ?? defaultSampleSections;
     final seedEvents = events ?? defaultSampleEvents;
     final seedUsers = users ?? defaultSampleUsers;
+    final seedTemplates = templates ?? defaultSampleTemplates;
 
     int sectionCount = 0;
     for (final s in seedSections) {
@@ -123,6 +125,12 @@ class AdminRepository {
     for (final e in seedEvents) {
       await createEvent(e.sectionId, e);
       eventCount++;
+    }
+
+    int templateCount = 0;
+    for (final t in seedTemplates) {
+      await createTemplate(t);
+      templateCount++;
     }
 
     int userCount = 0;
@@ -167,6 +175,7 @@ class AdminRepository {
       'events': eventCount,
       'users': userCount,
       'members': memberCount,
+      'templates': templateCount,
     };
   }
 

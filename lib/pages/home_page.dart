@@ -2,7 +2,9 @@ import 'package:aclub2/state/user_state_cubit.dart';
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:shared_models/shared_models.dart';
 
 import '../models/user_state.dart';
 import '../repo.dart';
@@ -103,6 +105,15 @@ class HomePage extends StatelessWidget {
                 context.push(const UserProfileRoute());
               },
             ),
+            BlocSignalBuilder<UserStateCubit, UserState?>(
+              builder: (context, state) {
+                return _TemplatesDrawerTile(
+                  sectionId: state?.currentSection.id,
+                  uid: FirebaseAuth.instance.currentUser?.uid,
+                  isAdmin: state?.userProfile.isAdmin ?? false,
+                );
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.group),
               title: const Text('My Sections'),
@@ -142,6 +153,51 @@ class HomePage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Drawer entry for the Templates feature.
+///
+/// Hidden unless the current user is a section manager or trip leader of the
+/// currently selected section (or a global admin).
+class _TemplatesDrawerTile extends HookWidget {
+  const _TemplatesDrawerTile({required this.sectionId, required this.uid, required this.isAdmin});
+
+  final String? sectionId;
+  final String? uid;
+  final bool isAdmin;
+
+  @override
+  Widget build(BuildContext context) {
+    final sectionId = this.sectionId;
+    final uid = this.uid;
+    if (sectionId == null || uid == null) {
+      return const SizedBox.shrink();
+    }
+
+    final memberStream = useMemoized(
+      () => repository.streamMember(sectionId, uid),
+      [sectionId, uid],
+    );
+    final memberSnapshot = useStream(memberStream);
+
+    final role = memberSnapshot.data?.sectionRole;
+    final canManage = isAdmin ||
+        role == SectionRole.sectionManager ||
+        role == SectionRole.tripLeader;
+
+    if (!canManage) {
+      return const SizedBox.shrink();
+    }
+
+    return ListTile(
+      leading: const Icon(Icons.description_outlined),
+      title: const Text('Templates'),
+      onTap: () {
+        Navigator.of(context).pop();
+        context.push(const TemplateListRoute());
+      },
     );
   }
 }

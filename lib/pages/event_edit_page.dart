@@ -105,9 +105,6 @@ class _EventEditForm extends HookWidget {
     final carpoolPlaceController = useTextEditingController(text: initialEvent.carpoolOption?.meetPlace ?? '');
     final carpoolMapUrlController = useTextEditingController(text: initialEvent.carpoolOption?.mapUrl ?? '');
 
-    final requiredEquipmentController = useTextEditingController(text: initialEvent.requiredEquipment.join(', '));
-    final prerequisitesController = useTextEditingController(text: initialEvent.prerequisites.join(', '));
-
     final isSaving = useState(false);
     final errorMessage = useState<String?>(null);
 
@@ -119,7 +116,7 @@ class _EventEditForm extends HookWidget {
       final pickedDate = await showDatePicker(
         context: context,
         initialDate: initial,
-        firstDate: DateTime(2020),
+        firstDate: DateTime(2026),
         lastDate: DateTime(2035),
       );
       if (pickedDate == null || !context.mounted) return;
@@ -136,10 +133,6 @@ class _EventEditForm extends HookWidget {
       final hour = dt.hour.toString().padLeft(2, '0');
       final minute = dt.minute.toString().padLeft(2, '0');
       return '$weekday ${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} $hour:$minute';
-    }
-
-    List<String> parseList(String input) {
-      return input.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
     }
 
     Future<void> save() async {
@@ -195,8 +188,6 @@ class _EventEditForm extends HookWidget {
             requiresApproval: requiresApproval.value,
             location: location,
             carpoolOption: carpool,
-            requiredEquipment: parseList(requiredEquipmentController.text),
-            prerequisites: parseList(prerequisitesController.text),
             creatorId: FirebaseAuth.instance.currentUser?.uid ?? initialEvent.creatorId,
             tripLeaderIds: [FirebaseAuth.instance.currentUser?.uid ?? initialEvent.creatorId],
             createdAt: DateTime.now(),
@@ -223,8 +214,6 @@ class _EventEditForm extends HookWidget {
             requiresApproval: requiresApproval.value,
             location: location,
             carpoolOption: carpool,
-            requiredEquipment: parseList(requiredEquipmentController.text),
-            prerequisites: parseList(prerequisitesController.text),
             updatedAt: DateTime.now(),
           );
 
@@ -318,9 +307,11 @@ class _EventEditForm extends HookWidget {
                 },
               ),
               const SizedBox(height: 12),
+              _InsertTemplateRow(descriptionController: descriptionController),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: descriptionController,
-                maxLines: 4,
+                maxLines: 8,
                 decoration: const InputDecoration(
                   labelText: 'Description *',
                   alignLabelWithHint: true,
@@ -384,11 +375,7 @@ class _EventEditForm extends HookWidget {
                       contentPadding: EdgeInsets.zero,
                       dense: true,
                       title: const Text('Start'),
-                      subtitle: Text(
-                        formatDateTime(startDate.value),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      subtitle: Text(formatDateTime(startDate.value), maxLines: 1, overflow: TextOverflow.ellipsis),
                       trailing: const Icon(Icons.calendar_today),
                       onTap: () => pickDateTime(
                         context: context,
@@ -543,25 +530,6 @@ class _EventEditForm extends HookWidget {
                 ),
               ],
 
-              _sectionHeader('Requirements & Prerequisites'),
-              TextFormField(
-                controller: requiredEquipmentController,
-                decoration: const InputDecoration(
-                  labelText: 'Required Equipment (comma-separated)',
-                  hintText: 'Helmet, Harness, Crampons, Ice Axe',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: prerequisitesController,
-                decoration: const InputDecoration(
-                  labelText: 'Prerequisites (comma-separated)',
-                  hintText: 'AST 1, Prior scrambling experience',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -585,6 +553,105 @@ class _EventEditForm extends HookWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 20, bottom: 10),
       child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+    );
+  }
+}
+
+/// Button above the description field that opens a popup listing templates in
+/// the device's language (defaulting to English) and inserts the chosen one
+/// into the description.
+class _InsertTemplateRow extends HookWidget {
+  const _InsertTemplateRow({required this.descriptionController});
+
+  final TextEditingController descriptionController;
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final language = locale.startsWith('fr') ? 'fr' : 'en';
+
+    void insertTemplate(Template template) {
+      final current = descriptionController.text.trim();
+      final separator = current.isEmpty ? '' : '\n\n';
+      descriptionController.text = '$current$separator${template.markdownText}';
+      descriptionController.selection = TextSelection.collapsed(offset: descriptionController.text.length);
+    }
+
+    void showTemplatePicker() {
+      showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(
+                    'Insert a template (${language.toUpperCase()})',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Flexible(
+                  child: StreamBuilder<List<Template>>(
+                    stream: repository.streamTemplates(),
+                    builder: (context, snapshot) {
+                      final templates = (snapshot.data ?? const <Template>[])
+                          .where((t) => t.language == language)
+                          .toList()
+                        ..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+
+                      if (snapshot.connectionState == ConnectionState.waiting && templates.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      if (templates.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(child: Text('No templates available in this language.')),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: templates.length,
+                        itemBuilder: (context, index) {
+                          final template = templates[index];
+                          return ListTile(
+                            leading: const Icon(Icons.description_outlined),
+                            title: Text(template.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            subtitle: Text(template.language.toUpperCase()),
+                            onTap: () {
+                              Navigator.of(sheetContext).pop();
+                              insertTemplate(template);
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        OutlinedButton.icon(
+          onPressed: showTemplatePicker,
+          icon: const Icon(Icons.article_outlined, size: 18),
+          label: const Text('Insert Template'),
+        ),
+      ],
     );
   }
 }

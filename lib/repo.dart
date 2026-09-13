@@ -26,6 +26,11 @@ class AlpineRepository {
     });
   }
 
+  Future<List<SectionMember>> getSectionMembers(String sectionId) async {
+    final snapshot = await _firestore.collection('sections').doc(sectionId).collection('members').get();
+    return snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList();
+  }
+
   Stream<List<Event>> streamPublicEvents() {
     return _firestore
         .collection('events')
@@ -144,8 +149,19 @@ class AlpineRepository {
     });
   }
 
-  Future<void> createTemplate(Template template) async {
-    await _firestore.collection('templates').doc(template.id).set(template.toJson());
+  Future<Template?> getTemplate(String templateId) async {
+    final doc = await _firestore.collection('templates').doc(templateId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return Template.fromJson({...doc.data()!, 'id': doc.id});
+  }
+
+  Future<String> createTemplate(Template template) async {
+    if (template.id.isNotEmpty) {
+      await _firestore.collection('templates').doc(template.id).set(template.toJson());
+      return template.id;
+    }
+    final docRef = await _firestore.collection('templates').add(template.toJson());
+    return docRef.id;
   }
 
   Future<void> updateTemplate(Template template) async {

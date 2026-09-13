@@ -31,8 +31,6 @@ void main() {
         maxParticipants: 15,
         location: const EventLocation(description: 'Trailhead A', mapUrl: 'https://maps.example.com'),
         carpoolOption: CarpoolOption(meetTime: DateTime(2026, 9, 15, 6, 30), meetPlace: 'Calgary P&R'),
-        requiredEquipment: ['Helmet', 'Crampons'],
-        prerequisites: ['Prior multi-pitch experience'],
         updatedAt: updatedTime,
       );
 
@@ -45,8 +43,6 @@ void main() {
       expect(updated.maxParticipants, equals(15));
       expect(updated.location?.description, equals('Trailhead A'));
       expect(updated.carpoolOption?.meetPlace, equals('Calgary P&R'));
-      expect(updated.requiredEquipment, contains('Helmet'));
-      expect(updated.prerequisites, contains('Prior multi-pitch experience'));
       expect(updated.updatedAt, equals(updatedTime));
     });
 

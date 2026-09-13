@@ -25,16 +25,6 @@ _Event _$EventFromJson(Map<String, dynamic> json) => _Event(
       $enumDecodeNullable(_$DifficultyEnumMap, json['difficulty']) ??
       Difficulty.moderate,
   requiresApproval: json['requiresApproval'] as bool? ?? false,
-  requiredEquipment:
-      (json['requiredEquipment'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
-  prerequisites:
-      (json['prerequisites'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
   creatorId: json['creatorId'] as String,
   tripLeaderIds:
       (json['tripLeaderIds'] as List<dynamic>?)
@@ -60,8 +50,6 @@ Map<String, dynamic> _$EventToJson(_Event instance) => <String, dynamic>{
   'maxParticipants': instance.maxParticipants,
   'difficulty': _$DifficultyEnumMap[instance.difficulty]!,
   'requiresApproval': instance.requiresApproval,
-  'requiredEquipment': instance.requiredEquipment,
-  'prerequisites': instance.prerequisites,
   'creatorId': instance.creatorId,
   'tripLeaderIds': instance.tripLeaderIds,
   'createdAt': const TimestampConverter().toJson(instance.createdAt),

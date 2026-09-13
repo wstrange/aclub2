@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:kaisel/kaisel.dart';
+import 'package:logging/logging.dart';
 import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
 import '../routes.dart';
 import '../widgets/user_display.dart';
+
+final _log = Logger('EventDetailPage');
 
 /// Read-only page showing full details for an [Event].
 /// Edit functionality is reached from here, not from the calendar.
@@ -128,18 +131,8 @@ class EventDetailPage extends HookWidget {
             _detailRow('Participants', '${event.minParticipants} - ${event.maxParticipants}'),
             _detailRow('Approval Required', event.requiresApproval ? 'Yes' : 'No'),
 
-            if (event.requiredEquipment.isNotEmpty) ...[
-              _sectionHeader('Required Equipment'),
-              _bulkList(event.requiredEquipment),
-            ],
-
-            if (event.prerequisites.isNotEmpty) ...[
-              _sectionHeader('Prerequisites'),
-              _bulkList(event.prerequisites),
-            ],
-
             _sectionHeader('Leadership'),
-            _LeadershipSection(creatorId: event.creatorId, leaderIds: event.tripLeaderIds),
+            _LeadershipSection(sectionId: sectionId, event: event),
 
             const SizedBox(height: 24),
             SizedBox(
@@ -183,36 +176,158 @@ class EventDetailPage extends HookWidget {
       ),
     );
   }
-
-  Widget _bulkList(List<String> items) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final item in items)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('• ', style: TextStyle(fontSize: 14)),
-                Expanded(child: Text(item, style: const TextStyle(fontSize: 14))),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
 }
 
-/// Resolves user IDs into display names and emails via their [UserProfile].
-class _LeadershipSection extends StatelessWidget {
-  const _LeadershipSection({required this.creatorId, required this.leaderIds});
+/// Shows the event's creator and trip leaders. A section manager or trip
+/// leader can assign additional trip leaders from the section's members.
+class _LeadershipSection extends HookWidget {
+  const _LeadershipSection({required this.sectionId, required this.event});
 
-  final String creatorId;
-  final List<String> leaderIds;
+  final String sectionId;
+  final Event event;
 
   @override
   Widget build(BuildContext context) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final memberStream = useMemoized(
+      () => repository.streamMember(sectionId, currentUid ?? ''),
+      [sectionId, currentUid],
+    );
+    final memberSnapshot = useStream(memberStream);
+    final role = memberSnapshot.data?.sectionRole;
+    final canManage = currentUid != null &&
+        (role == SectionRole.sectionManager || role == SectionRole.tripLeader);
+
+    final leaderIds = event.tripLeaderIds;
+
+    Future<void> assignLeader(String uid) async {
+      if (leaderIds.contains(uid)) return;
+      try {
+        await repository.updateEvent(
+          sectionId,
+          event.copyWith(tripLeaderIds: [...leaderIds, uid], updatedAt: DateTime.now()),
+        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip leader added.')));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add trip leader: $e')));
+        }
+      }
+    }
+
+    Future<void> removeLeader(String uid) async {
+      try {
+        await repository.updateEvent(
+          sectionId,
+          event.copyWith(
+            tripLeaderIds: leaderIds.where((id) => id != uid).toList(),
+            updatedAt: DateTime.now(),
+          ),
+        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip leader removed.')));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to remove trip leader: $e')));
+        }
+      }
+    }
+
+    Future<void> confirmRemove(String uid) async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Remove trip leader?'),
+          content: const Text('They will no longer be able to manage this event.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Remove'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed == true) {
+        await removeLeader(uid);
+      }
+    }
+
+    void showAssignSheet() {
+      showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) {
+          return SafeArea(
+            child: FutureBuilder<List<SectionMember>>(
+              future: repository.getSectionMembers(sectionId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                  return const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(child: Text('Error loading members: ${snapshot.error}')),
+                  );
+                }
+                final candidates = (snapshot.data ?? const <SectionMember>[])
+                    .where((m) => !leaderIds.contains(m.id))
+                    .toList();
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        'Assign Trip Leader',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    if (candidates.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(child: Text('No other section members to assign.')),
+                      )
+                    else
+                      Flexible(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: candidates.length,
+                          itemBuilder: (context, index) {
+                            final member = candidates[index];
+                            return ListTile(
+                              leading: const Icon(Icons.person_outline),
+                              title: UserDisplay(userId: member.id, style: const TextStyle(fontSize: 14)),
+                              subtitle: Text(member.sectionRole.name),
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                assignLeader(member.id);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          );
+        },
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -226,7 +341,7 @@ class _LeadershipSection extends StatelessWidget {
                 child: Text('Created by', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               ),
               Expanded(
-                child: UserDisplay(userId: creatorId, style: const TextStyle(fontSize: 14)),
+                child: UserDisplay(userId: event.creatorId, style: const TextStyle(fontSize: 14)),
               ),
             ],
           ),
@@ -241,21 +356,53 @@ class _LeadershipSection extends StatelessWidget {
                 child: Text('Trip Leaders', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               ),
               Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    for (var i = 0; i < leaderIds.length; i++) ...[
-                      if (i > 0) const Text(', '),
-                      UserDisplay(userId: leaderIds[i], style: const TextStyle(fontSize: 14)),
-                    ],
-                  ],
-                ),
+                child: leaderIds.isEmpty
+                    ? const Text('No trip leaders assigned.', style: TextStyle(fontSize: 14))
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final leaderId in leaderIds)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.emoji_people_outlined, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: UserDisplay(userId: leaderId, style: const TextStyle(fontSize: 14)),
+                                  ),
+                                  if (canManage && leaderId != event.creatorId)
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.person_remove_outlined,
+                                        size: 20,
+                                        color: Theme.of(context).colorScheme.error,
+                                      ),
+                                      tooltip: 'Remove Trip Leader',
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: () => confirmRemove(leaderId),
+                                    ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
               ),
             ],
           ),
         ),
+        if (canManage)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: showAssignSheet,
+                icon: const Icon(Icons.person_add_alt, size: 18),
+                label: const Text('Assign Trip Leader'),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -373,6 +520,156 @@ class _RegistrationSection extends HookWidget {
       }
     }
 
+    Future<void> addParticipant(String userId, RegistrationStatus status) async {
+      if (status == RegistrationStatus.approved && !hasSpace) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This event is full. Add them to the waitlist instead.')));
+        }
+        return;
+      }
+
+      isSaving.value = true;
+      final now = DateTime.now();
+      try {
+        await repository.registerForEvent(
+          event.sectionId,
+          event.id,
+          Registration(
+            id: userId,
+            userId: userId,
+            status: status,
+            registeredAt: now,
+            updatedAt: now,
+          ),
+        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                status == RegistrationStatus.approved ? 'Added to event.' : 'Added to waitlist.',
+              ),
+            ),
+          );
+        }
+      } catch (e, stackTrace) {
+        _log.severe('Failed to add participant $userId to event ${event.id}: $e\n$stackTrace');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add participant: $e')));
+        }
+      } finally {
+        isSaving.value = false;
+      }
+    }
+
+    Future<void> pickAddStatus(String userId) async {
+      final status = await showDialog<RegistrationStatus>(
+        context: context,
+        builder: (dialogContext) => SimpleDialog(
+          title: const Text('Add to event or waitlist?'),
+          children: [
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(RegistrationStatus.approved),
+              child: const Row(
+                children: [
+                  Icon(Icons.event_available, size: 20),
+                  SizedBox(width: 12),
+                  Text('Add to event'),
+                ],
+              ),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(RegistrationStatus.waitlisted),
+              child: const Row(
+                children: [
+                  Icon(Icons.hourglass_top, size: 20),
+                  SizedBox(width: 12),
+                  Text('Add to waitlist'),
+                ],
+              ),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(null),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+      if (status != null) {
+        await addParticipant(userId, status);
+      }
+    }
+
+    void showAddParticipantSheet() {
+      final registeredIds = registrations.map((r) => r.userId).toSet();
+      showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) {
+          return SafeArea(
+            child: FutureBuilder<List<SectionMember>>(
+              future: repository.getSectionMembers(event.sectionId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                  return const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(child: Text('Error loading members: ${snapshot.error}')),
+                  );
+                }
+                final candidates = (snapshot.data ?? const <SectionMember>[])
+                    .where((m) => !registeredIds.contains(m.id))
+                    .toList();
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        'Add Participant',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    if (candidates.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(child: Text('All section members are already registered.')),
+                      )
+                    else
+                      Flexible(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: candidates.length,
+                          itemBuilder: (context, index) {
+                            final member = candidates[index];
+                            return ListTile(
+                              leading: const Icon(Icons.person_outline),
+                              title: UserDisplay(userId: member.id, style: const TextStyle(fontSize: 14)),
+                              subtitle: Text(member.sectionRole.name),
+                              enabled: !isSaving.value,
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                pickAddStatus(member.id);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          );
+        },
+      );
+    }
+
     final String statusLabel = switch (myRegistration?.status) {
       null => 'Not registered',
       RegistrationStatus.approved => 'Approved',
@@ -433,7 +730,7 @@ class _RegistrationSection extends HookWidget {
                 ),
               ),
             ],
-            if (canManage && manageable.isNotEmpty) ...[
+            if (canManage) ...[
               const SizedBox(height: 16),
               Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
               const SizedBox(height: 12),
@@ -441,6 +738,17 @@ class _RegistrationSection extends HookWidget {
                 'Manage registrations',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: isSaving.value ? null : showAddParticipantSheet,
+                  icon: const Icon(Icons.person_add_alt, size: 18),
+                  label: const Text('Add Participant'),
+                ),
+              ),
+            ],
+            if (canManage && manageable.isNotEmpty) ...[
               const SizedBox(height: 8),
               for (final registration in manageable)
                 Padding(
