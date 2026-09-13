@@ -35,7 +35,7 @@ class UserStateCubit extends CubitSignal<UserState?> {
     // Fetch all sections and the user's memberships. Membership is sourced
     // from the members subcollection, not the profile.
     final allSections = await repository.getSections();
-    final memberships = await repository.getUserMemberships(authUser.uid);
+    final memberships = await repository.getUserMemberships(authUser.uid, sections: allSections);
     final memberSectionIds = memberships.map((m) => m.sectionId).toSet();
     final userSections = allSections.where((s) => memberSectionIds.contains(s.id)).toList();
 

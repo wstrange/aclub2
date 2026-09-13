@@ -245,9 +245,17 @@ class AlpineRepository {
   /// The sections the user is a member of, sourced from the
   /// `sections/{sectionId}/members/{userId}` subcollection (the source of
   /// truth for membership — the profile does not store section membership).
-  Future<List<SectionMember>> getUserMemberships(String uid) async {
-    final snapshot = await _firestore.collectionGroup('members').where(FieldPath.documentId, isEqualTo: uid).get();
-    return snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList();
+  ///
+  /// Uses per-section point reads, since querying a collection group by
+  /// `FieldPath.documentId` with a bare user ID is not supported.
+  Future<List<SectionMember>> getUserMemberships(String uid, {List<Section>? sections}) async {
+    final allSections = sections ?? await getSections();
+    final results = await Future.wait(allSections.map((section) async {
+      final doc = await _firestore.collection('sections').doc(section.id).collection('members').doc(uid).get();
+      if (!doc.exists || doc.data() == null) return null;
+      return SectionMember.fromJson({...doc.data()!, 'id': doc.id, 'sectionId': section.id});
+    }));
+    return results.whereType<SectionMember>().toList();
   }
 
   // Add to section

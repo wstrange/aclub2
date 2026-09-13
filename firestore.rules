@@ -20,10 +20,6 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/sections/$(sectionId)/members/$(request.auth.uid));
     }
 
-    function hasSectionRole(sectionId, role) {
-      return isSectionMember(sectionId) && getMemberData(sectionId).sectionRole == role;
-    }
-
     function isSectionAdmin(sectionId) {
       return isSectionMember(sectionId) &&
         getMemberData(sectionId).sectionRole in ['sectionManager', 'sectionAdmin', 'owner'];
