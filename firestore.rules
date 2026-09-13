@@ -26,12 +26,12 @@ service cloud.firestore {
 
     function isSectionAdmin(sectionId) {
       return isSectionMember(sectionId) &&
-        getMemberData(sectionId).sectionRole in ['sectionAdmin', 'owner'];
+        getMemberData(sectionId).sectionRole in ['sectionManager', 'sectionAdmin', 'owner'];
     }
 
     function isTripLeader(sectionId) {
       return isSectionMember(sectionId) &&
-        getMemberData(sectionId).sectionRole in ['tripLeader', 'sectionAdmin', 'owner'];
+        getMemberData(sectionId).sectionRole in ['tripLeader', 'sectionManager', 'sectionAdmin', 'owner'];
     }
 
     // Helper: Check if user is a system-wide global administrator
@@ -71,7 +71,7 @@ service cloud.firestore {
           // Users can read their own registration, or leaders/admins can read all
           allow read: if isSectionMember(sectionId) && (resource.data.userId == request.auth.uid || isTripLeader(sectionId));
           // Users can create/update their own registration; leaders can manage any
-          allow create: if isSectionMember(sectionId) && request.resource.data.userId == request.auth.uid;
+          allow create: if isSectionMember(sectionId) && (request.resource.data.userId == request.auth.uid || isTripLeader(sectionId));
           allow update, delete: if isSectionMember(sectionId) && (resource.data.userId == request.auth.uid || isTripLeader(sectionId));
         }
       }
