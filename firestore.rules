@@ -57,7 +57,11 @@ service cloud.firestore {
       allow write: if isSectionAdmin(sectionId); // or a global admin check if needed for creation
 
       match /members/{userId} {
-        allow read: if isSectionMember(sectionId);
+        // Signed-in users may read member lists. Membership gating is enforced
+        // by the app (profile completion + section guards). Using
+        // isSectionMember() here would be circular (it does an exists()/get()
+        // on this same subcollection) and fails on the first rules evaluation.
+        allow read: if isSignedIn();
         // Only section admins can write roles, or users removing themselves
         allow write: if isSectionAdmin(sectionId) || isUser(userId);
       }

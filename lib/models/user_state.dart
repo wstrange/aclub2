@@ -13,4 +13,9 @@ abstract class UserState with _$UserState {
     required List<Section> userSections,
     required Section currentSection,
   }) = _UserState;
+
+  @override
+  String toString() {
+    return "$userProfile ${userProfile.email} ${user.email} $userSections $currentSection";
+  }
 }

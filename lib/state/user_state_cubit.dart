@@ -14,7 +14,17 @@ class UserStateCubit extends CubitSignal<UserState?> {
   UserStateCubit() : super(initialState: null);
 
   /// Ensures [UserState] is fully loaded and initialized.
-  Future<void> ensureLoaded(User authUser, [UserProfile? knownProfile]) async {
+  ///
+  /// Idempotent: if [UserState] is already loaded for [authUser], the cached
+  /// state is returned without re-fetching. Pass [force] to always reload
+  /// (e.g. after profile or membership changes).
+  Future<void> ensureLoaded(User authUser, [UserProfile? knownProfile, bool force = false]) async {
+    final existing = state.value;
+    if (!force && existing != null && existing.user.uid == authUser.uid) {
+      _log.fine('UserState already loaded for ${authUser.email}, skipping reload');
+      return;
+    }
+
     final profile = knownProfile ?? await repository.getUserProfile(authUser.uid, reload: true);
     if (profile == null) {
       _log.warning('Cannot load UserState: profile is null for ${authUser.uid}');
@@ -81,7 +91,7 @@ class UserStateCubit extends CubitSignal<UserState?> {
   Future<void> refresh() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      await ensureLoaded(user);
+      await ensureLoaded(user, null, true);
     } else {
       emit(null);
     }

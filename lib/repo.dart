@@ -20,6 +20,7 @@ class AlpineRepository {
 
   // Listen for updates for a user in a section
   Stream<SectionMember?> streamMember(String sectionId, String uid) {
+    _log.fine('streamMember for section $sectionId, for user $uid');
     return _firestore.collection('sections').doc(sectionId).collection('members').doc(uid).snapshots().map((doc) {
       if (!doc.exists || doc.data() == null) return null;
       return SectionMember.fromJson({...?doc.data(), 'id': doc.id});
@@ -61,16 +62,10 @@ class AlpineRepository {
   }
 
   Stream<Event?> streamEvent(String sectionId, String eventId) {
-    return _firestore
-        .collection('sections')
-        .doc(sectionId)
-        .collection('events')
-        .doc(eventId)
-        .snapshots()
-        .map((doc) {
-          if (!doc.exists || doc.data() == null) return null;
-          return Event.fromJson({...doc.data()!, 'id': doc.id});
-        });
+    return _firestore.collection('sections').doc(sectionId).collection('events').doc(eventId).snapshots().map((doc) {
+      if (!doc.exists || doc.data() == null) return null;
+      return Event.fromJson({...doc.data()!, 'id': doc.id});
+    });
   }
 
   Future<String> createEvent(String sectionId, Event event) async {
@@ -104,9 +99,17 @@ class AlpineRepository {
   }
 
   Stream<List<Registration>> streamEventRegistrations(String sectionId, String eventId) {
-    return _firestore.collection('sections').doc(sectionId).collection('events').doc(eventId).collection('registrations').snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => Registration.fromJson({...doc.data(), 'id': doc.id})).toList();
-    });
+    _log.fine('streamEventRegistrations for section $sectionId, event $eventId');
+    return _firestore
+        .collection('sections')
+        .doc(sectionId)
+        .collection('events')
+        .doc(eventId)
+        .collection('registrations')
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Registration.fromJson({...doc.data(), 'id': doc.id})).toList();
+        });
   }
 
   Future<List<Registration>> getEventRegistrations(String sectionId, String eventId) async {
@@ -117,6 +120,9 @@ class AlpineRepository {
         .doc(eventId)
         .collection('registrations')
         .get();
+    _log.fine(
+      'getEventRegistrations for section $sectionId, event $eventId found ${snapshot.docs.length} registrations',
+    );
     return snapshot.docs.map((doc) => Registration.fromJson({...doc.data(), 'id': doc.id})).toList();
   }
 
