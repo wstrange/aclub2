@@ -9,6 +9,8 @@ import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
 import '../routes.dart';
+import '../state/event_details_cubit.dart';
+import '../state/event_details_state.dart';
 import '../state/user_state_cubit.dart';
 import '../widgets/user_display.dart';
 
@@ -24,38 +26,61 @@ class EventDetailPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eventStream = useMemoized(
-      () => repository.streamEvent(sectionId, eventId),
-      [sectionId, eventId],
+    final cubit = useMemoized(() => EventDetailsCubit(sectionId: sectionId, eventId: eventId), [sectionId, eventId]);
+    useEffect(
+      () =>
+          () => cubit.close(),
+      [cubit],
     );
-    final snapshot = useStream(eventStream);
 
-    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    return BlocSignalProvider<EventDetailsCubit>.value(
+      value: cubit,
+      child: BlocSignalBuilder<EventDetailsCubit, EventDetailsState>(
+        builder: (context, state) {
+          if (state.isEventLoading && state.event == null) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
 
-    if (snapshot.hasError) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Event Details')),
-        body: Center(
-          child: Text(
-            'Error loading event: ${snapshot.error}',
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ),
-      );
-    }
+          if (state.error != null && state.event == null) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Event Details')),
+              body: Center(
+                child: Text(
+                  'Error loading event: ${state.error}',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            );
+          }
 
-    final event = snapshot.data;
-    if (event == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Event Details')),
-        body: const Center(child: Text('Event not found.')),
-      );
-    }
+          final event = state.event;
+          if (event == null) {
+            return Scaffold(
+              appBar: AppBar(title: const Text('Event Details')),
+              body: const Center(child: Text('Event not found.')),
+            );
+          }
 
+          return _EventDetailView(sectionId: sectionId, event: event);
+        },
+      ),
+    );
+  }
+}
+
+/// The fully-loaded detail view for an [event]. Consumes the surrounding
+/// [EventDetailsCubit] (provided by [EventDetailPage]) for registrations and
+/// mutations; UI-only flows such as dialogs and snackbars live here.
+class _EventDetailView extends StatelessWidget {
+  const _EventDetailView({required this.sectionId, required this.event});
+
+  final String sectionId;
+  final Event event;
+
+  @override
+  Widget build(BuildContext context) {
     Future<void> openEdit() async {
-      await context.push(EventEditRoute(sectionId: sectionId, eventId: eventId));
+      await context.push(EventEditRoute(sectionId: sectionId, eventId: event.id));
     }
 
     String formatDate(DateTime dt) {
@@ -69,13 +94,7 @@ class EventDetailPage extends HookWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Event Details'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Edit Event',
-            onPressed: openEdit,
-          ),
-        ],
+        actions: [IconButton(icon: const Icon(Icons.edit), tooltip: 'Edit Event', onPressed: openEdit)],
       ),
       body: SafeArea(
         child: ListView(
@@ -99,8 +118,7 @@ class EventDetailPage extends HookWidget {
               spacing: 8,
               children: [
                 Chip(label: Text(event.type.name)),
-                if (event.difficulty != Difficulty.moderate)
-                  Chip(label: Text(event.difficulty.name)),
+                if (event.difficulty != Difficulty.moderate) Chip(label: Text(event.difficulty.name)),
                 if (event.requiresApproval) const Chip(label: Text('Approval required')),
               ],
             ),
@@ -168,10 +186,7 @@ class EventDetailPage extends HookWidget {
         children: [
           SizedBox(
             width: 120,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-            ),
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           ),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
         ],
@@ -198,10 +213,7 @@ class _LeadershipSection extends HookWidget {
     Future<void> assignLeader(String uid) async {
       if (leaderIds.contains(uid)) return;
       try {
-        await repository.updateEvent(
-          sectionId,
-          event.copyWith(tripLeaderIds: [...leaderIds, uid], updatedAt: DateTime.now()),
-        );
+        await context.read<EventDetailsCubit>().assignTripLeader(uid);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip leader added.')));
         }
@@ -214,13 +226,7 @@ class _LeadershipSection extends HookWidget {
 
     Future<void> removeLeader(String uid) async {
       try {
-        await repository.updateEvent(
-          sectionId,
-          event.copyWith(
-            tripLeaderIds: leaderIds.where((id) => id != uid).toList(),
-            updatedAt: DateTime.now(),
-          ),
-        );
+        await context.read<EventDetailsCubit>().removeTripLeader(uid);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip leader removed.')));
         }
@@ -238,14 +244,8 @@ class _LeadershipSection extends HookWidget {
           title: const Text('Remove trip leader?'),
           content: const Text('They will no longer be able to manage this event.'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Remove'),
-            ),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Remove')),
           ],
         ),
       );
@@ -413,20 +413,16 @@ class _RegistrationSection extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final registrationsStream = useMemoized(
-      () => repository.streamEventRegistrations(event.sectionId, event.id),
-      [event.sectionId, event.id],
-    );
-    final registrationsSnapshot = useStream(registrationsStream);
-    final registrations = registrationsSnapshot.data ?? const <Registration>[];
+    final eventDetails = context.read<EventDetailsCubit>().state.value;
+    final registrations = eventDetails.registrations;
+    final isRegistrationsLoading = eventDetails.isRegistrationsLoading;
 
     final isSaving = useState(false);
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
 
     final myRegistration = currentUid == null ? null : registrations.where((r) => r.userId == currentUid).firstOrNull;
 
-    final isSectionManager =
-        context.read<UserStateCubit>().roleFor(event.sectionId) == SectionRole.sectionManager;
+    final isSectionManager = context.read<UserStateCubit>().roleFor(event.sectionId) == SectionRole.sectionManager;
     final isTripLeader = event.tripLeaderIds.contains(currentUid);
     final canManage = currentUid != null && (isSectionManager || isTripLeader);
 
@@ -437,17 +433,10 @@ class _RegistrationSection extends HookWidget {
     Future<void> setStatus(Registration registration, RegistrationStatus status) async {
       isSaving.value = true;
       try {
-        await repository.updateRegistrationStatus(
-          event.sectionId,
-          event.id,
-          registration.userId,
-          status.name,
-        );
+        await context.read<EventDetailsCubit>().setRegistrationStatus(registration, status);
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to update registration: $e')),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update registration: $e')));
         }
       } finally {
         isSaving.value = false;
@@ -462,6 +451,41 @@ class _RegistrationSection extends HookWidget {
         return;
       }
       await setStatus(registration, RegistrationStatus.approved);
+    }
+
+    Future<void> remove(Registration registration) async {
+      final cubit = context.read<EventDetailsCubit>();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Remove registration?'),
+          content: const Text('This removes the participant from the event.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Remove'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      isSaving.value = true;
+      try {
+        await cubit.removeRegistration(registration.userId);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registration removed.')));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to remove: $e')));
+        }
+      } finally {
+        isSaving.value = false;
+      }
     }
 
     Future<void> register() async {
@@ -492,7 +516,7 @@ class _RegistrationSection extends HookWidget {
 
       isSaving.value = true;
       try {
-        await repository.registerForEvent(event.sectionId, event.id, registration);
+        await context.read<EventDetailsCubit>().register(registration);
         if (context.mounted) {
           final message = switch (status) {
             RegistrationStatus.waitlisted => 'You are on the waitlist.',
@@ -513,32 +537,18 @@ class _RegistrationSection extends HookWidget {
     Future<void> addParticipant(String userId, RegistrationStatus status) async {
       if (status == RegistrationStatus.approved && !hasSpace) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This event is full. Add them to the waitlist instead.')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('This event is full. Add them to the waitlist instead.')));
         }
         return;
       }
 
       isSaving.value = true;
-      final now = DateTime.now();
       try {
-        await repository.registerForEvent(
-          event.sectionId,
-          event.id,
-          Registration(
-            id: userId,
-            userId: userId,
-            status: status,
-            registeredAt: now,
-            updatedAt: now,
-          ),
-        );
+        await context.read<EventDetailsCubit>().addParticipant(userId, status);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                status == RegistrationStatus.approved ? 'Added to event.' : 'Added to waitlist.',
-              ),
-            ),
+            SnackBar(content: Text(status == RegistrationStatus.approved ? 'Added to event.' : 'Added to waitlist.')),
           );
         }
       } catch (e, stackTrace) {
@@ -560,27 +570,16 @@ class _RegistrationSection extends HookWidget {
             SimpleDialogOption(
               onPressed: () => Navigator.of(dialogContext).pop(RegistrationStatus.approved),
               child: const Row(
-                children: [
-                  Icon(Icons.event_available, size: 20),
-                  SizedBox(width: 12),
-                  Text('Add to event'),
-                ],
+                children: [Icon(Icons.event_available, size: 20), SizedBox(width: 12), Text('Add to event')],
               ),
             ),
             SimpleDialogOption(
               onPressed: () => Navigator.of(dialogContext).pop(RegistrationStatus.waitlisted),
               child: const Row(
-                children: [
-                  Icon(Icons.hourglass_top, size: 20),
-                  SizedBox(width: 12),
-                  Text('Add to waitlist'),
-                ],
+                children: [Icon(Icons.hourglass_top, size: 20), SizedBox(width: 12), Text('Add to waitlist')],
               ),
             ),
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(dialogContext).pop(null),
-              child: const Text('Cancel'),
-            ),
+            SimpleDialogOption(onPressed: () => Navigator.of(dialogContext).pop(null), child: const Text('Cancel')),
           ],
         ),
       );
@@ -674,9 +673,12 @@ class _RegistrationSection extends HookWidget {
 
     // Registrations a leader/manager can act on: pending, waitlisted, approved.
     final manageable = registrations
-        .where((r) => r.status == RegistrationStatus.pending ||
-            r.status == RegistrationStatus.waitlisted ||
-            r.status == RegistrationStatus.approved)
+        .where(
+          (r) =>
+              r.status == RegistrationStatus.pending ||
+              r.status == RegistrationStatus.waitlisted ||
+              r.status == RegistrationStatus.approved,
+        )
         .toList();
 
     return Card(
@@ -702,7 +704,7 @@ class _RegistrationSection extends HookWidget {
             Text('$approvedCount / ${event.maxParticipants} participants'),
             const SizedBox(height: 4),
             Text(myRegistration == null ? statusLabel : 'Your status: $statusLabel'),
-            if (registrationsSnapshot.connectionState == ConnectionState.waiting)
+            if (isRegistrationsLoading)
               const Padding(
                 padding: EdgeInsets.only(top: 8),
                 child: Center(child: CircularProgressIndicator()),
@@ -756,7 +758,9 @@ class _RegistrationSection extends HookWidget {
                       const SizedBox(width: 8),
                       if (registration.status == RegistrationStatus.approved)
                         TextButton(
-                          onPressed: isSaving.value ? null : () => setStatus(registration, RegistrationStatus.waitlisted),
+                          onPressed: isSaving.value
+                              ? null
+                              : () => setStatus(registration, RegistrationStatus.waitlisted),
                           child: const Text('To waitlist'),
                         )
                       else
@@ -764,6 +768,13 @@ class _RegistrationSection extends HookWidget {
                           onPressed: isSaving.value ? null : () => approve(registration),
                           child: const Text('Approve'),
                         ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'Remove',
+                        onPressed: isSaving.value ? null : () => remove(registration),
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                      ),
                     ],
                   ),
                 ),

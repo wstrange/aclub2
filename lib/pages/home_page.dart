@@ -4,9 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kaisel/kaisel.dart';
 
-import '../models/user_state.dart';
 import '../repo.dart';
 import '../routes.dart';
+import '../state/user_state.dart';
 import '../widgets/calendar_view.dart';
 
 class HomePage extends StatelessWidget {
@@ -106,8 +106,7 @@ class HomePage extends StatelessWidget {
             BlocSignalBuilder<UserStateCubit, UserState?>(
               builder: (context, state) {
                 if (state == null) return const SizedBox.shrink();
-                final canManage = state.userProfile.isAdmin ||
-                    state.canManageSection(state.currentSection.id);
+                final canManage = state.userProfile.isAdmin || context.read<UserStateCubit>().canManageSection(state.currentSection.id);
                 return _TemplatesDrawerTile(canManage: canManage);
               },
             ),

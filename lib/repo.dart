@@ -148,6 +148,17 @@ class AlpineRepository {
         .update({'status': newStatus});
   }
 
+  Future<void> removeRegistration(String sectionId, String eventId, String userId) async {
+    await _firestore
+        .collection('sections')
+        .doc(sectionId)
+        .collection('events')
+        .doc(eventId)
+        .collection('registrations')
+        .doc(userId)
+        .delete();
+  }
+
   /// Templates
   Stream<List<Template>> streamTemplates() {
     return _firestore.collection('templates').snapshots().map((snapshot) {

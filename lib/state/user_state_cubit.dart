@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_models/shared_models.dart';
 
-import '../models/user_state.dart';
 import '../repo.dart';
+import 'models.dart';
 
 final _log = Logger('UserStateCubit');
 
@@ -60,25 +60,31 @@ class UserStateCubit extends CubitSignal<UserState?> {
     }
 
     _log.info('UserState loaded: user=${authUser.email}, currentSection=${currentSection.name}');
-    emit(UserState(
-      userProfile: profile,
-      user: authUser,
-      userSections: userSections,
-      currentSection: currentSection,
-      memberships: memberships,
-    ));
+    emit(
+      UserState(
+        userProfile: profile,
+        user: authUser,
+        userSections: userSections,
+        currentSection: currentSection,
+        memberships: memberships,
+      ),
+    );
   }
 
   /// Returns the user's [SectionRole] for [sectionId], or null if they are not
   /// a member of that section. Based on the memberships fetched at load time;
   /// call [refresh] after membership or role changes.
   SectionRole? roleFor(String sectionId) {
-    return state.value?.roleFor(sectionId);
+    for (final m in state.value?.memberships ?? const <SectionMember>[]) {
+      if (m.sectionId == sectionId) return m.sectionRole;
+    }
+    return null;
   }
 
   /// True if the user is a section manager or trip leader of [sectionId].
   bool canManageSection(String sectionId) {
-    return state.value?.canManageSection(sectionId) ?? false;
+    final role = roleFor(sectionId);
+    return role == SectionRole.sectionManager || role == SectionRole.tripLeader;
   }
 
   /// Sets the currently active section for the session.
