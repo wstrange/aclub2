@@ -453,13 +453,13 @@ class _RegistrationSection extends HookWidget {
       await setStatus(registration, RegistrationStatus.approved);
     }
 
-    Future<void> remove(Registration registration) async {
+    Future<void> unregister(String userId, {required String confirmTitle, required String confirmMessage, required String successMessage}) async {
       final cubit = context.read<EventDetailsCubit>();
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Remove registration?'),
-          content: const Text('This removes the participant from the event.'),
+          title: Text(confirmTitle),
+          content: Text(confirmMessage),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -475,9 +475,9 @@ class _RegistrationSection extends HookWidget {
       if (confirmed != true) return;
       isSaving.value = true;
       try {
-        await cubit.removeRegistration(registration.userId);
+        await cubit.removeRegistration(userId);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registration removed.')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage)));
         }
       } catch (e) {
         if (context.mounted) {
@@ -486,6 +486,26 @@ class _RegistrationSection extends HookWidget {
       } finally {
         isSaving.value = false;
       }
+    }
+
+    Future<void> remove(Registration registration) {
+      return unregister(
+        registration.userId,
+        confirmTitle: 'Remove registration?',
+        confirmMessage: 'This removes the participant from the event.',
+        successMessage: 'Registration removed.',
+      );
+    }
+
+    Future<void> withdraw() async {
+      final uid = currentUid;
+      if (uid == null) return;
+      await unregister(
+        uid,
+        confirmTitle: 'Withdraw from event?',
+        confirmMessage: 'You will no longer be registered for this event.',
+        successMessage: 'You have withdrawn from the event.',
+      );
     }
 
     Future<void> register() async {
@@ -719,6 +739,19 @@ class _RegistrationSection extends HookWidget {
                   child: isSaving.value
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text('Register'),
+                ),
+              ),
+            ] else if (myRegistration != null) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: OutlinedButton.icon(
+                  onPressed: isSaving.value ? null : withdraw,
+                  icon: const Icon(Icons.person_remove_outlined, size: 20),
+                  label: isSaving.value
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Withdraw'),
                 ),
               ),
             ],
