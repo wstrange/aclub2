@@ -95,7 +95,7 @@ final routerConfig = KaiselRouterConfig<AppRoute>(
   },
 );
 
-List<AppRoute> authGuard(List<AppRoute> current, List<AppRoute> proposed) {
+Future<List<AppRoute>> authGuard(List<AppRoute> current, List<AppRoute> proposed) async {
   // Check if the user is authenticated with Firebase
   final bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
 
@@ -110,6 +110,13 @@ List<AppRoute> authGuard(List<AppRoute> current, List<AppRoute> proposed) {
   // If they are logged in and heading to login, redirect to home
   if (isLoggedIn && headingToLogin) {
     return [const HomeRoute()];
+  }
+
+  // Ensure the ID token round-trip completes before the first Firestore
+  // stream is subscribed, so rules don't evaluate that first request as
+  // unauthenticated (transient PERMISSION_DENIED until the SDK retries).
+  if (isLoggedIn) {
+    await FirebaseAuth.instance.currentUser!.getIdToken();
   }
 
   _log.info('Auth guard: isLoggedIn: $isLoggedIn, headingToLogin: $headingToLogin, proposed: $proposed');

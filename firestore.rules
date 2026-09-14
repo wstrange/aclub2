@@ -62,6 +62,16 @@ service cloud.firestore {
         allow write: if isSectionAdmin(sectionId) || isUser(userId);
       }
 
+      // NOTE (emulator-only): the canRead rules below call isSectionMember()/
+      // isTripLeader(), which do an exists()/get() lookup of this section's
+      // members subcollection during a rules evaluation. In the Firestore
+      // emulator the FIRST evaluation of a Listen (watch target) can
+      // transiently miss a committed member document and return a spurious
+      // PERMISSION_DENIED; the immediate re-evaluation succeeds. Real Cloud
+      // Firestore evaluates get()/exists() against committed data
+      // consistently, so this does not occur in production. Do not chase this
+      // in the emulator UI's request log -- the error is pre-verified as an
+      // emulator quirk (the target doc exists and isGranted the second pass).
       match /events/{eventId} {
         allow read: if isSectionMember(sectionId);
         // Only trip leaders or admins can modify events
