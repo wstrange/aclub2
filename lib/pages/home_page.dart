@@ -2,9 +2,7 @@ import 'package:aclub2/state/user_state_cubit.dart';
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:kaisel/kaisel.dart';
-import 'package:shared_models/shared_models.dart';
 
 import '../models/user_state.dart';
 import '../repo.dart';
@@ -107,11 +105,10 @@ class HomePage extends StatelessWidget {
             ),
             BlocSignalBuilder<UserStateCubit, UserState?>(
               builder: (context, state) {
-                return _TemplatesDrawerTile(
-                  sectionId: state?.currentSection.id,
-                  uid: FirebaseAuth.instance.currentUser?.uid,
-                  isAdmin: state?.userProfile.isAdmin ?? false,
-                );
+                if (state == null) return const SizedBox.shrink();
+                final canManage = state.userProfile.isAdmin ||
+                    state.canManageSection(state.currentSection.id);
+                return _TemplatesDrawerTile(canManage: canManage);
               },
             ),
             ListTile(
@@ -159,34 +156,15 @@ class HomePage extends StatelessWidget {
 
 /// Drawer entry for the Templates feature.
 ///
-/// Hidden unless the current user is a section manager or trip leader of the
-/// currently selected section (or a global admin).
-class _TemplatesDrawerTile extends HookWidget {
-  const _TemplatesDrawerTile({required this.sectionId, required this.uid, required this.isAdmin});
+/// Shown when the current user is a global admin, or a manager/trip leader of
+/// the currently selected section (read from the loaded [UserState]).
+class _TemplatesDrawerTile extends StatelessWidget {
+  const _TemplatesDrawerTile({required this.canManage});
 
-  final String? sectionId;
-  final String? uid;
-  final bool isAdmin;
+  final bool canManage;
 
   @override
   Widget build(BuildContext context) {
-    final sectionId = this.sectionId;
-    final uid = this.uid;
-    if (sectionId == null || uid == null) {
-      return const SizedBox.shrink();
-    }
-
-    final memberStream = useMemoized(
-      () => repository.streamMember(sectionId, uid),
-      [sectionId, uid],
-    );
-    final memberSnapshot = useStream(memberStream);
-
-    final role = memberSnapshot.data?.sectionRole;
-    final canManage = isAdmin ||
-        role == SectionRole.sectionManager ||
-        role == SectionRole.tripLeader;
-
     if (!canManage) {
       return const SizedBox.shrink();
     }

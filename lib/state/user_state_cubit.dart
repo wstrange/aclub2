@@ -60,7 +60,25 @@ class UserStateCubit extends CubitSignal<UserState?> {
     }
 
     _log.info('UserState loaded: user=${authUser.email}, currentSection=${currentSection.name}');
-    emit(UserState(userProfile: profile, user: authUser, userSections: userSections, currentSection: currentSection));
+    emit(UserState(
+      userProfile: profile,
+      user: authUser,
+      userSections: userSections,
+      currentSection: currentSection,
+      memberships: memberships,
+    ));
+  }
+
+  /// Returns the user's [SectionRole] for [sectionId], or null if they are not
+  /// a member of that section. Based on the memberships fetched at load time;
+  /// call [refresh] after membership or role changes.
+  SectionRole? roleFor(String sectionId) {
+    return state.value?.roleFor(sectionId);
+  }
+
+  /// True if the user is a section manager or trip leader of [sectionId].
+  bool canManageSection(String sectionId) {
+    return state.value?.canManageSection(sectionId) ?? false;
   }
 
   /// Sets the currently active section for the session.

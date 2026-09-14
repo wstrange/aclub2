@@ -1,3 +1,4 @@
+import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -8,6 +9,7 @@ import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
 import '../routes.dart';
+import '../state/user_state_cubit.dart';
 import '../widgets/user_display.dart';
 
 final _log = Logger('EventDetailPage');
@@ -189,14 +191,7 @@ class _LeadershipSection extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final memberStream = useMemoized(
-      () => repository.streamMember(sectionId, currentUid ?? ''),
-      [sectionId, currentUid],
-    );
-    final memberSnapshot = useStream(memberStream);
-    final role = memberSnapshot.data?.sectionRole;
-    final canManage = currentUid != null &&
-        (role == SectionRole.sectionManager || role == SectionRole.tripLeader);
+    final canManage = currentUid != null && context.read<UserStateCubit>().canManageSection(sectionId);
 
     final leaderIds = event.tripLeaderIds;
 
@@ -428,15 +423,10 @@ class _RegistrationSection extends HookWidget {
     final isSaving = useState(false);
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
 
-    final memberStream = useMemoized(
-      () => repository.streamMember(event.sectionId, currentUid ?? ''),
-      [event.sectionId, currentUid],
-    );
-    final memberSnapshot = useStream(memberStream);
-
     final myRegistration = currentUid == null ? null : registrations.where((r) => r.userId == currentUid).firstOrNull;
 
-    final isSectionManager = memberSnapshot.data?.sectionRole == SectionRole.sectionManager;
+    final isSectionManager =
+        context.read<UserStateCubit>().roleFor(event.sectionId) == SectionRole.sectionManager;
     final isTripLeader = event.tripLeaderIds.contains(currentUid);
     final canManage = currentUid != null && (isSectionManager || isTripLeader);
 

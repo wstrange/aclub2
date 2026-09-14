@@ -12,10 +12,26 @@ abstract class UserState with _$UserState {
     required User user,
     required List<Section> userSections,
     required Section currentSection,
+    required List<SectionMember> memberships,
   }) = _UserState;
 
   @override
   String toString() {
     return "$userProfile ${userProfile.email} ${user.email} $userSections $currentSection";
+  }
+
+  /// The user's [SectionRole] within [sectionId], or null if they are not a
+  /// member of that section.
+  SectionRole? roleFor(String sectionId) {
+    for (final m in memberships) {
+      if (m.sectionId == sectionId) return m.sectionRole;
+    }
+    return null;
+  }
+
+  /// True if the user is a section manager or trip leader of [sectionId].
+  bool canManageSection(String sectionId) {
+    final role = roleFor(sectionId);
+    return role == SectionRole.sectionManager || role == SectionRole.tripLeader;
   }
 }
