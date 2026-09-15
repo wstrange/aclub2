@@ -1,5 +1,5 @@
-name: aclub_admin
-description: Admin CLI scripts and Cloud Functions for aclub
+name: aclub_functions
+description: Cloud Functions for aclub, running in the Firebase Emulator.
 version: 0.0.1
 publish_to: none
 
@@ -7,14 +7,9 @@ environment:
   sdk: '>=3.9.0 <4.0.0'
 
 dependencies:
-  functions_framework: ^0.4.3+1
-  shelf: ^1.4.0
-  dart_firebase_admin: ^0.4.0
-  args: ^2.5.0
-  shared_models:
-    path: ../packages/shared_models
+  firebase_functions: ^0.6.0
+  firebase_admin_sdk: ^0.5.0
 
 dev_dependencies:
   build_runner: ^2.4.0
   lints: ^6.0.0
-  test: ^1.25.0

@@ -25,7 +25,7 @@
             "name": "Dart: Seed Admin",
             "type": "dart",
             "request": "launch",
-            "program": "functions/bin/admin.dart",
+            "program": "packages/aclub_admin/bin/admin.dart",
             "args": [
                 "seed",
                 "--use-emulator",

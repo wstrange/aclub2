@@ -19,7 +19,9 @@ mixin _$NotificationPreferences {
 /// Whether the member receives push notifications.
  bool get pushEnabled;/// Whether the member receives email notifications.
  bool get emailEnabled;/// Whether the member receives in-app notifications.
- bool get inAppEnabled;/// How often notifications are batched / delivered.
+ bool get inAppEnabled;/// Whether the member wants to be notified when new events are added to a
+/// calendar (e.g. for sections they belong to).
+ bool get notifyForNewEvents;/// How often notifications are batched / delivered.
  NotificationFrequency get frequency;
 /// Create a copy of NotificationPreferences
 /// with the given fields replaced by the non-null parameter values.
@@ -34,20 +36,20 @@ $NotificationPreferencesCopyWith<NotificationPreferences> get copyWith => _$Noti
 @override
 bool operator ==(Object other) {
   final _this = this as NotificationPreferences;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationPreferences&&(identical(other.pushEnabled, _this.pushEnabled) || other.pushEnabled == _this.pushEnabled)&&(identical(other.emailEnabled, _this.emailEnabled) || other.emailEnabled == _this.emailEnabled)&&(identical(other.inAppEnabled, _this.inAppEnabled) || other.inAppEnabled == _this.inAppEnabled)&&(identical(other.frequency, _this.frequency) || other.frequency == _this.frequency));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NotificationPreferences&&(identical(other.pushEnabled, _this.pushEnabled) || other.pushEnabled == _this.pushEnabled)&&(identical(other.emailEnabled, _this.emailEnabled) || other.emailEnabled == _this.emailEnabled)&&(identical(other.inAppEnabled, _this.inAppEnabled) || other.inAppEnabled == _this.inAppEnabled)&&(identical(other.notifyForNewEvents, _this.notifyForNewEvents) || other.notifyForNewEvents == _this.notifyForNewEvents)&&(identical(other.frequency, _this.frequency) || other.frequency == _this.frequency));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as NotificationPreferences;
-  return Object.hash(runtimeType,_this.pushEnabled,_this.emailEnabled,_this.inAppEnabled,_this.frequency);
+  return Object.hash(runtimeType,_this.pushEnabled,_this.emailEnabled,_this.inAppEnabled,_this.notifyForNewEvents,_this.frequency);
 }
 
 @override
 String toString() {
   final _this = this as NotificationPreferences;
-  return 'NotificationPreferences(pushEnabled: ${_this.pushEnabled}, emailEnabled: ${_this.emailEnabled}, inAppEnabled: ${_this.inAppEnabled}, frequency: ${_this.frequency})';
+  return 'NotificationPreferences(pushEnabled: ${_this.pushEnabled}, emailEnabled: ${_this.emailEnabled}, inAppEnabled: ${_this.inAppEnabled}, notifyForNewEvents: ${_this.notifyForNewEvents}, frequency: ${_this.frequency})';
 }
 
 
@@ -58,7 +60,7 @@ abstract mixin class $NotificationPreferencesCopyWith<$Res>  {
   factory $NotificationPreferencesCopyWith(NotificationPreferences value, $Res Function(NotificationPreferences) _then) = _$NotificationPreferencesCopyWithImpl;
 @useResult
 $Res call({
- bool pushEnabled, bool emailEnabled, bool inAppEnabled, NotificationFrequency frequency
+ bool pushEnabled, bool emailEnabled, bool inAppEnabled, bool notifyForNewEvents, NotificationFrequency frequency
 });
 
 
@@ -75,11 +77,12 @@ class _$NotificationPreferencesCopyWithImpl<$Res>
 
 /// Create a copy of NotificationPreferences
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? pushEnabled = null,Object? emailEnabled = null,Object? inAppEnabled = null,Object? frequency = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? pushEnabled = null,Object? emailEnabled = null,Object? inAppEnabled = null,Object? notifyForNewEvents = null,Object? frequency = null,}) {
   return _then(NotificationPreferences(
 pushEnabled: null == pushEnabled ? _self.pushEnabled : pushEnabled // ignore: cast_nullable_to_non_nullable
 as bool,emailEnabled: null == emailEnabled ? _self.emailEnabled : emailEnabled // ignore: cast_nullable_to_non_nullable
 as bool,inAppEnabled: null == inAppEnabled ? _self.inAppEnabled : inAppEnabled // ignore: cast_nullable_to_non_nullable
+as bool,notifyForNewEvents: null == notifyForNewEvents ? _self.notifyForNewEvents : notifyForNewEvents // ignore: cast_nullable_to_non_nullable
 as bool,frequency: null == frequency ? _self.frequency : frequency // ignore: cast_nullable_to_non_nullable
 as NotificationFrequency,
   ));
@@ -166,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool pushEnabled,  bool emailEnabled,  bool inAppEnabled,  NotificationFrequency frequency)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool pushEnabled,  bool emailEnabled,  bool inAppEnabled,  bool notifyForNewEvents,  NotificationFrequency frequency)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _NotificationPreferences() when $default != null:
-return $default(_that.pushEnabled,_that.emailEnabled,_that.inAppEnabled,_that.frequency);case _:
+return $default(_that.pushEnabled,_that.emailEnabled,_that.inAppEnabled,_that.notifyForNewEvents,_that.frequency);case _:
   return orElse();
 
 }
@@ -187,10 +190,10 @@ return $default(_that.pushEnabled,_that.emailEnabled,_that.inAppEnabled,_that.fr
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool pushEnabled,  bool emailEnabled,  bool inAppEnabled,  NotificationFrequency frequency)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool pushEnabled,  bool emailEnabled,  bool inAppEnabled,  bool notifyForNewEvents,  NotificationFrequency frequency)  $default,) {final _that = this;
 switch (_that) {
 case _NotificationPreferences():
-return $default(_that.pushEnabled,_that.emailEnabled,_that.inAppEnabled,_that.frequency);case _:
+return $default(_that.pushEnabled,_that.emailEnabled,_that.inAppEnabled,_that.notifyForNewEvents,_that.frequency);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -207,10 +210,10 @@ return $default(_that.pushEnabled,_that.emailEnabled,_that.inAppEnabled,_that.fr
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool pushEnabled,  bool emailEnabled,  bool inAppEnabled,  NotificationFrequency frequency)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool pushEnabled,  bool emailEnabled,  bool inAppEnabled,  bool notifyForNewEvents,  NotificationFrequency frequency)?  $default,) {final _that = this;
 switch (_that) {
 case _NotificationPreferences() when $default != null:
-return $default(_that.pushEnabled,_that.emailEnabled,_that.inAppEnabled,_that.frequency);case _:
+return $default(_that.pushEnabled,_that.emailEnabled,_that.inAppEnabled,_that.notifyForNewEvents,_that.frequency);case _:
   return null;
 
 }
@@ -222,7 +225,7 @@ return $default(_that.pushEnabled,_that.emailEnabled,_that.inAppEnabled,_that.fr
 @JsonSerializable()
 
 class _NotificationPreferences implements NotificationPreferences {
-  const _NotificationPreferences({this.pushEnabled = true, this.emailEnabled = true, this.inAppEnabled = true, this.frequency = NotificationFrequency.immediate});
+  const _NotificationPreferences({this.pushEnabled = true, this.emailEnabled = true, this.inAppEnabled = true, this.notifyForNewEvents = false, this.frequency = NotificationFrequency.immediate});
   factory _NotificationPreferences.fromJson(Map<String, dynamic> json) => _$NotificationPreferencesFromJson(json);
 
 /// Whether the member receives push notifications.
@@ -231,6 +234,9 @@ class _NotificationPreferences implements NotificationPreferences {
 @override@JsonKey() final  bool emailEnabled;
 /// Whether the member receives in-app notifications.
 @override@JsonKey() final  bool inAppEnabled;
+/// Whether the member wants to be notified when new events are added to a
+/// calendar (e.g. for sections they belong to).
+@override@JsonKey() final  bool notifyForNewEvents;
 /// How often notifications are batched / delivered.
 @override@JsonKey() final  NotificationFrequency frequency;
 
@@ -247,18 +253,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _NotificationPreferences&&(identical(other.pushEnabled, pushEnabled) || other.pushEnabled == pushEnabled)&&(identical(other.emailEnabled, emailEnabled) || other.emailEnabled == emailEnabled)&&(identical(other.inAppEnabled, inAppEnabled) || other.inAppEnabled == inAppEnabled)&&(identical(other.frequency, frequency) || other.frequency == frequency));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _NotificationPreferences&&(identical(other.pushEnabled, pushEnabled) || other.pushEnabled == pushEnabled)&&(identical(other.emailEnabled, emailEnabled) || other.emailEnabled == emailEnabled)&&(identical(other.inAppEnabled, inAppEnabled) || other.inAppEnabled == inAppEnabled)&&(identical(other.notifyForNewEvents, notifyForNewEvents) || other.notifyForNewEvents == notifyForNewEvents)&&(identical(other.frequency, frequency) || other.frequency == frequency));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,pushEnabled,emailEnabled,inAppEnabled,frequency);
+    return Object.hash(runtimeType,pushEnabled,emailEnabled,inAppEnabled,notifyForNewEvents,frequency);
 }
 
 @override
 String toString() {
-    return 'NotificationPreferences(pushEnabled: $pushEnabled, emailEnabled: $emailEnabled, inAppEnabled: $inAppEnabled, frequency: $frequency)';
+    return 'NotificationPreferences(pushEnabled: $pushEnabled, emailEnabled: $emailEnabled, inAppEnabled: $inAppEnabled, notifyForNewEvents: $notifyForNewEvents, frequency: $frequency)';
 }
 
 
@@ -269,7 +275,7 @@ abstract mixin class _$NotificationPreferencesCopyWith<$Res> implements $Notific
   factory _$NotificationPreferencesCopyWith(_NotificationPreferences value, $Res Function(_NotificationPreferences) _then) = __$NotificationPreferencesCopyWithImpl;
 @override @useResult
 $Res call({
- bool pushEnabled, bool emailEnabled, bool inAppEnabled, NotificationFrequency frequency
+ bool pushEnabled, bool emailEnabled, bool inAppEnabled, bool notifyForNewEvents, NotificationFrequency frequency
 });
 
 
@@ -286,11 +292,12 @@ class __$NotificationPreferencesCopyWithImpl<$Res>
 
 /// Create a copy of NotificationPreferences
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? pushEnabled = null,Object? emailEnabled = null,Object? inAppEnabled = null,Object? frequency = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? pushEnabled = null,Object? emailEnabled = null,Object? inAppEnabled = null,Object? notifyForNewEvents = null,Object? frequency = null,}) {
   return _then(_NotificationPreferences(
 pushEnabled: null == pushEnabled ? _self.pushEnabled : pushEnabled // ignore: cast_nullable_to_non_nullable
 as bool,emailEnabled: null == emailEnabled ? _self.emailEnabled : emailEnabled // ignore: cast_nullable_to_non_nullable
 as bool,inAppEnabled: null == inAppEnabled ? _self.inAppEnabled : inAppEnabled // ignore: cast_nullable_to_non_nullable
+as bool,notifyForNewEvents: null == notifyForNewEvents ? _self.notifyForNewEvents : notifyForNewEvents // ignore: cast_nullable_to_non_nullable
 as bool,frequency: null == frequency ? _self.frequency : frequency // ignore: cast_nullable_to_non_nullable
 as NotificationFrequency,
   ));

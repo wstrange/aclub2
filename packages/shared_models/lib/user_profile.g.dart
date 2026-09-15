@@ -25,6 +25,9 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
   isAdmin: json['isAdmin'] as bool? ?? false,
   complatedProfile: json['complatedProfile'] as bool? ?? false,
   signedWaiver: json['signedWaiver'] as bool? ?? false,
+  fcmTokens:
+      (json['fcmTokens'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
   notificationPreferences: _notificationPreferencesFromJson(
     json['notificationPreferences'],
   ),
@@ -48,6 +51,7 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'isAdmin': instance.isAdmin,
       'complatedProfile': instance.complatedProfile,
       'signedWaiver': instance.signedWaiver,
+      'fcmTokens': instance.fcmTokens,
       'notificationPreferences': _notificationPreferencesToJson(
         instance.notificationPreferences,
       ),

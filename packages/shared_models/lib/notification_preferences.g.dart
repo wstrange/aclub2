@@ -12,6 +12,7 @@ _NotificationPreferences _$NotificationPreferencesFromJson(
   pushEnabled: json['pushEnabled'] as bool? ?? true,
   emailEnabled: json['emailEnabled'] as bool? ?? true,
   inAppEnabled: json['inAppEnabled'] as bool? ?? true,
+  notifyForNewEvents: json['notifyForNewEvents'] as bool? ?? false,
   frequency:
       $enumDecodeNullable(_$NotificationFrequencyEnumMap, json['frequency']) ??
       NotificationFrequency.immediate,
@@ -23,6 +24,7 @@ Map<String, dynamic> _$NotificationPreferencesToJson(
   'pushEnabled': instance.pushEnabled,
   'emailEnabled': instance.emailEnabled,
   'inAppEnabled': instance.inAppEnabled,
+  'notifyForNewEvents': instance.notifyForNewEvents,
   'frequency': _$NotificationFrequencyEnumMap[instance.frequency]!,
 };
 

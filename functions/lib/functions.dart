@@ -1,61 +1,143 @@
-import 'dart:convert';
-import 'package:functions_framework/functions_framework.dart';
-import 'package:shelf/shelf.dart';
-import 'package:aclub_admin/admin_repo.dart';
+import 'dart:io';
 
-/// Health check Cloud Function.
-@CloudFunction()
-Response helloWorld(Request request) {
+import 'package:firebase_admin_sdk/firestore.dart' as admin_firestore;
+import 'package:firebase_admin_sdk/messaging.dart' as admin_messaging;
+import 'package:firebase_functions/firebase_functions.dart';
+
+/// Registers all Cloud Functions (HTTP endpoints and background triggers).
+///
+/// Called from `bin/server.dart` at startup.
+void registerFunctions(Firebase firebase) {
+  firebase.https.onRequest(name: 'helloWorld', helloWorld);
+  firebase.firestore.onDocumentCreated(
+    document: 'sections/{sectionId}/events/{eventId}',
+    (event) => onNewEventCreated(event, firebase),
+  );
+}
+
+/// Health check Cloud Function: `/helloWorld`
+Future<Response> helloWorld(Request request) async {
   return Response.ok('Hello from aclub Dart Functions!');
 }
 
-/// Admin Seeding Cloud Function: `/adminSeed?reset=true`
-@CloudFunction()
-Future<Response> adminSeed(Request request) async {
-  final repo = AdminRepository();
-  try {
-    final reset = request.url.queryParameters['reset'] == 'true';
-    if (reset) {
-      await repo.resetAll();
-    }
-    final result = await repo.seedAll();
-    return Response.ok(
-      jsonEncode({
-        'status': 'success',
-        'message': 'Database seeded successfully',
-        'data': result,
-      }),
-      headers: {'Content-Type': 'application/json'},
-    );
-  } catch (e) {
-    return Response.internalServerError(
-      body: jsonEncode({'status': 'error', 'message': e.toString()}),
-      headers: {'Content-Type': 'application/json'},
-    );
-  } finally {
-    await repo.close();
-  }
-}
+/// Firestore trigger that fires when a new event document is added to
+/// `/sections/{sectionId}/events/{eventId}`.
+///
+/// Notifies interested members of the section (see
+/// `NotificationPreferences.notifyForNewEvents`):
+///   * pushes an FCM notification to each opted-in device token, and
+///   * writes an in-app notification to `/notifications/{notificationId}`.
+///
+/// The Firebase emulator does not provide an FCM emulator, so push sends are
+/// skipped there (logged instead). In-app notifications still work.
+Future<void> onNewEventCreated(
+  FirestoreEvent<EmulatorDocumentSnapshot?> event,
+  Firebase firebase,
+) async {
+  final eventData = event.data?.data() ?? <String, dynamic>{};
+  final sectionId = event.params['sectionId'] ?? '';
+  final eventId = event.data?.id ?? '';
+  final title = eventData['title']?.toString() ?? 'Untitled event';
 
-/// Admin Stats Cloud Function: `/adminStats`
-@CloudFunction()
-Future<Response> adminStats(Request request) async {
-  final repo = AdminRepository();
+  logger.info(
+    'New event created: eventId=$eventId, sectionId=$sectionId, title=$title',
+  );
+
+  final message = 'A new event has been added to the calendar.';
+  final data = <String, String>{
+    'type': 'new_event',
+    'sectionId': sectionId,
+    'eventId': eventId,
+    'link': '/events/$eventId',
+  };
+
+  // Admin Firestore talks to the local Firestore emulator via
+  // FIRESTORE_EMULATOR_HOST (set by the Functions emulator), so reads/writes
+  // work out of the box here.
+  final firestore = admin_firestore.Firestore.internal(
+    firebase.adminApp,
+  ).getDatabase();
+
   try {
-    final stats = await repo.getStats();
-    return Response.ok(
-      jsonEncode({
-        'status': 'success',
-        'stats': stats,
-      }),
-      headers: {'Content-Type': 'application/json'},
+    final pushTokens = <String>[];
+    final inAppRecipients = <String>[];
+
+    // ── Find interested section members ──────────────────────────────────
+    final membersQuery = await firestore
+        .collection('sections/$sectionId/members')
+        .get();
+    for (final member in membersQuery.docs) {
+      final profile = await firestore.doc('users/${member.id}').get();
+      if (!profile.exists) continue;
+
+      final profileData = profile.data() ?? <String, dynamic>{};
+      final prefs =
+          (profileData['notificationPreferences'] as Map?) ?? const {};
+      final notifyForNewEvents = prefs['notifyForNewEvents'] == true;
+      if (!notifyForNewEvents) continue;
+
+      if (prefs['inAppEnabled'] != false) {
+        inAppRecipients.add(member.id);
+      }
+      if (prefs['pushEnabled'] != false) {
+        final tokens =
+            (profileData['fcmTokens'] as List?)?.cast<String>() ??
+            const <String>[];
+        if (tokens.isNotEmpty) pushTokens.addAll(tokens);
+      }
+    }
+
+    // ── Push channel ─────────────────────────────────────────────────────
+    if (pushTokens.isNotEmpty) {
+      if (Platform.environment['FUNCTIONS_EMULATOR'] == 'true') {
+        logger.info(
+          '[emulator] FCM push skipped (no FCM emulator). '
+          'Would send to ${pushTokens.length} device token(s).',
+        );
+      } else {
+        final messaging = admin_messaging.Messaging.internal(firebase.adminApp);
+        final response = await messaging.sendEachForMulticast(
+          admin_messaging.MulticastMessage(
+            tokens: pushTokens,
+            notification: admin_messaging.Notification(
+              title: title,
+              body: message,
+            ),
+            data: data,
+          ),
+        );
+        logger.info(
+          'FCM push sent: success=${response.successCount}, '
+          'failure=${response.failureCount}.',
+        );
+      }
+    }
+
+    // ── In-app channel ───────────────────────────────────────────────────
+    for (final userId in inAppRecipients) {
+      final ref = firestore.collection('notifications').doc();
+      await ref.set({
+        'id': ref.id,
+        'recipientId': userId,
+        'title': title,
+        'message': message,
+        'link': data['link'],
+        'channels': ['inApp'],
+        'isRead': false,
+        'relatedEventId': eventId,
+        'relatedSectionId': sectionId,
+        'createdAt': DateTime.now().toUtc(),
+      });
+    }
+    if (inAppRecipients.isNotEmpty) {
+      logger.info(
+        'In-app notification written for ${inAppRecipients.length} member(s).',
+      );
+    }
+  } catch (error, stackTrace) {
+    logger.error(
+      'Failed to process notifications for event $eventId: '
+      '$error\n$stackTrace',
     );
-  } catch (e) {
-    return Response.internalServerError(
-      body: jsonEncode({'status': 'error', 'message': e.toString()}),
-      headers: {'Content-Type': 'application/json'},
-    );
-  } finally {
-    await repo.close();
   }
 }

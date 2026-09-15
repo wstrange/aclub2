@@ -19,6 +19,10 @@ abstract class NotificationPreferences with _$NotificationPreferences {
     /// Whether the member receives in-app notifications.
     @Default(true) bool inAppEnabled,
 
+    /// Whether the member wants to be notified when new events are added to a
+    /// calendar (e.g. for sections they belong to).
+    @Default(false) bool notifyForNewEvents,
+
     /// How often notifications are batched / delivered.
     @Default(NotificationFrequency.immediate) NotificationFrequency frequency,
   }) = _NotificationPreferences;

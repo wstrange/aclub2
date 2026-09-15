@@ -59,6 +59,14 @@ abstract class UserProfile with _$UserProfile {
 
     @Default(false) bool signedWaiver,
 
+    /// FCM registration tokens for this user's devices.
+    ///
+    /// Populated by the mobile app (via `firebase_messaging`) when the user
+    /// grants notification permission. Used by server-side functions to send
+    /// push notifications for events the user is registered for or has
+    /// expressed interest in.
+    @Default([]) List<String> fcmTokens,
+
     // ── Preferences ───────────────────────────────────────────────────────
     @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)
     required NotificationPreferences notificationPreferences,

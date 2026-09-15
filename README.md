@@ -78,6 +78,18 @@ This is a multi-tenant application to manage users who belong to one more alpine
 * Guests: Limited access to view public Events and Sections. Guests cannot register for Events or receive Notifications. However, a member can add a guest to an event they are attending. The schema should support this use case.
 * Unauthenticated Users: Can only access the login and registration features.
 
+
+## Notifications
+
+THe application supports sending notifications:
+* Event based notifications are sent for events the user is registered for, or for events they have expressed interest in (waitlisted).  THe user can also register to be notified of new events added to the calandar.
+* In app notifications can be saved in firestore.
+* THe user can view and manage in app notification. They can view and delete notifications.
+* Notifications types are in-app, push notifications and email.  Users can opt into or out of each notification type.
+* Notification triggers should be created on the backend using a Dart cloud function that triggers on Firestore writes
+
+
+
 ## Implementation Details
 
 Uses the following Flutter packages

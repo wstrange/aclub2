@@ -1,0 +1,17 @@
+name: aclub_admin
+description: Admin CLI scripts and data seeding for aclub.
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: '>=3.9.0 <4.0.0'
+
+dependencies:
+  dart_firebase_admin: ^0.4.0
+  args: ^2.5.0
+  shared_models:
+    path: ../shared_models
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0
