@@ -112,18 +112,22 @@ Future<void> onNewEventCreated(FirestoreEvent<EmulatorDocumentSnapshot?> event, 
     // ── In-app channel ───────────────────────────────────────────────────
     for (final userId in inAppRecipients) {
       final ref = firestore.collection('notifications').doc();
-      await ref.set({
-        'id': ref.id,
-        'recipientId': userId,
-        'title': title,
-        'message': message,
-        'link': data['link'],
-        'channels': ['inApp'],
-        'isRead': false,
-        'relatedEventId': eventId,
-        'relatedSectionId': sectionId,
-        'createdAt': DateTime.now().toUtc(),
-      });
+      final notification = NotificationModel(
+        id: ref.id,
+        recipientId: userId,
+        title: title,
+        message: message,
+        link: data['link'],
+        channels: const ['inApp'],
+        isRead: false,
+        relatedEventId: eventId,
+        relatedSectionId: sectionId,
+        createdAt: DateTime.now().toUtc(),
+      );
+      // NotificationModel.toJson() passes DateTime values through (see
+      // TimestampConverter.toJson), so the Firestore serializer stores
+      // createdAt as a native Timestamp.
+      await ref.set(notification.toJson());
     }
     if (inAppRecipients.isNotEmpty) {
       logger.info('In-app notification written for ${inAppRecipients.length} member(s).');
