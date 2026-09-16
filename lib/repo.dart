@@ -87,6 +87,37 @@ class AlpineRepository {
     await _firestore.collection('sections').doc(sectionId).collection('events').doc(eventId).delete();
   }
 
+  /// Creates a new [Event] that is a copy of [source] (see
+  /// [Event.copyForDuplicate] for how dates, title, and trip leaders are
+  /// handled). When [copyParticipantsAndLeaders] is true, the source's
+  /// registrations are also copied to the new event.
+  ///
+  /// Returns the created event (with its Firestore document ID).
+  Future<Event> duplicateEvent(
+    String sectionId, {
+    required Event source,
+    required bool copyParticipantsAndLeaders,
+    required String creatorId,
+  }) async {
+    final copy = source.copyForDuplicate(
+      now: DateTime.now(),
+      copyParticipantsAndLeaders: copyParticipantsAndLeaders,
+      creatorId: creatorId,
+    );
+
+    final newId = await createEvent(sectionId, copy);
+    final newEvent = copy.copyWith(id: newId);
+
+    if (copyParticipantsAndLeaders) {
+      final registrations = await getEventRegistrations(sectionId, source.id);
+      for (final registration in registrations) {
+        await registerForEvent(sectionId, newId, registration);
+      }
+    }
+
+    return newEvent;
+  }
+
   Stream<List<Event>> streamLeaderDrafts(String userUid) {
     return _firestore
         .collection('events')

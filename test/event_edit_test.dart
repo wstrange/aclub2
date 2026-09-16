@@ -78,5 +78,112 @@ void main() {
       expect(newEvent.status, equals(EventStatus.published));
       expect(newEvent.maxParticipants, equals(12));
     });
+
+    group('copyForDuplicate', () {
+      Event buildEvent({
+        String id = 'event-101',
+        String title = 'Original Hike',
+        DateTime? start,
+        DateTime? end,
+        List<String> tripLeaders = const ['leader-1'],
+        CarpoolOption? carpool,
+      }) {
+        return Event(
+          id: id,
+          sectionId: 'calgary',
+          title: title,
+          type: EventType.hike,
+          difficulty: Difficulty.moderate,
+          status: EventStatus.published,
+          startDate: start ?? DateTime(2026, 9, 10, 8, 0),
+          endDate: end ?? DateTime(2026, 9, 10, 16, 0),
+          maxParticipants: 10,
+          creatorId: 'user-1',
+          tripLeaderIds: tripLeaders,
+          carpoolOption: carpool,
+          createdAt: DateTime(2026, 9, 1),
+          updatedAt: DateTime(2026, 9, 1),
+        );
+      }
+
+      test('advances a past event to the next available current date, preserving times and duration', () {
+        final event = buildEvent(start: DateTime(2026, 9, 10, 8, 0), end: DateTime(2026, 9, 10, 16, 0));
+        final now = DateTime(2026, 9, 15, 10, 30);
+
+        final copy = event.copyForDuplicate(
+          now: now,
+          copyParticipantsAndLeaders: false,
+          creatorId: 'user-2',
+        );
+
+        expect(copy.id, isEmpty);
+        expect(copy.title, equals('COPY: Original Hike'));
+        expect(copy.creatorId, equals('user-2'));
+        // 8:00 today already passed by now (10:30) -> advance to tomorrow 8:00-16:00.
+        expect(copy.startDate, equals(DateTime(2026, 9, 16, 8, 0)));
+        expect(copy.endDate, equals(DateTime(2026, 9, 16, 16, 0)));
+      });
+
+      test('keeps today when the original start time is still in the future', () {
+        final event = buildEvent(start: DateTime(2026, 9, 10, 14, 0), end: DateTime(2026, 9, 10, 20, 0));
+        final now = DateTime(2026, 9, 15, 10, 30);
+
+        final copy = event.copyForDuplicate(now: now, copyParticipantsAndLeaders: false, creatorId: 'user-2');
+
+        expect(copy.startDate, equals(DateTime(2026, 9, 15, 14, 0)));
+        expect(copy.endDate, equals(DateTime(2026, 9, 15, 20, 0)));
+      });
+
+      test('leaves a future event on its original dates', () {
+        final event = buildEvent(start: DateTime(2026, 9, 25, 9, 0), end: DateTime(2026, 9, 25, 17, 0));
+        final now = DateTime(2026, 9, 15, 10, 30);
+
+        final copy = event.copyForDuplicate(now: now, copyParticipantsAndLeaders: false, creatorId: 'user-2');
+
+        expect(copy.startDate, equals(DateTime(2026, 9, 25, 9, 0)));
+        expect(copy.endDate, equals(DateTime(2026, 9, 25, 17, 0)));
+      });
+
+      test('copies trip leaders only when requested', () {
+        final event = buildEvent(tripLeaders: ['leader-1', 'leader-2']);
+        final now = DateTime(2026, 9, 15, 10, 30);
+
+        final withLeaders = event.copyForDuplicate(now: now, copyParticipantsAndLeaders: true, creatorId: 'user-2');
+        expect(withLeaders.tripLeaderIds, equals(['leader-1', 'leader-2']));
+
+        final withoutLeaders =
+            event.copyForDuplicate(now: now, copyParticipantsAndLeaders: false, creatorId: 'user-2');
+        expect(withoutLeaders.tripLeaderIds, equals(['user-2']));
+      });
+
+      test('shifts the carpool meet time by the same advance, unchanged for future events', () {
+        final carpool = CarpoolOption(meetTime: DateTime(2026, 9, 10, 6, 30), meetPlace: 'Park & Ride');
+        final pastEvent = buildEvent(start: DateTime(2026, 9, 10, 8, 0), end: DateTime(2026, 9, 10, 16, 0), carpool: carpool);
+        final now = DateTime(2026, 9, 15, 10, 30);
+
+        final copy = pastEvent.copyForDuplicate(now: now, copyParticipantsAndLeaders: false, creatorId: 'user-2');
+        expect(copy.carpoolOption?.meetTime, equals(DateTime(2026, 9, 16, 6, 30)));
+
+        final futureEvent = buildEvent(
+          start: DateTime(2026, 9, 25, 9, 0),
+          end: DateTime(2026, 9, 25, 17, 0),
+          carpool: CarpoolOption(meetTime: DateTime(2026, 9, 25, 6, 30), meetPlace: 'Park & Ride'),
+        );
+        final futureCopy = futureEvent.copyForDuplicate(now: now, copyParticipantsAndLeaders: false, creatorId: 'user-2');
+        expect(futureCopy.carpoolOption?.meetTime, equals(DateTime(2026, 9, 25, 6, 30)));
+      });
+
+      test('does not mutate the source event', () {
+        final event = buildEvent(start: DateTime(2026, 9, 10, 8, 0), end: DateTime(2026, 9, 10, 16, 0));
+        final now = DateTime(2026, 9, 15, 10, 30);
+
+        event.copyForDuplicate(now: now, copyParticipantsAndLeaders: false, creatorId: 'user-2');
+
+        expect(event.title, equals('Original Hike'));
+        expect(event.id, equals('event-101'));
+        expect(event.startDate, equals(DateTime(2026, 9, 10, 8, 0)));
+        expect(event.endDate, equals(DateTime(2026, 9, 10, 16, 0)));
+      });
+    });
   });
 }

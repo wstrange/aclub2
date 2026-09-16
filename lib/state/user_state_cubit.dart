@@ -124,6 +124,21 @@ class UserStateCubit extends CubitSignal<UserState?> {
     }
   }
 
+  /// Updates the [UserState]'s stored profile in place without refetching.
+  ///
+  /// Prefer this over [refresh] right after a profile write: a reload
+  /// immediately after an awaited write can race — the client resolver may
+  /// resolve the write from the local queue while a subsequent server read
+  /// still returns the pre-write document, which would overwrite the cached
+  /// profile with stale data. Merging the just-saved model avoids that.
+  Future<void> applyProfile(UserProfile profile) async {
+    final current = state.value;
+    if (current != null) {
+      emit(current.copyWith(userProfile: profile));
+      _log.fine('Applied updated profile for ${current.user.uid}');
+    }
+  }
+
   /// Clears user state on sign out.
   void clear() {
     _log.info('UserState cleared');

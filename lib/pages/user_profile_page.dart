@@ -60,7 +60,9 @@ class UserProfileCubit extends CubitSignal<UserProfileFormState> {
       final withEmail = updatedUser.copyWith(email: authUser?.email);
       await repository.updateUserProfile(withEmail);
       user = withEmail;
-      await userStateCubit.refresh();
+      // Merge the saved profile into app state without a network reload (see
+      // UserStateCubit.applyProfile for why).
+      userStateCubit.applyProfile(withEmail);
       emit(UserFormSuccess(withEmail));
     } on FirebaseAuthException catch (e) {
       emit(UserFormError(e.message ?? e.code));
@@ -82,7 +84,9 @@ class UserProfilePage extends StatelessWidget {
     }
 
     return FutureBuilder<UserProfile?>(
-      future: repository.getUserProfile(authUser.uid),
+      // Always refetch on entry so the form reflects the committed document
+      // value, even if a stale profile was left in the repository cache.
+      future: repository.getUserProfile(authUser.uid, reload: true),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -131,13 +135,21 @@ class _UserProfileForm extends HookWidget {
     final pushEnabled = useState(user.notificationPreferences.pushEnabled);
     final emailEnabled = useState(user.notificationPreferences.emailEnabled);
     final inAppEnabled = useState(user.notificationPreferences.inAppEnabled);
+    final notifyForNewEvents = useState(user.notificationPreferences.notifyForNewEvents);
     final frequency = useState(user.notificationPreferences.frequency);
 
     List<String> splitList(String value) =>
         value.split(',').map((item) => item.trim()).where((item) => item.isNotEmpty).toList();
 
     Future<void> submit() async {
-      if (!(formKey.currentState?.validate() ?? false)) return;
+      if (!(formKey.currentState?.validate() ?? false)) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Fix the highlighted errors before saving.')),
+          );
+        }
+        return;
+      }
 
       completedProfile.value = true;
       final updatedUser = user.copyWith(
@@ -156,6 +168,7 @@ class _UserProfileForm extends HookWidget {
           pushEnabled: pushEnabled.value,
           emailEnabled: emailEnabled.value,
           inAppEnabled: inAppEnabled.value,
+          notifyForNewEvents: notifyForNewEvents.value,
           frequency: frequency.value,
         ),
         updatedAt: DateTime.now(),
@@ -269,6 +282,12 @@ class _UserProfileForm extends HookWidget {
                 value: inAppEnabled.value,
                 onChanged: (value) => inAppEnabled.value = value,
                 title: const Text('In-app notifications'),
+              ),
+              SwitchListTile(
+                value: notifyForNewEvents.value,
+                onChanged: (value) => notifyForNewEvents.value = value,
+                title: const Text('Notify me of new events'),
+                subtitle: const Text('Be notified when new events are added to your calendars'),
               ),
               DropdownButtonFormField<NotificationFrequency>(
                 initialValue: frequency.value,

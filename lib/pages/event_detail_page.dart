@@ -83,6 +83,87 @@ class _EventDetailView extends StatelessWidget {
       await context.push(EventEditRoute(sectionId: sectionId, eventId: event.id));
     }
 
+    Future<void> copyEvent() async {
+      final copyRelations = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Copy Event'),
+          content: Text(
+            'This creates a copy of "${event.title}" with the date(s) brought '
+            'up to the current day.\n\n'
+            'Copy over the current participants and trip leaders?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(null),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Event only'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Copy participants & leaders'),
+            ),
+          ],
+        ),
+      );
+      if (copyRelations == null || !context.mounted) return;
+
+      final currentUid = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUid == null) return;
+
+      try {
+        final copy = await repository.duplicateEvent(
+          sectionId,
+          source: event,
+          copyParticipantsAndLeaders: copyRelations,
+          creatorId: currentUid,
+        );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event copied.')));
+        await context.push(EventEditRoute(sectionId: sectionId, eventId: copy.id));
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to copy event: $e')));
+        }
+      }
+    }
+
+    Future<void> deleteEvent() async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Delete Event'),
+          content: Text('Are you sure you want to delete "${event.title}"? This cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Theme.of(dialogContext).colorScheme.error),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+
+      try {
+        await repository.deleteEvent(sectionId, event.id);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event deleted.')));
+        context.pop();
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete event: $e')));
+        }
+      }
+    }
+
     String formatDate(DateTime dt) {
       const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       final weekday = weekdays[dt.weekday - 1];
@@ -155,13 +236,40 @@ class _EventDetailView extends StatelessWidget {
             _LeadershipSection(sectionId: sectionId, event: event),
 
             const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: openEdit,
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Edit Event'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: copyEvent,
+                      icon: const Icon(Icons.copy_all_outlined),
+                      label: const Text('Copy Event'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               height: 48,
               child: OutlinedButton.icon(
-                onPressed: openEdit,
-                icon: const Icon(Icons.edit),
-                label: const Text('Edit Event'),
+                style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+                onPressed: deleteEvent,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Delete Event'),
               ),
             ),
             const SizedBox(height: 24),

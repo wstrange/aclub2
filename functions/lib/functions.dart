@@ -1,8 +1,11 @@
+// ignore_for_file: experimental_member_use
+
 import 'dart:io';
 
 import 'package:firebase_admin_sdk/firestore.dart' as admin_firestore;
 import 'package:firebase_admin_sdk/messaging.dart' as admin_messaging;
 import 'package:firebase_functions/firebase_functions.dart';
+import 'package:shared_models/shared_models.dart';
 
 /// Registers all Cloud Functions (HTTP endpoints and background triggers).
 ///
@@ -30,20 +33,15 @@ Future<Response> helloWorld(Request request) async {
 ///
 /// The Firebase emulator does not provide an FCM emulator, so push sends are
 /// skipped there (logged instead). In-app notifications still work.
-Future<void> onNewEventCreated(
-  FirestoreEvent<EmulatorDocumentSnapshot?> event,
-  Firebase firebase,
-) async {
+Future<void> onNewEventCreated(FirestoreEvent<EmulatorDocumentSnapshot?> event, Firebase firebase) async {
   final eventData = event.data?.data() ?? <String, dynamic>{};
   final sectionId = event.params['sectionId'] ?? '';
   final eventId = event.data?.id ?? '';
   final title = eventData['title']?.toString() ?? 'Untitled event';
 
-  logger.info(
-    'New event created: eventId=$eventId, sectionId=$sectionId, title=$title',
-  );
+  logger.info('New event created: eventId=$eventId, sectionId=$sectionId, title=$title');
 
-  final message = 'A new event has been added to the calendar.';
+  final message = 'A new event has been added to the calendar .';
   final data = <String, String>{
     'type': 'new_event',
     'sectionId': sectionId,
@@ -54,36 +52,37 @@ Future<void> onNewEventCreated(
   // Admin Firestore talks to the local Firestore emulator via
   // FIRESTORE_EMULATOR_HOST (set by the Functions emulator), so reads/writes
   // work out of the box here.
-  final firestore = admin_firestore.Firestore.internal(
-    firebase.adminApp,
-  ).getDatabase();
+  final firestore = admin_firestore.Firestore.internal(firebase.adminApp).getDatabase();
 
   try {
     final pushTokens = <String>[];
     final inAppRecipients = <String>[];
 
     // ── Find interested section members ──────────────────────────────────
-    final membersQuery = await firestore
-        .collection('sections/$sectionId/members')
-        .get();
+    final membersQuery = await firestore.collection('sections/$sectionId/members').get();
     for (final member in membersQuery.docs) {
-      final profile = await firestore.doc('users/${member.id}').get();
-      if (!profile.exists) continue;
+      final profileDoc = await firestore.doc('users/${member.id}').get();
+      //logger.info('got profile: $profileDoc');
+      if (!profileDoc.exists) continue;
 
-      final profileData = profile.data() ?? <String, dynamic>{};
-      final prefs =
-          (profileData['notificationPreferences'] as Map?) ?? const {};
-      final notifyForNewEvents = prefs['notifyForNewEvents'] == true;
-      if (!notifyForNewEvents) continue;
+      final UserProfile profile;
+      try {
+        profile = UserProfile.fromJson({...?profileDoc.data(), 'id': member.id});
+      } on Object catch (error) {
+        logger.warn('Skipping malformed profile for ${member.id}: $error');
+        continue;
+      }
 
-      if (prefs['inAppEnabled'] != false) {
+      final prefs = profile.notificationPreferences;
+      //logger.info('prefs for user $profile ${member.id}: $prefs');
+      if (!prefs.notifyForNewEvents) continue;
+
+      if (prefs.inAppEnabled) {
+        //logger.info('Adding user ${member.id} to in-app recipients');
         inAppRecipients.add(member.id);
       }
-      if (prefs['pushEnabled'] != false) {
-        final tokens =
-            (profileData['fcmTokens'] as List?)?.cast<String>() ??
-            const <String>[];
-        if (tokens.isNotEmpty) pushTokens.addAll(tokens);
+      if (prefs.pushEnabled && profile.fcmTokens.isNotEmpty) {
+        pushTokens.addAll(profile.fcmTokens);
       }
     }
 
@@ -99,10 +98,7 @@ Future<void> onNewEventCreated(
         final response = await messaging.sendEachForMulticast(
           admin_messaging.MulticastMessage(
             tokens: pushTokens,
-            notification: admin_messaging.Notification(
-              title: title,
-              body: message,
-            ),
+            notification: admin_messaging.Notification(title: title, body: message),
             data: data,
           ),
         );
@@ -130,9 +126,7 @@ Future<void> onNewEventCreated(
       });
     }
     if (inAppRecipients.isNotEmpty) {
-      logger.info(
-        'In-app notification written for ${inAppRecipients.length} member(s).',
-      );
+      logger.info('In-app notification written for ${inAppRecipients.length} member(s).');
     }
   } catch (error, stackTrace) {
     logger.error(
