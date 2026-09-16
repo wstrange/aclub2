@@ -198,7 +198,7 @@ class _EventEditForm extends HookWidget {
 
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event created successfully.')));
-            context.pop();
+            context.pop(true);
           }
         } else {
           final updatedEvent = initialEvent.copyWith(
@@ -221,7 +221,7 @@ class _EventEditForm extends HookWidget {
 
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event updated successfully.')));
-            context.pop();
+            context.pop(true);
           }
         }
       } catch (e) {

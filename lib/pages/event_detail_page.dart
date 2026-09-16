@@ -123,7 +123,14 @@ class _EventDetailView extends StatelessWidget {
         );
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event copied.')));
-        await context.push(EventEditRoute(sectionId: sectionId, eventId: copy.id));
+        // Edit the copy; if it is saved, swap the original event's details for
+        // the copied event's details so the user ends up viewing the copy.
+        final saved = await context.pushForResult<bool>(
+          EventEditRoute(sectionId: sectionId, eventId: copy.id),
+        );
+        if (saved == true && context.mounted) {
+          context.replaceTop(EventDetailRoute(sectionId: sectionId, eventId: copy.id));
+        }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to copy event: $e')));
