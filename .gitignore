@@ -47,3 +47,15 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 /tmp/
+
+# AI Agents & Assistants
+.agents/
+.agent/
+agent/
+.claude/
+.gemini/
+.gemini
+.glm/
+.glm
+skills-lock.json
+

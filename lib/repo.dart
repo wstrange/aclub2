@@ -10,7 +10,9 @@ const String defaultSectionId = "national";
 final repository = AlpineRepository();
 
 class AlpineRepository {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  AlpineRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   Stream<List<Section>> streamSections() {
     return _firestore.collection('sections').snapshots().map((snapshot) {
@@ -365,5 +367,80 @@ class AlpineRepository {
 
       _log.info("Created stub profile for ${userInfo.email}");
     }
+  }
+
+  // ── Notifications ──────────────────────────────────────────────────────────
+
+  /// Streams notifications for a given recipient [userId], newest first.
+  Stream<List<NotificationModel>> streamNotifications(String userId) {
+    _log.fine('streamNotifications for user $userId');
+    return _firestore
+        .collection('notifications')
+        .where('recipientId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          final list = snapshot.docs
+              .map((doc) => NotificationModel.fromJson({...doc.data(), 'id': doc.id}))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
+  }
+
+  /// Gets all notifications for a given recipient [userId], newest first.
+  Future<List<NotificationModel>> getNotifications(String userId) async {
+    final snapshot = await _firestore
+        .collection('notifications')
+        .where('recipientId', isEqualTo: userId)
+        .get();
+    final list = snapshot.docs
+        .map((doc) => NotificationModel.fromJson({...doc.data(), 'id': doc.id}))
+        .toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
+  /// Gets a single notification by [notificationId].
+  Future<NotificationModel?> getNotification(String notificationId) async {
+    final doc = await _firestore.collection('notifications').doc(notificationId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return NotificationModel.fromJson({...doc.data()!, 'id': doc.id});
+  }
+
+  /// Marks a notification as read or unread.
+  Future<void> markNotificationAsRead(String notificationId, {bool isRead = true}) async {
+    _log.fine('Marking notification $notificationId as read=$isRead');
+    await _firestore.collection('notifications').doc(notificationId).update({'isRead': isRead});
+  }
+
+  /// Deletes a notification by [notificationId].
+  Future<void> deleteNotification(String notificationId) async {
+    _log.fine('Deleting notification $notificationId');
+    await _firestore.collection('notifications').doc(notificationId).delete();
+  }
+
+  /// Deletes all notifications for a given recipient [userId].
+  Future<void> deleteAllNotifications(String userId) async {
+    _log.fine('Deleting all notifications for user $userId');
+    final snapshot = await _firestore
+        .collection('notifications')
+        .where('recipientId', isEqualTo: userId)
+        .get();
+    final batch = _firestore.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
+  /// Creates a new notification document.
+  Future<String> createNotification(NotificationModel notification) async {
+    _log.fine('Creating notification for ${notification.recipientId}');
+    if (notification.id.isNotEmpty) {
+      await _firestore.collection('notifications').doc(notification.id).set(notification.toJson());
+      return notification.id;
+    }
+    final docRef = await _firestore.collection('notifications').add(notification.toJson());
+    return docRef.id;
   }
 }
