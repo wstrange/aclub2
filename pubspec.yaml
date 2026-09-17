@@ -24,6 +24,7 @@ dependencies:
   shared_models:
     path: packages/shared_models
   flutter_markdown_plus: ^1.0.12
+  firebase_ui_oauth_google: ^2.1.1
 
 dev_dependencies:
   build_runner: ^2.16.1

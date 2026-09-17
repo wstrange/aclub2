@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
+import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
@@ -17,6 +18,10 @@ import 'routes.dart';
 import 'state/user_state_cubit.dart';
 
 // import 'firebase_options.dart';
+
+/// iOS/macOS client ID from Google Cloud Console (Firebase → iOS app aclub.ui).
+/// Native platforms require an iOS/macOS OAuth client, not the Web one.
+const _googleClientId = '797970173318-61nopoe594icajtj7u0c3pql7ep20see.apps.googleusercontent.com';
 
 void main() async {
   Logger.root.level = Level.ALL;
@@ -30,7 +35,7 @@ void main() async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
     // Configure the auth providers globally
-    FirebaseUIAuth.configureProviders([EmailAuthProvider()]);
+    FirebaseUIAuth.configureProviders([EmailAuthProvider(), GoogleProvider(clientId: _googleClientId)]);
 
     // 2. Redirect to Local Emulators only during development
     if (kDebugMode) {

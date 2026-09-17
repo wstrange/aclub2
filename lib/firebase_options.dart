@@ -59,22 +59,24 @@ class DefaultFirebaseOptions {
     projectId: 'aclub2',
     storageBucket: 'aclub2.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDjxiAxQHhegLkdF04I1aym-kGs9Eqvv9c',
     appId: '1:797970173318:ios:d63409ec36faa2c34ab007',
     messagingSenderId: '797970173318',
     projectId: 'aclub2',
     storageBucket: 'aclub2.firebasestorage.app',
+    androidClientId: '797970173318-vrgslh43mgarq02p02ogd1rjps3a8v8e.apps.googleusercontent.com',
+    iosClientId: '797970173318-61nopoe594icajtj7u0c3pql7ep20see.apps.googleusercontent.com',
     iosBundleId: 'com.aclub.ui',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDjxiAxQHhegLkdF04I1aym-kGs9Eqvv9c',
     appId: '1:797970173318:ios:d63409ec36faa2c34ab007',
     messagingSenderId: '797970173318',
     projectId: 'aclub2',
     storageBucket: 'aclub2.firebasestorage.app',
+    androidClientId: '797970173318-vrgslh43mgarq02p02ogd1rjps3a8v8e.apps.googleusercontent.com',
+    iosClientId: '797970173318-61nopoe594icajtj7u0c3pql7ep20see.apps.googleusercontent.com',
     iosBundleId: 'com.aclub.ui',
   );
 }
