@@ -78,109 +78,86 @@ final class TemplateEditRoute extends AppRoute {
   List<Object?> get props => [templateId];
 }
 
-final routerConfig = KaiselRouterConfig<AppRoute>(
-  initial: FirebaseAuth.instance.currentUser != null ? const HomeRoute() : const SignInRoute(),
-  guards: [authGuard, profileCompletionGuard, sectionMembershipGuard],
-  builder: (context, route) => switch (route) {
-    HomeRoute() => const HomePage(),
-    SignInRoute() => const SignInPage(),
-    UserProfileRoute() => const UserProfilePage(),
-    SectionSelectionRoute() => const SectionSelectionPage(),
-    EventCreateRoute(:final sectionId) => EventEditPage.create(sectionId: sectionId),
-    EventEditRoute(:final sectionId, :final eventId) => EventEditPage(sectionId: sectionId, eventId: eventId),
-    EventDetailRoute(:final sectionId, :final eventId) =>
-      EventDetailPage(sectionId: sectionId, eventId: eventId),
-    TemplateListRoute() => const TemplateListPage(),
-    TemplateEditRoute(:final templateId) => TemplateEditPage(templateId: templateId),
-  },
-);
-
-Future<List<AppRoute>> authGuard(List<AppRoute> current, List<AppRoute> proposed) async {
-  // Check if the user is authenticated with Firebase
-  final bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
-
-  // Determine if the destination stack already includes the sign-in screen
-  final bool headingToLogin = proposed.any((r) => r is SignInRoute);
-
-  // If they aren't logged in and aren't going to the login page, redirect them
-  if (!isLoggedIn && !headingToLogin) {
-    return [const SignInRoute()];
-  }
-
-  // If they are logged in and heading to login, redirect to home
-  if (isLoggedIn && headingToLogin) {
-    return [const HomeRoute()];
-  }
-
-  // Ensure the ID token round-trip completes before the first Firestore
-  // stream is subscribed, so rules don't evaluate that first request as
-  // unauthenticated (transient PERMISSION_DENIED until the SDK retries).
-  if (isLoggedIn) {
-    await FirebaseAuth.instance.currentUser!.getIdToken();
-  }
-
-  _log.info('Auth guard: isLoggedIn: $isLoggedIn, headingToLogin: $headingToLogin, proposed: $proposed');
-  return proposed;
+KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignInRoute()}) {
+  return KaiselRouterConfig<AppRoute>(
+    initial: initial,
+    guards: [appGuard],
+    builder: (context, route) => switch (route) {
+      HomeRoute() => const HomePage(),
+      SignInRoute() => const SignInPage(),
+      UserProfileRoute() => const UserProfilePage(),
+      SectionSelectionRoute() => const SectionSelectionPage(),
+      EventCreateRoute(:final sectionId) => EventEditPage.create(sectionId: sectionId),
+      EventEditRoute(:final sectionId, :final eventId) => EventEditPage(sectionId: sectionId, eventId: eventId),
+      EventDetailRoute(:final sectionId, :final eventId) => EventDetailPage(sectionId: sectionId, eventId: eventId),
+      TemplateListRoute() => const TemplateListPage(),
+      TemplateEditRoute(:final templateId) => TemplateEditPage(templateId: templateId),
+    },
+  );
 }
 
-/// Redirects authenticated users to complete their profile if it is marked as not completed.
-Future<List<AppRoute>> profileCompletionGuard(List<AppRoute> current, List<AppRoute> proposed) async {
+late KaiselRouterConfig<AppRoute> routerConfig;
+
+/// Single cascading guard that verifies authentication, profile completion,
+/// and section memberships in strict priority order.
+Future<List<AppRoute>> appGuard(List<AppRoute> current, List<AppRoute> proposed) async {
   final user = FirebaseAuth.instance.currentUser;
+  final bool headingToLogin = proposed.any((r) => r is SignInRoute);
+
+  // 1. Authentication check
   if (user == null) {
+    if (!headingToLogin) {
+      _log.info('Unauthenticated access, redirecting to SignInRoute');
+      return const [SignInRoute()];
+    }
     return proposed;
   }
 
-  // Allow navigation if already heading to the profile screen
-  final bool headingToProfile = proposed.any((r) => r is UserProfileRoute);
-  if (headingToProfile) {
-    return proposed;
+  // Ensure ID token round-trip completes before Firestore queries
+  await user.getIdToken();
+
+  // If already logged in and heading to login, redirect towards HomeRoute
+  if (headingToLogin) {
+    proposed = const [HomeRoute()];
   }
 
-  // agy made this a cached lookup. Maybe OK? Will be fast
+  // 2. Profile completion check
   var profile = await repository.getUserProfile(user.uid);
   if (profile == null) {
     await repository.checkProfile(user);
     profile = await repository.getUserProfile(user.uid);
   }
 
-  if (profile == null || !profile.complatedProfile) {
-    _log.info('Profile incomplete for user ${user.uid}, redirecting to UserProfileRoute');
-    return [const UserProfileRoute()];
-  }
-
-  return proposed;
-}
-
-/// Redirects authenticated users who belong to no sections to [SectionSelectionRoute].
-Future<List<AppRoute>> sectionMembershipGuard(List<AppRoute> current, List<AppRoute> proposed) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) {
-    return proposed;
-  }
-
-  // Allow navigation if heading to login, profile, or section selection
-  final bool headingToLogin = proposed.any((r) => r is SignInRoute);
+  final bool profileComplete = profile != null && profile.complatedProfile;
   final bool headingToProfile = proposed.any((r) => r is UserProfileRoute);
-  final bool headingToSections = proposed.any((r) => r is SectionSelectionRoute);
-  if (headingToLogin || headingToProfile || headingToSections) {
+
+  if (!profileComplete) {
+    if (!headingToProfile) {
+      _log.info('Incomplete profile for ${user.uid}, redirecting to UserProfileRoute');
+      return const [UserProfileRoute()];
+    }
     return proposed;
   }
 
-  final profile = await repository.getUserProfile(user.uid);
-  if (profile == null) {
-    _log.info('User ${user.uid} has no profile, redirecting to SectionSelectionRoute');
-    return [const SectionSelectionRoute()];
+  // Profile is complete; allow viewing/editing profile if requested
+  if (headingToProfile) {
+    return proposed;
   }
 
-  // Membership is sourced from the members subcollection, not the profile.
-  final memberships = await repository.getUserMemberships(user.uid);
-  if (memberships.isEmpty) {
-    _log.info('User ${user.uid} belongs to no sections, redirecting to SectionSelectionRoute');
-    return [const SectionSelectionRoute()];
-  }
-
-  // Once all guards have passed, ensure UserState is fully loaded
+  // 3. Section membership check
+  // UserStateCubit.ensureLoaded initializes session and emits null if userSections is empty.
   await userStateCubit.ensureLoaded(user, profile);
+
+  final bool hasSections = userStateCubit.state.value != null;
+  final bool headingToSections = proposed.any((r) => r is SectionSelectionRoute);
+
+  if (!hasSections) {
+    if (!headingToSections) {
+      _log.info('No section memberships for ${user.uid}, redirecting to SectionSelectionRoute');
+      return const [SectionSelectionRoute()];
+    }
+    return proposed;
+  }
 
   return proposed;
 }

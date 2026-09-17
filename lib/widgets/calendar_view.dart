@@ -96,139 +96,192 @@ class CalendarView extends HookWidget {
 
     final isCurrentMonth = now.year == year && now.month == month;
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Month Navigation Header ───────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Text(
-                  '${_monthNames[month - 1]} $year',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                if (!isCurrentMonth) TextButton(onPressed: goToToday, child: const Text('Today')),
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  tooltip: 'Previous month',
-                  onPressed: goToPreviousMonth,
-                ),
-                IconButton(icon: const Icon(Icons.chevron_right), tooltip: 'Next month', onPressed: goToNextMonth),
-              ],
-            ),
-          ),
-
-          // ── Day of Week Header ────────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            child: Row(
-              children: _weekDays.map((name) {
-                return Expanded(
-                  child: Center(
-                    child: Text(
-                      name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-
-          // ── Calendar Grid ─────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: totalGridCells,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                childAspectRatio: 0.85,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
-              ),
-              itemBuilder: (context, index) {
-                DateTime cellDate;
-                bool isThisMonth = true;
-
-                if (index < startWeekdayOffset) {
-                  // Previous month padding
-                  final dayNum = prevMonthDays - (startWeekdayOffset - index - 1);
-                  cellDate = DateTime(year, month - 1, dayNum);
-                  isThisMonth = false;
-                } else if (index >= startWeekdayOffset + daysInMonth) {
-                  // Next month padding
-                  final dayNum = index - (startWeekdayOffset + daysInMonth) + 1;
-                  cellDate = DateTime(year, month + 1, dayNum);
-                  isThisMonth = false;
-                } else {
-                  // Current month day
-                  final dayNum = index - startWeekdayOffset + 1;
-                  cellDate = DateTime(year, month, dayNum);
-                }
-
-                final normalizedCellDate = DateTime(cellDate.year, cellDate.month, cellDate.day);
-                final isToday = now.year == cellDate.year && now.month == cellDate.month && now.day == cellDate.day;
-                final isSelected =
-                    selectedDate != null &&
-                    selectedDate.year == cellDate.year &&
-                    selectedDate.month == cellDate.month &&
-                    selectedDate.day == cellDate.day;
-
-                final dayEvents = eventsForDay(cellDate);
-
-                return _DayCell(
-                  date: cellDate,
-                  isCurrentMonth: isThisMonth,
-                  isToday: isToday,
-                  isSelected: isSelected,
-                  events: dayEvents,
-                  onTap: () {
-                    selectedDay.value = normalizedCellDate;
-                    if (!isThisMonth) {
-                      displayedMonth.value = DateTime(cellDate.year, cellDate.month);
-                    }
-                  },
-                );
-              },
-            ),
-          ),
-
-          const Divider(height: 24),
-
-          // ── Selected Day Event Summary List ───────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (selectedDate != null) ...[
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 650),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Month Navigation Header ───────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
+              child: Row(
+                children: [
                   Text(
-                    '${_monthNames[selectedDate.month - 1]} ${selectedDate.day}, ${selectedDate.year}',
+                    '${_monthNames[month - 1]} $year',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 8),
-                  if (selectedDayEvents.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                  const Spacer(),
+                  if (!isCurrentMonth)
+                    TextButton(
+                      onPressed: goToToday,
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      child: const Text('Today'),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left, size: 22),
+                    tooltip: 'Previous month',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onPressed: goToPreviousMonth,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, size: 22),
+                    tooltip: 'Next month',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onPressed: goToNextMonth,
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Day of Week Header ────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              child: Row(
+                children: _weekDays.map((name) {
+                  return Expanded(
+                    child: Center(
                       child: Text(
-                        'No events scheduled for this day.',
-                        style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                        name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            // ── Calendar Grid ─────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: totalGridCells,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  childAspectRatio: 1.35,
+                  crossAxisSpacing: 1,
+                  mainAxisSpacing: 1,
+                ),
+                itemBuilder: (context, index) {
+                  DateTime cellDate;
+                  bool isThisMonth = true;
+
+                  if (index < startWeekdayOffset) {
+                    // Previous month padding
+                    final dayNum = prevMonthDays - (startWeekdayOffset - index - 1);
+                    cellDate = DateTime(year, month - 1, dayNum);
+                    isThisMonth = false;
+                  } else if (index >= startWeekdayOffset + daysInMonth) {
+                    // Next month padding
+                    final dayNum = index - (startWeekdayOffset + daysInMonth) + 1;
+                    cellDate = DateTime(year, month + 1, dayNum);
+                    isThisMonth = false;
+                  } else {
+                    // Current month day
+                    final dayNum = index - startWeekdayOffset + 1;
+                    cellDate = DateTime(year, month, dayNum);
+                  }
+
+                  final normalizedCellDate = DateTime(cellDate.year, cellDate.month, cellDate.day);
+                  final isToday = now.year == cellDate.year && now.month == cellDate.month && now.day == cellDate.day;
+                  final isSelected =
+                      selectedDate != null &&
+                      selectedDate.year == cellDate.year &&
+                      selectedDate.month == cellDate.month &&
+                      selectedDate.day == cellDate.day;
+
+                  final dayEvents = eventsForDay(cellDate);
+
+                  return _DayCell(
+                    date: cellDate,
+                    isCurrentMonth: isThisMonth,
+                    isToday: isToday,
+                    isSelected: isSelected,
+                    events: dayEvents,
+                    onTap: () {
+                      selectedDay.value = normalizedCellDate;
+                      if (!isThisMonth) {
+                        displayedMonth.value = DateTime(cellDate.year, cellDate.month);
+                      }
+                    },
+                  );
+                },
+              ),
+            ),
+
+            // ── Selected Day Header Bar ───────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                border: Border(
+                  top: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                  bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.event_note, size: 18, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    selectedDate != null
+                        ? '${_monthNames[selectedDate.month - 1]} ${selectedDate.day}, ${selectedDate.year}'
+                        : 'Select a day',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  if (selectedDate != null)
+                    Text(
+                      selectedDayEvents.isEmpty
+                          ? 'No events'
+                          : '${selectedDayEvents.length} event${selectedDayEvents.length == 1 ? '' : 's'}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: selectedDayEvents.isEmpty
+                                ? Theme.of(context).colorScheme.outline
+                                : Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                ],
+              ),
+            ),
+
+            // ── Selected Day Event List ───────────────────────────────────────
+            Expanded(
+              child: selectedDayEvents.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.event_busy_outlined,
+                            size: 36,
+                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'No events scheduled for this day.',
+                            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                          ),
+                        ],
                       ),
                     )
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                       itemCount: selectedDayEvents.length,
                       itemBuilder: (context, index) {
                         final event = selectedDayEvents[index];
@@ -249,12 +302,9 @@ class CalendarView extends HookWidget {
                         );
                       },
                     ),
-                ],
-              ],
             ),
-          ),
-          const SizedBox(height: 24),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -284,88 +334,65 @@ class _DayCell extends StatelessWidget {
 
     Color? backgroundColor;
     if (isSelected) {
-      backgroundColor = colorScheme.primaryContainer.withValues(alpha: 0.4);
-    } else if (events.isNotEmpty && isCurrentMonth) {
-      backgroundColor = colorScheme.surfaceContainerLow;
+      backgroundColor = colorScheme.primaryContainer;
+    } else if (isToday) {
+      backgroundColor = colorScheme.primary.withValues(alpha: 0.1);
     }
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected
                 ? colorScheme.primary
                 : isToday
-                ? colorScheme.primary.withValues(alpha: 0.5)
-                : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    ? colorScheme.primary.withValues(alpha: 0.6)
+                    : Colors.transparent,
             width: isSelected ? 1.5 : 1,
           ),
         ),
-        padding: const EdgeInsets.all(2),
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Day number header
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: isToday ? BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle) : null,
-                child: Text(
-                  '${date.day}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isToday || isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isToday
-                        ? colorScheme.onPrimary
-                        : !isCurrentMonth
-                        ? colorScheme.outline
-                        : colorScheme.onSurface,
-                  ),
-                ),
+            Text(
+              '${date.day}',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isToday || isSelected ? FontWeight.bold : FontWeight.w500,
+                color: !isCurrentMonth
+                    ? colorScheme.outline.withValues(alpha: 0.4)
+                    : isSelected
+                        ? colorScheme.onPrimaryContainer
+                        : isToday
+                            ? colorScheme.primary
+                            : colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 2),
-            // Event summaries inside day cell
-            Expanded(
-              child: events.isEmpty
-                  ? const SizedBox.shrink()
-                  : ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: events.length > 2 ? 2 : events.length,
-                      itemBuilder: (context, idx) {
-                        final event = events[idx];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 1),
-                          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: Text(
-                            event.title,
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onPrimaryContainer,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      },
+            // Event indicators: colored dots
+            if (events.isEmpty)
+              const SizedBox(height: 5)
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < (events.length > 3 ? 3 : events.length); i++)
+                    Container(
+                      width: 5,
+                      height: 5,
+                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                      decoration: BoxDecoration(
+                        color: isSelected ? colorScheme.primary : colorScheme.secondary,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-            ),
-            if (events.length > 2)
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Text(
-                  '+${events.length - 2}',
-                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: colorScheme.primary),
-                ),
+                ],
               ),
           ],
         ),

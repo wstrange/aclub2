@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:aclub2/firebase_options.dart';
@@ -36,20 +37,20 @@ void main() async {
       await _connectToFirebaseEmulator();
     }
 
-    // 3. Keep UserState in sync with the auth session. The router's guards
-    // never run for its initial route, so when a persisted session is restored
-    // at startup the UserState (and current section) would otherwise never be
-    // established.
-    // TODO: Is this the best way to hadndle this?
+    // 3. Determine the initial route by evaluating the guard pipeline
+    final initialRoutes = await appGuard(const [], const [HomeRoute()]);
+    final initialRoute = initialRoutes.last;
+    routerConfig = createRouterConfig(initial: initialRoute);
+
+    // 4. React to auth state changes (e.g. sign out) across the app lifecycle
     FirebaseAuth.instance.authStateChanges().listen((user) async {
       try {
-        if (user != null) {
-          await userStateCubit.ensureLoaded(user);
-        } else {
+        if (user == null) {
           userStateCubit.clear();
+          unawaited(routerConfig.router.reevaluate());
         }
       } catch (e) {
-        print('Error initializing UserState: $e');
+        print('Error in authStateChanges listener: $e');
       }
     });
 
