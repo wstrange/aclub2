@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 import 'pages/event_detail_page.dart';
 import 'pages/event_edit_page.dart';
 import 'pages/home_page.dart';
+import 'pages/members_directory_page.dart';
 import 'pages/section_selection_page.dart';
 import 'pages/sign_in_page.dart';
 import 'pages/template_editor_page.dart';
@@ -78,6 +79,15 @@ final class TemplateEditRoute extends AppRoute {
   List<Object?> get props => [templateId];
 }
 
+final class MembersDirectoryRoute extends AppRoute {
+  const MembersDirectoryRoute({this.sectionId});
+
+  final String? sectionId;
+
+  @override
+  List<Object?> get props => [sectionId];
+}
+
 KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignInRoute()}) {
   return KaiselRouterConfig<AppRoute>(
     initial: initial,
@@ -87,6 +97,7 @@ KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignIn
       SignInRoute() => const SignInPage(),
       UserProfileRoute() => const UserProfilePage(),
       SectionSelectionRoute() => const SectionSelectionPage(),
+      MembersDirectoryRoute(:final sectionId) => MembersDirectoryPage(initialSectionId: sectionId),
       EventCreateRoute(:final sectionId) => EventEditPage.create(sectionId: sectionId),
       EventEditRoute(:final sectionId, :final eventId) => EventEditPage(sectionId: sectionId, eventId: eventId),
       EventDetailRoute(:final sectionId, :final eventId) => EventDetailPage(sectionId: sectionId, eventId: eventId),

@@ -34,6 +34,12 @@ class AlpineRepository {
     return snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList();
   }
 
+  Stream<List<SectionMember>> streamSectionMembers(String sectionId) {
+    return _firestore.collection('sections').doc(sectionId).collection('members').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList();
+    });
+  }
+
   Stream<List<Event>> streamPublicEvents() {
     return _firestore
         .collection('events')
@@ -284,6 +290,33 @@ class AlpineRepository {
 
   void clearProfileCache() {
     _cachedProfile = null;
+  }
+
+  /// Batch loads UserProfiles for the given [uids].
+  Future<Map<String, UserProfile>> getUserProfiles(List<String> uids) async {
+    final uniqueIds = uids.where((id) => id.isNotEmpty).toSet().toList();
+    if (uniqueIds.isEmpty) return {};
+
+    final result = <String, UserProfile>{};
+    // Chunk requests into max 30 documents per query (Firestore whereIn limit)
+    for (var i = 0; i < uniqueIds.length; i += 30) {
+      final chunk = uniqueIds.sublist(i, i + 30 > uniqueIds.length ? uniqueIds.length : i + 30);
+      try {
+        final snap = await _firestore.collection('users').where(FieldPath.documentId, whereIn: chunk).get();
+        for (final doc in snap.docs) {
+          result[doc.id] = UserProfile.fromJson({...doc.data(), 'id': doc.id});
+        }
+      } catch (e) {
+        _log.warning('Failed to batch load user profiles for chunk, falling back to point reads: $e');
+        for (final uid in chunk) {
+          try {
+            final p = await getUserProfile(uid);
+            if (p != null) result[uid] = p;
+          } catch (_) {}
+        }
+      }
+    }
+    return result;
   }
 
   /// The sections the user is a member of, sourced from the

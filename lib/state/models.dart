@@ -5,4 +5,6 @@
 library;
 
 export 'event_details_state.dart';
+export 'member_directory_cubit.dart';
+export 'member_directory_state.dart';
 export 'user_state.dart';

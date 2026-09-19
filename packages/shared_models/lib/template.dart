@@ -1,5 +1,4 @@
 
-import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'firestore_converter.dart';
@@ -18,7 +17,7 @@ abstract class Template with _$Template {
 
   const factory Template({
     /// Firestore document ID.
-    @DocumentIdField() required String id,
+    required String id,
 
     /// ISO language code — "en" or "fr".
     required String language,

@@ -17,7 +17,7 @@ T _$identity<T>(T value) => value;
 mixin _$Section {
 
 /// Firestore document ID.
-@DocumentIdField() String get id; String get name; String? get description;/// Geographic location or region of the section, e.g. "Vancouver, BC".
+ String get id; String get name; String? get description;/// Geographic location or region of the section, e.g. "Vancouver, BC".
  String? get location; String? get contactEmail; String? get contactPhone; DateTime? get createdAt; DateTime? get updatedAt;
 /// Create a copy of Section
 /// with the given fields replaced by the non-null parameter values.
@@ -56,7 +56,7 @@ abstract mixin class $SectionCopyWith<$Res>  {
   factory $SectionCopyWith(Section value, $Res Function(Section) _then) = _$SectionCopyWithImpl;
 @useResult
 $Res call({
-@DocumentIdField() String id, String name, String? description, String? location, String? contactEmail, String? contactPhone, DateTime? createdAt, DateTime? updatedAt
+ String id, String name, String? description, String? location, String? contactEmail, String? contactPhone, DateTime? createdAt, DateTime? updatedAt
 });
 
 
@@ -168,7 +168,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone,  DateTime? createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone,  DateTime? createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Section() when $default != null:
 return $default(_that.id,_that.name,_that.description,_that.location,_that.contactEmail,_that.contactPhone,_that.createdAt,_that.updatedAt);case _:
@@ -189,7 +189,7 @@ return $default(_that.id,_that.name,_that.description,_that.location,_that.conta
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone,  DateTime? createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone,  DateTime? createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Section():
 return $default(_that.id,_that.name,_that.description,_that.location,_that.contactEmail,_that.contactPhone,_that.createdAt,_that.updatedAt);case _:
@@ -209,7 +209,7 @@ return $default(_that.id,_that.name,_that.description,_that.location,_that.conta
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@DocumentIdField()  String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone,  DateTime? createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? description,  String? location,  String? contactEmail,  String? contactPhone,  DateTime? createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Section() when $default != null:
 return $default(_that.id,_that.name,_that.description,_that.location,_that.contactEmail,_that.contactPhone,_that.createdAt,_that.updatedAt);case _:
@@ -224,11 +224,11 @@ return $default(_that.id,_that.name,_that.description,_that.location,_that.conta
 @JsonSerializable()
 
 class _Section implements Section {
-  const _Section({@DocumentIdField() required this.id, required this.name, this.description, this.location, this.contactEmail, this.contactPhone, this.createdAt, this.updatedAt});
+  const _Section({required this.id, required this.name, this.description, this.location, this.contactEmail, this.contactPhone, this.createdAt, this.updatedAt});
   factory _Section.fromJson(Map<String, dynamic> json) => _$SectionFromJson(json);
 
 /// Firestore document ID.
-@override@DocumentIdField() final  String id;
+@override final  String id;
 @override final  String name;
 @override final  String? description;
 /// Geographic location or region of the section, e.g. "Vancouver, BC".
@@ -273,7 +273,7 @@ abstract mixin class _$SectionCopyWith<$Res> implements $SectionCopyWith<$Res> {
   factory _$SectionCopyWith(_Section value, $Res Function(_Section) _then) = __$SectionCopyWithImpl;
 @override @useResult
 $Res call({
-@DocumentIdField() String id, String name, String? description, String? location, String? contactEmail, String? contactPhone, DateTime? createdAt, DateTime? updatedAt
+ String id, String name, String? description, String? location, String? contactEmail, String? contactPhone, DateTime? createdAt, DateTime? updatedAt
 });
 
 

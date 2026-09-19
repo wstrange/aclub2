@@ -185,14 +185,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
-  firestore_odm_annotation:
-    dependency: transitive
-    description:
-      name: firestore_odm_annotation
-      sha256: "839430a0f227e620dbade362cf92bf7631ed9b4da79c879eab7de967cab53f58"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.0.0"
   fixnum:
     dependency: transitive
     description:

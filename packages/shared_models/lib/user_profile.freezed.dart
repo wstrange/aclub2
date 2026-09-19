@@ -17,7 +17,7 @@ T _$identity<T>(T value) => value;
 mixin _$UserProfile {
 
 /// Firebase Auth UID — used as the Firestore document ID.
-@DocumentIdField() String get id; String get firstName; String get lastName;/// Firebase Auth email. Denormalised here so other clients can display
+ String get id; String get firstName; String get lastName;/// Firebase Auth email. Denormalised here so other clients can display
 /// a user's email without needing Auth admin access.
  String? get email; String? get phone; String get emergencyContactName; String get emergencyContactPhone; String? get emergencyContactRelation; String? get medicalConditions;/// Free-text certifications, e.g. ["First Aid", "AST 2", "ACMG Ski Guide"].
  List<String> get certifications;/// Membership is NOT stored on the profile. The source of truth is the
@@ -70,7 +70,7 @@ abstract mixin class $UserProfileCopyWith<$Res>  {
   factory $UserProfileCopyWith(UserProfile value, $Res Function(UserProfile) _then) = _$UserProfileCopyWithImpl;
 @useResult
 $Res call({
-@DocumentIdField() String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, String? defaultSectionId, bool isAdmin, bool complatedProfile, bool signedWaiver, List<String> fcmTokens,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, String? defaultSectionId, bool isAdmin, bool complatedProfile, bool signedWaiver, List<String> fcmTokens,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -201,7 +201,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
 return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.defaultSectionId,_that.isAdmin,_that.complatedProfile,_that.signedWaiver,_that.fcmTokens,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
@@ -222,7 +222,7 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile():
 return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.defaultSectionId,_that.isAdmin,_that.complatedProfile,_that.signedWaiver,_that.fcmTokens,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
@@ -242,7 +242,7 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@DocumentIdField()  String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile,  bool signedWaiver,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
 return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.defaultSectionId,_that.isAdmin,_that.complatedProfile,_that.signedWaiver,_that.fcmTokens,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
@@ -257,11 +257,11 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 @JsonSerializable()
 
 class _UserProfile implements UserProfile {
-  const _UserProfile({@DocumentIdField() required this.id, required this.firstName, required this.lastName, this.email, this.phone, required this.emergencyContactName, required this.emergencyContactPhone, this.emergencyContactRelation, this.medicalConditions,  List<String> certifications = const [], this.defaultSectionId, this.isAdmin = false, this.complatedProfile = false, this.signedWaiver = false,  List<String> fcmTokens = const [], @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) required this.notificationPreferences, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _certifications = certifications,_fcmTokens = fcmTokens;
+  const _UserProfile({required this.id, required this.firstName, required this.lastName, this.email, this.phone, required this.emergencyContactName, required this.emergencyContactPhone, this.emergencyContactRelation, this.medicalConditions,  List<String> certifications = const [], this.defaultSectionId, this.isAdmin = false, this.complatedProfile = false, this.signedWaiver = false,  List<String> fcmTokens = const [], @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) required this.notificationPreferences, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _certifications = certifications,_fcmTokens = fcmTokens;
   factory _UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
 
 /// Firebase Auth UID — used as the Firestore document ID.
-@override@DocumentIdField() final  String id;
+@override final  String id;
 @override final  String firstName;
 @override final  String lastName;
 /// Firebase Auth email. Denormalised here so other clients can display
@@ -349,7 +349,7 @@ abstract mixin class _$UserProfileCopyWith<$Res> implements $UserProfileCopyWith
   factory _$UserProfileCopyWith(_UserProfile value, $Res Function(_UserProfile) _then) = __$UserProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@DocumentIdField() String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, String? defaultSectionId, bool isAdmin, bool complatedProfile, bool signedWaiver, List<String> fcmTokens,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, String? defaultSectionId, bool isAdmin, bool complatedProfile, bool signedWaiver, List<String> fcmTokens,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 

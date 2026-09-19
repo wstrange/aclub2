@@ -1,4 +1,3 @@
-import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'firestore_converter.dart';
 import 'notification_preferences.dart';
@@ -20,7 +19,7 @@ part 'user_profile.g.dart';
 abstract class UserProfile with _$UserProfile {
   const factory UserProfile({
     /// Firebase Auth UID — used as the Firestore document ID.
-    @DocumentIdField() required String id,
+    required String id,
 
     required String firstName,
     required String lastName,

@@ -17,7 +17,7 @@ T _$identity<T>(T value) => value;
 mixin _$SectionMember {
 
 /// Firestore document ID — matches the Firebase Auth UID.
-@DocumentIdField() String get id;/// The section this record belongs to.
+ String get id;/// The section this record belongs to.
  String get sectionId; SectionRole get sectionRole;/// Optional ID from an external membership management system.
  String? get externalSystemId;/// When the user joined this section.
 @TimestampConverter() DateTime get joinedAt;
@@ -58,7 +58,7 @@ abstract mixin class $SectionMemberCopyWith<$Res>  {
   factory $SectionMemberCopyWith(SectionMember value, $Res Function(SectionMember) _then) = _$SectionMemberCopyWithImpl;
 @useResult
 $Res call({
-@DocumentIdField() String id, String sectionId, SectionRole sectionRole, String? externalSystemId,@TimestampConverter() DateTime joinedAt
+ String id, String sectionId, SectionRole sectionRole, String? externalSystemId,@TimestampConverter() DateTime joinedAt
 });
 
 
@@ -167,7 +167,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SectionMember() when $default != null:
 return $default(_that.id,_that.sectionId,_that.sectionRole,_that.externalSystemId,_that.joinedAt);case _:
@@ -188,7 +188,7 @@ return $default(_that.id,_that.sectionId,_that.sectionRole,_that.externalSystemI
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@DocumentIdField()  String id,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)  $default,) {final _that = this;
 switch (_that) {
 case _SectionMember():
 return $default(_that.id,_that.sectionId,_that.sectionRole,_that.externalSystemId,_that.joinedAt);case _:
@@ -208,7 +208,7 @@ return $default(_that.id,_that.sectionId,_that.sectionRole,_that.externalSystemI
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@DocumentIdField()  String id,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String sectionId,  SectionRole sectionRole,  String? externalSystemId, @TimestampConverter()  DateTime joinedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _SectionMember() when $default != null:
 return $default(_that.id,_that.sectionId,_that.sectionRole,_that.externalSystemId,_that.joinedAt);case _:
@@ -223,11 +223,11 @@ return $default(_that.id,_that.sectionId,_that.sectionRole,_that.externalSystemI
 @JsonSerializable()
 
 class _SectionMember implements SectionMember {
-  const _SectionMember({@DocumentIdField() required this.id, required this.sectionId, required this.sectionRole, this.externalSystemId, @TimestampConverter() required this.joinedAt});
+  const _SectionMember({required this.id, required this.sectionId, required this.sectionRole, this.externalSystemId, @TimestampConverter() required this.joinedAt});
   factory _SectionMember.fromJson(Map<String, dynamic> json) => _$SectionMemberFromJson(json);
 
 /// Firestore document ID — matches the Firebase Auth UID.
-@override@DocumentIdField() final  String id;
+@override final  String id;
 /// The section this record belongs to.
 @override final  String sectionId;
 @override final  SectionRole sectionRole;
@@ -271,7 +271,7 @@ abstract mixin class _$SectionMemberCopyWith<$Res> implements $SectionMemberCopy
   factory _$SectionMemberCopyWith(_SectionMember value, $Res Function(_SectionMember) _then) = __$SectionMemberCopyWithImpl;
 @override @useResult
 $Res call({
-@DocumentIdField() String id, String sectionId, SectionRole sectionRole, String? externalSystemId,@TimestampConverter() DateTime joinedAt
+ String id, String sectionId, SectionRole sectionRole, String? externalSystemId,@TimestampConverter() DateTime joinedAt
 });
 
 

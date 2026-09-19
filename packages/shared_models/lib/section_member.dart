@@ -1,5 +1,3 @@
-
-import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
@@ -16,7 +14,7 @@ part 'section_member.g.dart';
 abstract class SectionMember with _$SectionMember {
   const factory SectionMember({
     /// Firestore document ID — matches the Firebase Auth UID.
-    @DocumentIdField() required String id,
+    required String id,
 
     /// The section this record belongs to.
     required String sectionId,

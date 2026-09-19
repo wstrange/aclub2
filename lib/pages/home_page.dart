@@ -94,6 +94,14 @@ class HomePage extends StatelessWidget {
                     context.push(const UserProfileRoute());
                   },
                 ),
+                ListTile(
+                  leading: const Icon(Icons.people_outline),
+                  title: const Text('Member Directory'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    context.push(MembersDirectoryRoute(sectionId: state.currentSection.id));
+                  },
+                ),
                 if (canManage) const _TemplatesDrawerTile(),
                 ListTile(
                   leading: const Icon(Icons.group),

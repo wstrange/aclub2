@@ -1,4 +1,3 @@
-import 'package:firestore_odm_annotation/firestore_odm_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'section.freezed.dart';
@@ -13,7 +12,7 @@ part 'section.g.dart';
 abstract class Section with _$Section {
   const factory Section({
     /// Firestore document ID.
-    @DocumentIdField() required String id,
+    required String id,
 
     required String name,
 
