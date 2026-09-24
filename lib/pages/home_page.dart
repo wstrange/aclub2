@@ -79,14 +79,15 @@ class HomePage extends StatelessWidget {
                     if (context.mounted) context.replaceTop(const SignInRoute());
                   },
                 ),
-                ListTile(
-                  leading: const Icon(Icons.add_circle_outline),
-                  title: const Text('Create Event'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    context.push(EventCreateRoute(sectionId: state.currentSection.id));
-                  },
-                ),
+                if (canManage)
+                  ListTile(
+                    leading: const Icon(Icons.add_circle_outline),
+                    title: const Text('Create Event'),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      context.push(EventCreateRoute(sectionId: state.currentSection.id));
+                    },
+                  ),
                 ListTile(
                   leading: const Icon(Icons.person),
                   title: const Text('My Profile'),
@@ -116,6 +117,7 @@ class HomePage extends StatelessWidget {
           body: CalendarView(
             key: ValueKey(state.currentSection.id),
             sectionId: state.currentSection.id,
+            userId: state.user.uid,
             onEventTap: (event) {
               context.push(EventDetailRoute(sectionId: event.sectionId, eventId: event.id));
             },

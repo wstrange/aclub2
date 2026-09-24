@@ -1,3 +1,4 @@
+import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -5,6 +6,7 @@ import 'package:kaisel/kaisel.dart';
 import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
+import '../state/user_state_cubit.dart';
 
 /// Page for creating or editing an [Event] in a section.
 class EventEditPage extends StatelessWidget {
@@ -18,6 +20,25 @@ class EventEditPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userState = context.watch<UserStateCubit>().state.value;
+    final canManage = userState != null &&
+        (userState.userProfile.isAdmin || context.read<UserStateCubit>().canManageSection(sectionId));
+
+    if (!canManage) {
+      return Scaffold(
+        appBar: AppBar(title: Text(isCreate ? 'Create Event' : 'Edit Event')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'You do not have permission to create or edit events in this section.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     if (isCreate) {
       final now = DateTime.now();
       final defaultEvent = Event(

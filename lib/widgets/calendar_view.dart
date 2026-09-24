@@ -1,8 +1,15 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
+
+enum CalendarEventFilter {
+  all,
+  mine,
+}
 
 const List<String> _monthNames = [
   'January',
@@ -19,14 +26,35 @@ const List<String> _monthNames = [
   'December',
 ];
 
+const List<String> _shortMonthNames = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
 const List<String> _weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /// A monthly calendar widget that displays events for a given [sectionId],
 /// allowing navigation through months and showing event titles on scheduled days.
 class CalendarView extends HookWidget {
-  const CalendarView({super.key, required this.sectionId, this.onEventTap});
+  const CalendarView({
+    super.key,
+    required this.sectionId,
+    this.userId,
+    this.onEventTap,
+  });
 
   final String sectionId;
+  final String? userId;
   final void Function(Event event)? onEventTap;
 
   @override
@@ -34,9 +62,21 @@ class CalendarView extends HookWidget {
     final now = DateTime.now();
     final displayedMonth = useState(DateTime(now.year, now.month));
     final selectedDay = useState<DateTime?>(DateTime(now.year, now.month, now.day));
+    final filter = useState(CalendarEventFilter.all);
+
+    final currentUserId = userId ?? FirebaseAuth.instance.currentUser?.uid;
 
     final eventsStream = useMemoized(() => repository.streamSectionEvents(sectionId), [sectionId]);
     final eventsSnapshot = useStream(eventsStream);
+
+    final registrationsStream = useMemoized(
+      () => currentUserId != null
+          ? repository.streamUserRegisteredEventIds(currentUserId)
+          : Stream.value(const <String>{}),
+      [currentUserId],
+    );
+    final registrationsSnapshot = useStream(registrationsStream);
+    final registeredEventIds = registrationsSnapshot.data ?? const <String>{};
 
     if (eventsSnapshot.connectionState == ConnectionState.waiting && !eventsSnapshot.hasData) {
       return const Center(child: CircularProgressIndicator());
@@ -55,6 +95,20 @@ class CalendarView extends HookWidget {
     }
 
     final events = eventsSnapshot.data ?? [];
+
+    // Filter events to only "my events" when filter is set to mine:
+    // User is registered for, manages (as trip leader), or created the event.
+    final filteredEvents = useMemoized(() {
+      if (filter.value == CalendarEventFilter.all || currentUserId == null) {
+        return events;
+      }
+      return events.where((event) {
+        final isCreator = event.creatorId == currentUserId;
+        final isLeader = event.tripLeaderIds.contains(currentUserId);
+        final isRegistered = registeredEventIds.contains(event.id);
+        return isCreator || isLeader || isRegistered;
+      }).toList();
+    }, [events, filter.value, currentUserId, registeredEventIds]);
 
     void goToPreviousMonth() {
       final current = displayedMonth.value;
@@ -75,7 +129,7 @@ class CalendarView extends HookWidget {
     // Filter events occurring on a specific normalized date
     List<Event> eventsForDay(DateTime day) {
       final targetDate = DateTime(day.year, day.month, day.day);
-      return events.where((event) {
+      return filteredEvents.where((event) {
         final startNorm = DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
         final endNorm = DateTime(event.endDate.year, event.endDate.month, event.endDate.day);
         return targetDate.compareTo(startNorm) >= 0 && targetDate.compareTo(endNorm) <= 0;
@@ -103,42 +157,102 @@ class CalendarView extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ── Month Navigation Header ───────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
-              child: Row(
-                children: [
-                  Text(
-                    '${_monthNames[month - 1]} $year',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  if (!isCurrentMonth)
-                    TextButton(
-                      onPressed: goToToday,
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 450;
+                final isVeryNarrow = constraints.maxWidth < 380;
+                final theme = Theme.of(context);
+
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${isNarrow ? _shortMonthNames[month - 1] : _monthNames[month - 1]} $year',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: isNarrow ? 14 : null,
+                        ),
                       ),
-                      child: const Text('Today'),
-                    ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left, size: 22),
-                    tooltip: 'Previous month',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    onPressed: goToPreviousMonth,
+                      const Spacer(),
+                      // ── Filter Slider (All events / My events) ─────────────
+                      CupertinoSlidingSegmentedControl<CalendarEventFilter>(
+                        groupValue: filter.value,
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                        thumbColor: theme.colorScheme.surface,
+                        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                        children: {
+                          CalendarEventFilter.all: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: isVeryNarrow ? 6 : 10, vertical: 4),
+                            child: Text(
+                              isVeryNarrow ? 'All' : 'All events',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: filter.value == CalendarEventFilter.all ? FontWeight.bold : FontWeight.w500,
+                                color: filter.value == CalendarEventFilter.all
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                          CalendarEventFilter.mine: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: isVeryNarrow ? 6 : 10, vertical: 4),
+                            child: Text(
+                              isVeryNarrow ? 'Mine' : 'My events',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: filter.value == CalendarEventFilter.mine ? FontWeight.bold : FontWeight.w500,
+                                color: filter.value == CalendarEventFilter.mine
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        },
+                        onValueChanged: (val) {
+                          if (val != null) filter.value = val;
+                        },
+                      ),
+                      const Spacer(),
+                      if (!isCurrentMonth)
+                        if (isNarrow)
+                          IconButton(
+                            icon: const Icon(Icons.today, size: 20),
+                            tooltip: 'Today',
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
+                            onPressed: goToToday,
+                          )
+                        else
+                          TextButton(
+                            onPressed: goToToday,
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                            ),
+                            child: const Text('Today'),
+                          ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left, size: 22),
+                        tooltip: 'Previous month',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
+                        onPressed: goToPreviousMonth,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right, size: 22),
+                        tooltip: 'Next month',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
+                        onPressed: goToNextMonth,
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right, size: 22),
-                    tooltip: 'Next month',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    onPressed: goToNextMonth,
-                  ),
-                ],
-              ),
+                );
+              },
             ),
 
             // ── Day of Week Header ────────────────────────────────────────────

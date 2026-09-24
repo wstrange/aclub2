@@ -70,5 +70,87 @@ void main() {
       final totalGridCells = ((startWeekdayOffset + daysInMonth + 6) ~/ 7) * 7;
       expect(totalGridCells, equals(35)); // 5 rows * 7 columns
     });
+
+    test('filters "My events" correctly (registered, managed, or created)', () {
+      final now = DateTime(2026, 9, 10);
+      const currentUserId = 'user123';
+
+      final createdEvent = Event(
+        id: 'ev-created',
+        sectionId: 'national',
+        title: 'Created by Me',
+        type: EventType.hike,
+        startDate: DateTime(2026, 9, 15, 9, 0),
+        endDate: DateTime(2026, 9, 15, 17, 0),
+        maxParticipants: 10,
+        creatorId: currentUserId,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final managedEvent = Event(
+        id: 'ev-managed',
+        sectionId: 'national',
+        title: 'Led by Me',
+        type: EventType.climb,
+        startDate: DateTime(2026, 9, 16, 9, 0),
+        endDate: DateTime(2026, 9, 16, 17, 0),
+        maxParticipants: 10,
+        creatorId: 'other-user',
+        tripLeaderIds: [currentUserId, 'leader2'],
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final registeredEvent = Event(
+        id: 'ev-registered',
+        sectionId: 'national',
+        title: 'Registered Attendee',
+        type: EventType.social,
+        startDate: DateTime(2026, 9, 17, 9, 0),
+        endDate: DateTime(2026, 9, 17, 17, 0),
+        maxParticipants: 10,
+        creatorId: 'other-user',
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final unassociatedEvent = Event(
+        id: 'ev-unrelated',
+        sectionId: 'national',
+        title: 'Unrelated Event',
+        type: EventType.alpineSki,
+        startDate: DateTime(2026, 9, 18, 9, 0),
+        endDate: DateTime(2026, 9, 18, 17, 0),
+        maxParticipants: 10,
+        creatorId: 'other-user',
+        tripLeaderIds: ['leader3'],
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final allEvents = [createdEvent, managedEvent, registeredEvent, unassociatedEvent];
+      final registeredEventIds = {'ev-registered'};
+
+      List<Event> filterEvents(List<Event> events, {required bool myEventsOnly}) {
+        if (!myEventsOnly) return events;
+        return events.where((event) {
+          final isCreator = event.creatorId == currentUserId;
+          final isLeader = event.tripLeaderIds.contains(currentUserId);
+          final isRegistered = registeredEventIds.contains(event.id);
+          return isCreator || isLeader || isRegistered;
+        }).toList();
+      }
+
+      // "All events" returns all 4 events
+      final allFiltered = filterEvents(allEvents, myEventsOnly: false);
+      expect(allFiltered.length, equals(4));
+
+      // "My events" returns exactly 3 events (created, managed, registered), excluding unrelated
+      final myFiltered = filterEvents(allEvents, myEventsOnly: true);
+      expect(myFiltered.length, equals(3));
+      expect(myFiltered.map((e) => e.id).toSet(), equals({'ev-created', 'ev-managed', 'ev-registered'}));
+      expect(myFiltered.any((e) => e.id == 'ev-unrelated'), isFalse);
+    });
   });
 }

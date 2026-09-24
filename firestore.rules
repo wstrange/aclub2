@@ -44,6 +44,11 @@ service cloud.firestore {
       allow write: if isUser(userId);
     }
 
+    // Collection group query for registrations (allows users to query their own registrations)
+    match /{path=**}/registrations/{registrationId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isGlobalAdmin());
+    }
+
     // Sections collection & subcollections
     match /sections/{sectionId} {
       allow read: if isSignedIn();
@@ -78,8 +83,11 @@ service cloud.firestore {
         allow write: if isTripLeader(sectionId);
 
         match /registrations/{registrationId} {
-          // Users can read their own registration, or leaders/admins can read all
-          allow read: if isSectionMember(sectionId) && (resource.data.userId == request.auth.uid || isTripLeader(sectionId));
+          // Any section member may list the registrations collection (resource.data is
+          // null for list queries so the per-doc userId check cannot be applied there).
+          allow list: if isSectionMember(sectionId);
+          // Single-document reads are restricted to own registration or leader/admin.
+          allow get: if isSectionMember(sectionId) && (resource.data.userId == request.auth.uid || isTripLeader(sectionId));
           // Users can create/update their own registration; leaders can manage any
           allow create: if isSectionMember(sectionId) && (request.resource.data.userId == request.auth.uid || isTripLeader(sectionId));
           allow update, delete: if isSectionMember(sectionId) && (resource.data.userId == request.auth.uid || isTripLeader(sectionId));

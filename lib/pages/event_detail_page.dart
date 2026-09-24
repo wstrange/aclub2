@@ -79,6 +79,12 @@ class _EventDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final userState = context.watch<UserStateCubit>().state.value;
+    final canManage = currentUid != null &&
+        userState != null &&
+        (userState.userProfile.isAdmin || context.read<UserStateCubit>().canManageSection(sectionId));
+
     Future<void> openEdit() async {
       await context.push(EventEditRoute(sectionId: sectionId, eventId: event.id));
     }
@@ -111,7 +117,6 @@ class _EventDetailView extends StatelessWidget {
       );
       if (copyRelations == null || !context.mounted) return;
 
-      final currentUid = FirebaseAuth.instance.currentUser?.uid;
       if (currentUid == null) return;
 
       try {
@@ -182,7 +187,10 @@ class _EventDetailView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Event Details'),
-        actions: [IconButton(icon: const Icon(Icons.edit), tooltip: 'Edit Event', onPressed: openEdit)],
+        actions: [
+          if (canManage)
+            IconButton(icon: const Icon(Icons.edit), tooltip: 'Edit Event', onPressed: openEdit),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -242,43 +250,45 @@ class _EventDetailView extends StatelessWidget {
             _sectionHeader('Leadership'),
             _LeadershipSection(sectionId: sectionId, event: event),
 
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: openEdit,
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Edit Event'),
+            if (canManage) ...[
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: openEdit,
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Edit Event'),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: OutlinedButton.icon(
-                      onPressed: copyEvent,
-                      icon: const Icon(Icons.copy_all_outlined),
-                      label: const Text('Copy Event'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: copyEvent,
+                        icon: const Icon(Icons.copy_all_outlined),
+                        label: const Text('Copy Event'),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-                onPressed: deleteEvent,
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Delete Event'),
+                ],
               ),
-            ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
+                  onPressed: deleteEvent,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Delete Event'),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
           ],
         ),
@@ -321,7 +331,10 @@ class _LeadershipSection extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final canManage = currentUid != null && context.read<UserStateCubit>().canManageSection(sectionId);
+    final userState = context.watch<UserStateCubit>().state.value;
+    final canManage = currentUid != null &&
+        userState != null &&
+        (userState.userProfile.isAdmin || context.read<UserStateCubit>().canManageSection(sectionId));
 
     final leaderIds = event.tripLeaderIds;
 
@@ -528,7 +541,7 @@ class _RegistrationSection extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eventDetails = context.read<EventDetailsCubit>().state.value;
+    final eventDetails = context.watch<EventDetailsCubit>().state.value;
     final registrations = eventDetails.registrations;
     final isRegistrationsLoading = eventDetails.isRegistrationsLoading;
 

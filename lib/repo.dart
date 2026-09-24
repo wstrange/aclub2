@@ -151,6 +151,30 @@ class AlpineRepository {
         });
   }
 
+  /// Streams the set of event IDs that [userId] is currently registered for.
+  /// Uses a collectionGroup query on 'registrations'.
+  Stream<Set<String>> streamUserRegisteredEventIds(String userId) {
+    if (userId.isEmpty) return Stream.value(const <String>{});
+    _log.fine('streamUserRegisteredEventIds for user $userId');
+    return _firestore
+        .collectionGroup('registrations')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          final eventIds = <String>{};
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            if (data['status'] != RegistrationStatus.rejected.name) {
+              final eventId = doc.reference.parent.parent?.id;
+              if (eventId != null) {
+                eventIds.add(eventId);
+              }
+            }
+          }
+          return eventIds;
+        });
+  }
+
   Future<List<Registration>> getEventRegistrations(String sectionId, String eventId) async {
     final snapshot = await _firestore
         .collection('sections')
