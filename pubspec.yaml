@@ -36,3 +36,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/waiver.md
+
+fonts:
+  - family: SocialIcons
+    fonts:
+      - asset: packages/firebase_ui_auth/fonts/SocialIcons.ttf

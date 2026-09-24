@@ -1,4 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_ui_auth/firebase_ui_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:logging/logging.dart';
 
@@ -93,6 +95,10 @@ final class WaiverRoute extends AppRoute {
   const WaiverRoute();
 }
 
+final class AuthProfileRoute extends AppRoute {
+  const AuthProfileRoute();
+}
+
 KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignInRoute()}) {
   return KaiselRouterConfig<AppRoute>(
     initial: initial,
@@ -109,6 +115,27 @@ KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignIn
       TemplateListRoute() => const TemplateListPage(),
       TemplateEditRoute(:final templateId) => TemplateEditPage(templateId: templateId),
       WaiverRoute() => const WaiverPage(),
+      // todo: This doesnt really do anything...
+      AuthProfileRoute() => ProfileScreen(
+        providers: const [],
+        appBar: AppBar(
+          title: const Text('Profile'),
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.arrow_back),
+              tooltip: 'Back',
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  context.replaceTop(const HomeRoute());
+                }
+              },
+            ),
+          ),
+        ),
+        actions: [SignedOutAction((context) => context.replaceTop(const SignInRoute()))],
+      ),
     },
   );
 }
@@ -163,8 +190,7 @@ Future<List<AppRoute>> appGuard(List<AppRoute> current, List<AppRoute> proposed)
 
   // 3. Waiver check — must be signed within the past 365 days.
   final waiverSignedDate = profile.waiverSignedDate;
-  final bool waiverCurrent = waiverSignedDate != null &&
-      DateTime.now().difference(waiverSignedDate).inDays < 365;
+  final bool waiverCurrent = waiverSignedDate != null && DateTime.now().difference(waiverSignedDate).inDays < 365;
   final bool headingToWaiver = proposed.any((r) => r is WaiverRoute);
 
   if (!waiverCurrent) {

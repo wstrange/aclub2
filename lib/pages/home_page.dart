@@ -95,6 +95,14 @@ class HomePage extends StatelessWidget {
                   },
                 ),
                 ListTile(
+                  leading: const Icon(Icons.manage_accounts_outlined),
+                  title: const Text('Auth Profile'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    context.push(const AuthProfileRoute());
+                  },
+                ),
+                ListTile(
                   leading: const Icon(Icons.people_outline),
                   title: const Text('Member Directory'),
                   onTap: () {
