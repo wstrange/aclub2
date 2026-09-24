@@ -135,10 +135,7 @@ return $default(_that);case _:
 final _that = this;
 switch (_that) {
 case _UserState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -197,10 +194,7 @@ return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSec
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( UserProfile userProfile,  User user,  List<Section> userSections,  Section currentSection,  List<SectionMember> memberships)  $default,) {final _that = this;
 switch (_that) {
 case _UserState():
-return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSection,_that.memberships);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSection,_that.memberships);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -228,8 +222,8 @@ return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSec
 /// @nodoc
 
 
-class _UserState implements UserState {
-  const _UserState({required this.userProfile, required this.user, required  List<Section> userSections, required this.currentSection, required  List<SectionMember> memberships}): _userSections = userSections,_memberships = memberships;
+class _UserState extends UserState {
+  const _UserState({required this.userProfile, required this.user, required  List<Section> userSections, required this.currentSection, required  List<SectionMember> memberships}): _userSections = userSections,_memberships = memberships,super._();
   
 
 @override final  UserProfile userProfile;
