@@ -23,8 +23,7 @@ class HomePage extends StatelessWidget {
 
         final currentSectionId = state.currentSection.id;
         final isCurrentValid = state.userSections.any((s) => s.id == currentSectionId);
-        final canManage =
-            state.userProfile.isAdmin || context.read<UserStateCubit>().canManageSection(currentSectionId);
+        final canManage = context.read<UserStateCubit>().canManageSection(currentSectionId);
 
         return Scaffold(
           appBar: AppBar(

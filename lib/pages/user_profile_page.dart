@@ -131,7 +131,6 @@ class _UserProfileForm extends HookWidget {
     final certifications = useTextEditingController(text: user.certifications.join(', '));
     final isAdmin = useState(user.isAdmin);
     final completedProfile = useState(user.complatedProfile);
-    final signedWaiver = useState(user.signedWaiver);
     final pushEnabled = useState(user.notificationPreferences.pushEnabled);
     final emailEnabled = useState(user.notificationPreferences.emailEnabled);
     final inAppEnabled = useState(user.notificationPreferences.inAppEnabled);
@@ -163,7 +162,6 @@ class _UserProfileForm extends HookWidget {
         certifications: splitList(certifications.text),
         isAdmin: isAdmin.value,
         complatedProfile: true,
-        signedWaiver: signedWaiver.value,
         notificationPreferences: user.notificationPreferences.copyWith(
           pushEnabled: pushEnabled.value,
           emailEnabled: emailEnabled.value,
@@ -262,10 +260,17 @@ class _UserProfileForm extends HookWidget {
                 onChanged: (value) => completedProfile.value = value,
                 title: const Text('Profile completed'),
               ),
-              SwitchListTile(
-                value: signedWaiver.value,
-                onChanged: (value) => signedWaiver.value = value,
+              ListTile(
                 title: const Text('Waiver signed'),
+                subtitle: Text(
+                  user.waiverSignedDate != null
+                      ? 'Signed on ${_formatDate(user.waiverSignedDate!)}'
+                      : 'Not yet signed',
+                ),
+                trailing: Icon(
+                  user.waiverSignedDate != null ? Icons.check_circle : Icons.warning_amber,
+                  color: user.waiverSignedDate != null ? Colors.green : Colors.orange,
+                ),
               ),
               _sectionTitle('Notification preferences'),
               SwitchListTile(
@@ -355,6 +360,10 @@ class _UserProfileForm extends HookWidget {
   String? _emptyToNull(String value) {
     final trimmed = value.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  String _formatDate(DateTime dt) {
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 }
 

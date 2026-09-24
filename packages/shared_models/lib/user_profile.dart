@@ -56,7 +56,11 @@ abstract class UserProfile with _$UserProfile {
 
     @Default(false) bool complatedProfile,
 
-    @Default(false) bool signedWaiver,
+    /// The date and time the user last signed the waiver.
+    /// `null` means never signed. Used to enforce annual re-signing:
+    /// if more than 365 days have elapsed, the user is redirected to the
+    /// waiver page on next login.
+    @NullableTimestampConverter() DateTime? waiverSignedDate,
 
     /// FCM registration tokens for this user's devices.
     ///

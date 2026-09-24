@@ -11,6 +11,7 @@ import 'pages/sign_in_page.dart';
 import 'pages/template_editor_page.dart';
 import 'pages/template_list_page.dart';
 import 'pages/user_profile_page.dart';
+import 'pages/waiver_page.dart';
 import 'repo.dart';
 import 'state/user_state_cubit.dart';
 
@@ -88,6 +89,10 @@ final class MembersDirectoryRoute extends AppRoute {
   List<Object?> get props => [sectionId];
 }
 
+final class WaiverRoute extends AppRoute {
+  const WaiverRoute();
+}
+
 KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignInRoute()}) {
   return KaiselRouterConfig<AppRoute>(
     initial: initial,
@@ -103,6 +108,7 @@ KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignIn
       EventDetailRoute(:final sectionId, :final eventId) => EventDetailPage(sectionId: sectionId, eventId: eventId),
       TemplateListRoute() => const TemplateListPage(),
       TemplateEditRoute(:final templateId) => TemplateEditPage(templateId: templateId),
+      WaiverRoute() => const WaiverPage(),
     },
   );
 }
@@ -155,7 +161,26 @@ Future<List<AppRoute>> appGuard(List<AppRoute> current, List<AppRoute> proposed)
     return proposed;
   }
 
-  // 3. Section membership check
+  // 3. Waiver check — must be signed within the past 365 days.
+  final waiverSignedDate = profile.waiverSignedDate;
+  final bool waiverCurrent = waiverSignedDate != null &&
+      DateTime.now().difference(waiverSignedDate).inDays < 365;
+  final bool headingToWaiver = proposed.any((r) => r is WaiverRoute);
+
+  if (!waiverCurrent) {
+    if (!headingToWaiver) {
+      _log.info('Waiver not current for ${user.uid}, redirecting to WaiverRoute');
+      return const [WaiverRoute()];
+    }
+    return proposed;
+  }
+
+  // Waiver is current; skip waiver page if explicitly requested
+  if (headingToWaiver) {
+    return const [HomeRoute()];
+  }
+
+  // 4. Section membership check
   // UserStateCubit.ensureLoaded initializes session and emits null if userSections is empty.
   await userStateCubit.ensureLoaded(user, profile);
 

@@ -89,6 +89,7 @@ class UserStateCubit extends CubitSignal<UserState?> {
 
   /// Sets the currently active section for the session.
   /// If [persistAsDefault] is true, also saves [defaultSectionId] in the user's Firestore profile.
+  ///  TODO:  Do we want to allow access if the users profile has the admin role set??
   Future<void> setCurrentSection(Section section, {bool persistAsDefault = false}) async {
     final current = state.value;
     if (current == null) return;

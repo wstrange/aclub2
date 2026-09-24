@@ -271,6 +271,18 @@ class AlpineRepository {
     _cachedProfile = u;
   }
 
+  /// Records the current date/time as the user's waiver signing date.
+  /// Uses a targeted `update` call so only `waiverSignedDate` is written,
+  /// leaving all other profile fields unchanged.
+  Future<void> updateWaiverSignedDate(String uid) async {
+    final now = DateTime.now();
+    await _firestore.collection('users').doc(uid).update({'waiverSignedDate': now});
+    if (_cachedProfile?.id == uid) {
+      _cachedProfile = _cachedProfile!.copyWith(waiverSignedDate: now);
+    }
+    _log.info('Waiver signed for $uid at $now');
+  }
+
   Future<String> createSection(Section section) async {
     if (section.id.isNotEmpty) {
       await _firestore.collection('sections').doc(section.id).set(section.toJson());
@@ -417,7 +429,7 @@ class AlpineRepository {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         complatedProfile: false,
-        signedWaiver: false,
+        waiverSignedDate: null,
       );
 
       await createUserProfile(user);

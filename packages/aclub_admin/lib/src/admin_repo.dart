@@ -149,7 +149,7 @@ class AdminRepository {
           notificationPreferences: const NotificationPreferences(),
           isAdmin: u.isAdmin,
           complatedProfile: true,
-          signedWaiver: true,
+          waiverSignedDate: now,
           createdAt: now,
           updatedAt: now,
         ),

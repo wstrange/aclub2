@@ -22,7 +22,7 @@ class EventEditPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final userState = context.watch<UserStateCubit>().state.value;
     final canManage = userState != null &&
-        (userState.userProfile.isAdmin || context.read<UserStateCubit>().canManageSection(sectionId));
+        context.read<UserStateCubit>().canManageSection(sectionId);
 
     if (!canManage) {
       return Scaffold(

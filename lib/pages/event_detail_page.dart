@@ -83,7 +83,7 @@ class _EventDetailView extends StatelessWidget {
     final userState = context.watch<UserStateCubit>().state.value;
     final canManage = currentUid != null &&
         userState != null &&
-        (userState.userProfile.isAdmin || context.read<UserStateCubit>().canManageSection(sectionId));
+        context.read<UserStateCubit>().canManageSection(sectionId);
 
     Future<void> openEdit() async {
       await context.push(EventEditRoute(sectionId: sectionId, eventId: event.id));
@@ -334,7 +334,7 @@ class _LeadershipSection extends HookWidget {
     final userState = context.watch<UserStateCubit>().state.value;
     final canManage = currentUid != null &&
         userState != null &&
-        (userState.userProfile.isAdmin || context.read<UserStateCubit>().canManageSection(sectionId));
+        context.read<UserStateCubit>().canManageSection(sectionId);
 
     final leaderIds = event.tripLeaderIds;
 
@@ -550,9 +550,7 @@ class _RegistrationSection extends HookWidget {
 
     final myRegistration = currentUid == null ? null : registrations.where((r) => r.userId == currentUid).firstOrNull;
 
-    final isSectionManager = context.read<UserStateCubit>().roleFor(event.sectionId) == SectionRole.sectionManager;
-    final isTripLeader = event.tripLeaderIds.contains(currentUid);
-    final canManage = currentUid != null && (isSectionManager || isTripLeader);
+    final canManage = currentUid != null && context.read<UserStateCubit>().canManageSection(event.sectionId);
 
     // Only approved registrations count towards the event's capacity.
     final approvedCount = registrations.where((r) => r.status == RegistrationStatus.approved).length;

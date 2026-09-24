@@ -24,7 +24,9 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
   defaultSectionId: json['defaultSectionId'] as String?,
   isAdmin: json['isAdmin'] as bool? ?? false,
   complatedProfile: json['complatedProfile'] as bool? ?? false,
-  signedWaiver: json['signedWaiver'] as bool? ?? false,
+  waiverSignedDate: const NullableTimestampConverter().fromJson(
+    json['waiverSignedDate'],
+  ),
   fcmTokens:
       (json['fcmTokens'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
@@ -50,7 +52,9 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'defaultSectionId': instance.defaultSectionId,
       'isAdmin': instance.isAdmin,
       'complatedProfile': instance.complatedProfile,
-      'signedWaiver': instance.signedWaiver,
+      'waiverSignedDate': const NullableTimestampConverter().toJson(
+        instance.waiverSignedDate,
+      ),
       'fcmTokens': instance.fcmTokens,
       'notificationPreferences': _notificationPreferencesToJson(
         instance.notificationPreferences,
