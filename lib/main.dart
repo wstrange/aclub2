@@ -29,6 +29,13 @@ void main() async {
     print('${record.level.name}: ${record.message}');
   });
 
+  BlocSignalObserver.observer = DevToolsBlocSignalObserver();
+
+  // // Only enable telemetry in debug mode to optimize production performance
+  // if (kDebugMode) {
+  //   BlocSignalObserver.observer = DevToolsBlocSignalObserver();
+  // }
+
   try {
     WidgetsFlutterBinding.ensureInitialized();
     // 1. Still initialize Firebase normally first!

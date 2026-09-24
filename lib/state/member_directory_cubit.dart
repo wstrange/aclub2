@@ -15,12 +15,8 @@ final _log = Logger('MemberDirectoryCubit');
 /// resolves full [UserProfile] records for rich display. Cancels subscriptions
 /// on [close].
 class MemberDirectoryCubit extends CubitSignal<MemberDirectoryState> {
-  MemberDirectoryCubit({
-    required this.sectionId,
-    AlpineRepository? repository,
-    bool autoSubscribe = true,
-  })  : _repository = repository,
-        super(initialState: MemberDirectoryState(sectionId: sectionId)) {
+  MemberDirectoryCubit({required this.sectionId, this._repository, bool autoSubscribe = true})
+    : super(initialState: MemberDirectoryState(sectionId: sectionId)) {
     if (autoSubscribe) {
       _subscribe();
     }
@@ -31,30 +27,30 @@ class MemberDirectoryCubit extends CubitSignal<MemberDirectoryState> {
   String sectionId;
   StreamSubscription<List<SectionMember>>? _membersSub;
 
-
-
   void _subscribe() {
     _membersSub?.cancel();
     emit(value.copyWith(sectionId: sectionId, isLoading: true, error: null));
 
-    _membersSub = _repo.streamSectionMembers(sectionId).listen(
-      (members) async {
-        try {
-          final uids = members.map((m) => m.id).toList();
-          final profiles = await _repo.getUserProfiles(uids);
-          final entries = members.map((m) => MemberDirectoryEntry(member: m, profile: profiles[m.id])).toList();
-          emit(value.copyWith(entries: entries, isLoading: false, error: null));
-        } catch (e, st) {
-          _log.warning('Error resolving member profiles: $e', e, st);
-          final entries = members.map((m) => MemberDirectoryEntry(member: m)).toList();
-          emit(value.copyWith(entries: entries, isLoading: false, error: e));
-        }
-      },
-      onError: (Object e, StackTrace st) {
-        _log.warning('Error streaming section members: $e', e, st);
-        emit(value.copyWith(isLoading: false, error: e));
-      },
-    );
+    _membersSub = _repo
+        .streamSectionMembers(sectionId)
+        .listen(
+          (members) async {
+            try {
+              final uids = members.map((m) => m.id).toList();
+              final profiles = await _repo.getUserProfiles(uids);
+              final entries = members.map((m) => MemberDirectoryEntry(member: m, profile: profiles[m.id])).toList();
+              emit(value.copyWith(entries: entries, isLoading: false, error: null));
+            } catch (e, st) {
+              _log.warning('Error resolving member profiles: $e', e, st);
+              final entries = members.map((m) => MemberDirectoryEntry(member: m)).toList();
+              emit(value.copyWith(entries: entries, isLoading: false, error: e));
+            }
+          },
+          onError: (Object e, StackTrace st) {
+            _log.warning('Error streaming section members: $e', e, st);
+            emit(value.copyWith(isLoading: false, error: e));
+          },
+        );
   }
 
   /// Updates the text search query (case-insensitive across name, email, phone, role, certifications).
