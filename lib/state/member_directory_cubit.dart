@@ -15,8 +15,9 @@ final _log = Logger('MemberDirectoryCubit');
 /// resolves full [UserProfile] records for rich display. Cancels subscriptions
 /// on [close].
 class MemberDirectoryCubit extends CubitSignal<MemberDirectoryState> {
-  MemberDirectoryCubit({required this.sectionId, this._repository, bool autoSubscribe = true})
-    : super(initialState: MemberDirectoryState(sectionId: sectionId)) {
+  MemberDirectoryCubit({required this.sectionId, AlpineRepository? repository, bool autoSubscribe = true})
+    : _repository = repository,
+      super(initialState: MemberDirectoryState(sectionId: sectionId)) {
     if (autoSubscribe) {
       _subscribe();
     }
@@ -73,6 +74,27 @@ class MemberDirectoryCubit extends CubitSignal<MemberDirectoryState> {
   /// Refreshes the directory data.
   Future<void> refresh() async {
     _subscribe();
+  }
+
+  /// Updates the role of a member in the current section.
+  Future<void> updateMemberRole(String userId, SectionRole newRole) async {
+    final originalEntries = value.entries;
+    try {
+      final updated = value.entries.map((e) {
+        if (e.userId == userId) {
+          final updatedMember = e.member.copyWith(sectionRole: newRole);
+          return MemberDirectoryEntry(member: updatedMember, profile: e.profile);
+        }
+        return e;
+      }).toList();
+      emit(value.copyWith(entries: updated));
+
+      await _repo.updateMemberRole(sectionId: sectionId, userId: userId, newRole: newRole);
+    } catch (e, st) {
+      _log.warning('Error updating member role: $e', e, st);
+      emit(value.copyWith(entries: originalEntries, error: e));
+      rethrow;
+    }
   }
 
   @override

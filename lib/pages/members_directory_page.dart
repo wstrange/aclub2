@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_models/shared_models.dart';
 
+import '../repo.dart';
 import '../state/member_directory_cubit.dart';
 import '../state/member_directory_state.dart';
 import '../state/user_state.dart';
@@ -25,6 +26,33 @@ class MembersDirectoryPage extends StatelessWidget {
           );
         }
 
+        final isGlobalAdmin = userState.userProfile.isAdmin;
+
+        if (isGlobalAdmin) {
+          return FutureBuilder<List<Section>>(
+            future: repository.getSections(),
+            builder: (context, snapshot) {
+              final sections = (snapshot.data != null && snapshot.data!.isNotEmpty)
+                  ? snapshot.data!
+                  : userState.userSections;
+
+              final targetSectionId = initialSectionId != null && sections.any((s) => s.id == initialSectionId)
+                  ? initialSectionId!
+                  : (sections.any((s) => s.id == userState.currentSection.id)
+                      ? userState.currentSection.id
+                      : sections.first.id);
+
+              return BlocSignalProvider<MemberDirectoryCubit>(
+                create: (_) => MemberDirectoryCubit(sectionId: targetSectionId),
+                child: _MembersDirectoryView(
+                  userSections: sections,
+                  isGlobalAdmin: true,
+                ),
+              );
+            },
+          );
+        }
+
         final userSections = userState.userSections;
         final targetSectionId = initialSectionId != null && userSections.any((s) => s.id == initialSectionId)
             ? initialSectionId!
@@ -32,7 +60,10 @@ class MembersDirectoryPage extends StatelessWidget {
 
         return BlocSignalProvider<MemberDirectoryCubit>(
           create: (_) => MemberDirectoryCubit(sectionId: targetSectionId),
-          child: _MembersDirectoryView(userSections: userSections),
+          child: _MembersDirectoryView(
+            userSections: userSections,
+            isGlobalAdmin: false,
+          ),
         );
       },
     );
@@ -40,9 +71,13 @@ class MembersDirectoryPage extends StatelessWidget {
 }
 
 class _MembersDirectoryView extends StatefulWidget {
-  const _MembersDirectoryView({required this.userSections});
+  const _MembersDirectoryView({
+    required this.userSections,
+    this.isGlobalAdmin = false,
+  });
 
   final List<Section> userSections;
+  final bool isGlobalAdmin;
 
   @override
   State<_MembersDirectoryView> createState() => _MembersDirectoryViewState();
@@ -65,6 +100,9 @@ class _MembersDirectoryViewState extends State<_MembersDirectoryView> {
           (s) => s.id == state.sectionId,
           orElse: () => widget.userSections.first,
         );
+
+        final isSectionAdmin = userStateCubit.roleFor(state.sectionId) == SectionRole.sectionManager;
+        final canManageRoles = widget.isGlobalAdmin || isSectionAdmin;
 
         return Scaffold(
           appBar: AppBar(
@@ -180,7 +218,7 @@ class _MembersDirectoryViewState extends State<_MembersDirectoryView> {
 
               // Members list
               Expanded(
-                child: _buildMembersList(context, state),
+                child: _buildMembersList(context, state, canManageRoles),
               ),
             ],
           ),
@@ -189,7 +227,7 @@ class _MembersDirectoryViewState extends State<_MembersDirectoryView> {
     );
   }
 
-  Widget _buildMembersList(BuildContext context, MemberDirectoryState state) {
+  Widget _buildMembersList(BuildContext context, MemberDirectoryState state, bool canManageRoles) {
     if (state.isLoading && state.entries.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -272,30 +310,116 @@ class _MembersDirectoryViewState extends State<_MembersDirectoryView> {
           final entry = filtered[index];
           return _MemberCard(
             entry: entry,
-            onTap: () => _showMemberDetailsSheet(context, entry),
+            canManageRoles: canManageRoles,
+            onTap: () => _showMemberDetailsSheet(context, entry, canManageRoles),
+            onEditRole: canManageRoles ? () => _promptChangeRole(context, entry) : null,
           );
         },
       ),
     );
   }
 
-  void _showMemberDetailsSheet(BuildContext context, MemberDirectoryEntry entry) {
+  void _showMemberDetailsSheet(BuildContext context, MemberDirectoryEntry entry, bool canManageRoles) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => _MemberDetailBottomSheet(entry: entry),
+      builder: (sheetContext) => _MemberDetailBottomSheet(
+        entry: entry,
+        canManageRoles: canManageRoles,
+        onEditRole: canManageRoles ? () => _promptChangeRole(context, entry) : null,
+      ),
     );
+  }
+
+  Future<void> _promptChangeRole(BuildContext context, MemberDirectoryEntry entry) async {
+    final currentRole = entry.role;
+    final currentUserId = context.read<UserStateCubit>().state.value?.user.uid;
+    final cubit = context.read<MemberDirectoryCubit>();
+
+    final selectedRole = await showDialog<SectionRole>(
+      context: context,
+      builder: (dialogContext) {
+        return _ChangeRoleDialog(
+          memberName: entry.displayName,
+          currentRole: currentRole,
+        );
+      },
+    );
+
+    if (selectedRole == null || selectedRole == currentRole || !context.mounted) {
+      return;
+    }
+
+    // If demoting oneself from sectionManager, warn the user
+    if (entry.userId == currentUserId &&
+        currentRole == SectionRole.sectionManager &&
+        selectedRole != SectionRole.sectionManager) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (confirmContext) => AlertDialog(
+          title: const Text('Demote yourself?'),
+          content: const Text(
+            'You are removing your own Section Manager role for this section. You will lose access to manage member roles and section settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(confirmContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Theme.of(confirmContext).colorScheme.error),
+              onPressed: () => Navigator.of(confirmContext).pop(true),
+              child: const Text('Demote Myself'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true || !context.mounted) return;
+    }
+
+    try {
+      await cubit.updateMemberRole(entry.userId, selectedRole);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Updated ${entry.displayName}\'s role to ${_roleName(selectedRole)}',
+            ),
+          ),
+        );
+        if (entry.userId == currentUserId) {
+          userStateCubit.refresh();
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            content: Text('Failed to update role: $e'),
+          ),
+        );
+      }
+    }
   }
 }
 
 class _MemberCard extends StatelessWidget {
-  const _MemberCard({required this.entry, required this.onTap});
+  const _MemberCard({
+    required this.entry,
+    required this.onTap,
+    this.canManageRoles = false,
+    this.onEditRole,
+  });
 
   final MemberDirectoryEntry entry;
   final VoidCallback onTap;
+  final bool canManageRoles;
+  final VoidCallback? onEditRole;
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +515,14 @@ class _MemberCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.chevron_right, color: theme.colorScheme.outline),
+              if (canManageRoles && onEditRole != null)
+                IconButton(
+                  icon: const Icon(Icons.manage_accounts_outlined),
+                  tooltip: 'Change role',
+                  onPressed: onEditRole,
+                )
+              else
+                Icon(Icons.chevron_right, color: theme.colorScheme.outline),
             ],
           ),
         ),
@@ -442,9 +573,15 @@ class _RoleBadge extends StatelessWidget {
 }
 
 class _MemberDetailBottomSheet extends StatelessWidget {
-  const _MemberDetailBottomSheet({required this.entry});
+  const _MemberDetailBottomSheet({
+    required this.entry,
+    this.canManageRoles = false,
+    this.onEditRole,
+  });
 
   final MemberDirectoryEntry entry;
+  final bool canManageRoles;
+  final VoidCallback? onEditRole;
 
   @override
   Widget build(BuildContext context) {
@@ -490,10 +627,27 @@ class _MemberDetailBottomSheet extends StatelessWidget {
                         style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 6),
-                      _RoleBadge(
-                        label: entry.roleDisplayName,
-                        color: roleColor,
-                        icon: roleIcon,
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        children: [
+                          _RoleBadge(
+                            label: entry.roleDisplayName,
+                            color: roleColor,
+                            icon: roleIcon,
+                          ),
+                          if (canManageRoles && onEditRole != null)
+                            ActionChip(
+                              avatar: const Icon(Icons.edit, size: 14),
+                              label: const Text('Change Role'),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                onEditRole!();
+                              },
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -571,12 +725,28 @@ class _MemberDetailBottomSheet extends StatelessWidget {
             ],
 
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
-              ),
+            Row(
+              children: [
+                if (canManageRoles && onEditRole != null) ...[
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      icon: const Icon(Icons.manage_accounts),
+                      label: const Text('Change Role'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        onEditRole!();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Close'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -632,6 +802,154 @@ class _DetailTile extends StatelessWidget {
           ),
           ?trailing,
         ],
+      ),
+    );
+  }
+}
+
+String _roleName(SectionRole role) => switch (role) {
+  SectionRole.sectionManager => 'Section Manager',
+  SectionRole.tripLeader => 'Trip Leader',
+  SectionRole.member => 'Member',
+};
+
+class _ChangeRoleDialog extends StatefulWidget {
+  const _ChangeRoleDialog({
+    required this.memberName,
+    required this.currentRole,
+  });
+
+  final String memberName;
+  final SectionRole currentRole;
+
+  @override
+  State<_ChangeRoleDialog> createState() => _ChangeRoleDialogState();
+}
+
+class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
+  late SectionRole _selectedRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.currentRole;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: const Text('Change Role'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Select role for ${widget.memberName}:',
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            _roleOption(
+              role: SectionRole.sectionManager,
+              title: 'Section Manager',
+              subtitle: 'Can manage events, templates, and member roles',
+              icon: Icons.admin_panel_settings,
+              color: Colors.deepPurple,
+            ),
+            const SizedBox(height: 8),
+            _roleOption(
+              role: SectionRole.tripLeader,
+              title: 'Trip Leader',
+              subtitle: 'Can create and lead section events',
+              icon: Icons.explore,
+              color: Colors.teal,
+            ),
+            const SizedBox(height: 8),
+            _roleOption(
+              role: SectionRole.member,
+              title: 'Member',
+              subtitle: 'Can view and register for section events',
+              icon: Icons.person,
+              color: theme.colorScheme.primary,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _selectedRole != widget.currentRole
+              ? () => Navigator.of(context).pop(_selectedRole)
+              : null,
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+
+  Widget _roleOption({
+    required SectionRole role,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    final isSelected = _selectedRole == role;
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: () => setState(() => _selectedRole = role),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            width: isSelected ? 2 : 1,
+          ),
+          color: isSelected ? color.withValues(alpha: 0.08) : Colors.transparent,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? color : null,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Radio<SectionRole>(
+              value: role,
+              groupValue: _selectedRole,
+              activeColor: color,
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedRole = val);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -32,7 +32,11 @@ service cloud.firestore {
 
     // Helper: Check if user is a system-wide global administrator
     function isGlobalAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+      );
     }
 
 
@@ -63,8 +67,8 @@ service cloud.firestore {
         // isSectionMember() here would be circular (it does an exists()/get()
         // on this same subcollection) and fails on the first rules evaluation.
         allow read: if isSignedIn();
-        // Only section admins can write roles, or users removing themselves
-        allow write: if isSectionAdmin(sectionId) || isUser(userId);
+        // Only section admins can write roles, or users removing themselves, or global admins
+        allow write: if isSectionAdmin(sectionId) || isUser(userId) || isGlobalAdmin();
       }
 
       // NOTE (emulator-only): the canRead rules below call isSectionMember()/

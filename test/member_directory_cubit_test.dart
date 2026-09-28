@@ -1,3 +1,4 @@
+import 'package:aclub2/repo.dart';
 import 'package:aclub2/state/member_directory_cubit.dart';
 import 'package:aclub2/state/member_directory_state.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -219,7 +220,7 @@ void main() {
 
   group('MemberDirectoryCubit', () {
     test('updates search query and role filter synchronously', () async {
-      final cubit = MemberDirectoryCubit(sectionId: 'test-section');
+      final cubit = MemberDirectoryCubit(sectionId: 'test-section', autoSubscribe: false);
       addTearDown(cubit.close);
 
       expect(cubit.value.searchQuery, isEmpty);
@@ -234,5 +235,49 @@ void main() {
       cubit.setRoleFilter(null);
       expect(cubit.value.selectedRole, isNull);
     });
+
+    test('updateMemberRole calls repository and updates entries optimistically', () async {
+      final fakeRepo = _FakeAlpineRepository();
+      final cubit = MemberDirectoryCubit(
+        sectionId: 'calgary',
+        repository: fakeRepo,
+        autoSubscribe: false,
+      );
+      addTearDown(cubit.close);
+
+      final initialEntry = MemberDirectoryEntry(
+        member: SectionMember(
+          id: 'u-1',
+          sectionId: 'calgary',
+          sectionRole: SectionRole.member,
+          joinedAt: DateTime(2026, 1, 1),
+        ),
+      );
+      cubit.emit(cubit.value.copyWith(entries: [initialEntry]));
+
+      await cubit.updateMemberRole('u-1', SectionRole.tripLeader);
+
+      expect(fakeRepo.updatedSectionId, equals('calgary'));
+      expect(fakeRepo.updatedUserId, equals('u-1'));
+      expect(fakeRepo.updatedRole, equals(SectionRole.tripLeader));
+      expect(cubit.value.entries.first.role, equals(SectionRole.tripLeader));
+    });
   });
+}
+
+class _FakeAlpineRepository extends AlpineRepository {
+  String? updatedSectionId;
+  String? updatedUserId;
+  SectionRole? updatedRole;
+
+  @override
+  Future<void> updateMemberRole({
+    required String sectionId,
+    required String userId,
+    required SectionRole newRole,
+  }) async {
+    updatedSectionId = sectionId;
+    updatedUserId = userId;
+    updatedRole = newRole;
+  }
 }

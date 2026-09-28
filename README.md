@@ -290,14 +290,10 @@ Admin-managed markdown templates that can be inserted into event description fie
 
 ### TODO:
 
-* Admins should be able to manage the membership of any section.  (i.e. add/remove tripLeaders, sectionManagers and members from a section)
-* section admins should be able to make a user a trip leader of their section.
+
 * Investigate more notifications. Push notifications
 * Look at how to publish the web app on firebase (or github pages?)
 * What is the replacement for the desktop oauth plugin that is deprecated.
-
-
-
 
 
 

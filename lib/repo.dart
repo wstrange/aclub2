@@ -10,9 +10,10 @@ const String defaultSectionId = "national";
 final repository = AlpineRepository();
 
 class AlpineRepository {
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _customFirestore;
+  FirebaseFirestore get _firestore => _customFirestore ?? FirebaseFirestore.instance;
 
-  AlpineRepository({FirebaseFirestore? firestore}) : _firestore = firestore ?? FirebaseFirestore.instance;
+  AlpineRepository({FirebaseFirestore? firestore}) : _customFirestore = firestore;
 
   Stream<List<Section>> streamSections() {
     return _firestore.collection('sections').snapshots().map((snapshot) {
@@ -386,6 +387,21 @@ class AlpineRepository {
   Future<void> removeMemberFromSection({required String sectionId, required String userId}) async {
     _log.info("Removing user $userId from section $sectionId");
     await _firestore.collection('sections').doc(sectionId).collection('members').doc(userId).delete();
+  }
+
+  /// Updates the [SectionRole] of a user in a section.
+  Future<void> updateMemberRole({
+    required String sectionId,
+    required String userId,
+    required SectionRole newRole,
+  }) async {
+    _log.info("Updating role of user $userId in section $sectionId to ${newRole.name}");
+    await _firestore
+        .collection('sections')
+        .doc(sectionId)
+        .collection('members')
+        .doc(userId)
+        .update({'sectionRole': newRole.name});
   }
 
   // Set user's chosen sections. The authoritative membership record is the
