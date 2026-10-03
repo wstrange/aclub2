@@ -14,6 +14,60 @@ endpoints:
     command:
       - ./bin/server
     entryPoint: helloworld
+  eventcreatedhttp:
+    platform: gcfv2
+    region:
+      - us-central1
+    httpsTrigger: {}
+    baseImageUri: us-central1-docker.pkg.dev/serverless-runtimes/google-24/runtimes/osonly24
+    command:
+      - ./bin/server
+    entryPoint: eventcreatedhttp
+  eventupdatedhttp:
+    platform: gcfv2
+    region:
+      - us-central1
+    httpsTrigger: {}
+    baseImageUri: us-central1-docker.pkg.dev/serverless-runtimes/google-24/runtimes/osonly24
+    command:
+      - ./bin/server
+    entryPoint: eventupdatedhttp
+  registrationcreatedhttp:
+    platform: gcfv2
+    region:
+      - us-central1
+    httpsTrigger: {}
+    baseImageUri: us-central1-docker.pkg.dev/serverless-runtimes/google-24/runtimes/osonly24
+    command:
+      - ./bin/server
+    entryPoint: registrationcreatedhttp
+  registrationupdatedhttp:
+    platform: gcfv2
+    region:
+      - us-central1
+    httpsTrigger: {}
+    baseImageUri: us-central1-docker.pkg.dev/serverless-runtimes/google-24/runtimes/osonly24
+    command:
+      - ./bin/server
+    entryPoint: registrationupdatedhttp
+  registrationdeletedhttp:
+    platform: gcfv2
+    region:
+      - us-central1
+    httpsTrigger: {}
+    baseImageUri: us-central1-docker.pkg.dev/serverless-runtimes/google-24/runtimes/osonly24
+    command:
+      - ./bin/server
+    entryPoint: registrationdeletedhttp
+  notificationtriggerhttp:
+    platform: gcfv2
+    region:
+      - us-central1
+    httpsTrigger: {}
+    baseImageUri: us-central1-docker.pkg.dev/serverless-runtimes/google-24/runtimes/osonly24
+    command:
+      - ./bin/server
+    entryPoint: notificationtriggerhttp
   ondocumentcreated-sections-sectionid-event-emryoz:
     platform: gcfv2
     region:

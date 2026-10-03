@@ -21,6 +21,7 @@ import 'state/user_state_cubit.dart';
 
 /// iOS/macOS client ID from Google Cloud Console (Firebase → iOS app aclub.ui).
 /// Native platforms require an iOS/macOS OAuth client, not the Web one.
+/// This is not a secret that must be protected. It is public.
 const _googleClientId = '797970173318-61nopoe594icajtj7u0c3pql7ep20see.apps.googleusercontent.com';
 
 void main() async {
