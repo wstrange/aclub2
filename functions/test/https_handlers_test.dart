@@ -43,11 +43,7 @@ void main() {
         'status': 'published',
         'title': 'Test Title',
       });
-      final req = Request(
-        'POST',
-        Uri.parse('https://example.com/eventCreatedHttp'),
-        body: body,
-      );
+      final req = Request('POST', Uri.parse('https://example.com/eventCreatedHttp'), body: body);
 
       final payload = await parseNotificationRequest(req);
       expect(payload.sectionId, equals('sec-1'));
@@ -67,9 +63,7 @@ void main() {
           'ce-subject': 'documents/sections/paddling/events/trip-2026/registrations/reg-abc',
           'ce-authid': 'leader-123',
         },
-        body: jsonEncode({
-          'status': 'approved',
-        }),
+        body: jsonEncode({'status': 'approved'}),
       );
 
       final payload = await parseNotificationRequest(req);
