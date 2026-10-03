@@ -15,9 +15,8 @@ final _log = Logger('MemberDirectoryCubit');
 /// resolves full [UserProfile] records for rich display. Cancels subscriptions
 /// on [close].
 class MemberDirectoryCubit extends CubitSignal<MemberDirectoryState> {
-  MemberDirectoryCubit({required this.sectionId, AlpineRepository? repository, bool autoSubscribe = true})
-    : _repository = repository,
-      super(initialState: MemberDirectoryState(sectionId: sectionId)) {
+  MemberDirectoryCubit({required this.sectionId, this._repository, bool autoSubscribe = true})
+    : super(initialState: MemberDirectoryState(sectionId: sectionId)) {
     if (autoSubscribe) {
       _subscribe();
     }

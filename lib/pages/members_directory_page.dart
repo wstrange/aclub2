@@ -842,39 +842,45 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
     return AlertDialog(
       title: const Text('Change Role'),
       content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Select role for ${widget.memberName}:',
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 16),
-            _roleOption(
-              role: SectionRole.sectionManager,
-              title: 'Section Manager',
-              subtitle: 'Can manage events, templates, and member roles',
-              icon: Icons.admin_panel_settings,
-              color: Colors.deepPurple,
-            ),
-            const SizedBox(height: 8),
-            _roleOption(
-              role: SectionRole.tripLeader,
-              title: 'Trip Leader',
-              subtitle: 'Can create and lead section events',
-              icon: Icons.explore,
-              color: Colors.teal,
-            ),
-            const SizedBox(height: 8),
-            _roleOption(
-              role: SectionRole.member,
-              title: 'Member',
-              subtitle: 'Can view and register for section events',
-              icon: Icons.person,
-              color: theme.colorScheme.primary,
-            ),
-          ],
+        child: RadioGroup<SectionRole>(
+          groupValue: _selectedRole,
+          onChanged: (val) {
+            if (val != null) setState(() => _selectedRole = val);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Select role for ${widget.memberName}:',
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+              _roleOption(
+                role: SectionRole.sectionManager,
+                title: 'Section Manager',
+                subtitle: 'Can manage events, templates, and member roles',
+                icon: Icons.admin_panel_settings,
+                color: Colors.deepPurple,
+              ),
+              const SizedBox(height: 8),
+              _roleOption(
+                role: SectionRole.tripLeader,
+                title: 'Trip Leader',
+                subtitle: 'Can create and lead section events',
+                icon: Icons.explore,
+                color: Colors.teal,
+              ),
+              const SizedBox(height: 8),
+              _roleOption(
+                role: SectionRole.member,
+                title: 'Member',
+                subtitle: 'Can view and register for section events',
+                icon: Icons.person,
+                color: theme.colorScheme.primary,
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -942,11 +948,7 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
             ),
             Radio<SectionRole>(
               value: role,
-              groupValue: _selectedRole,
               activeColor: color,
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedRole = val);
-              },
             ),
           ],
         ),

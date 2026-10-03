@@ -1,6 +1,6 @@
 import 'package:firebase_functions/firebase_functions.dart';
 import 'package:shared_models/shared_models.dart';
-
+import 'package:firebase_functions/logger.dart' as logger;
 import 'notification_dispatcher.dart';
 
 /// Firestore trigger that fires when a new event document is added to
@@ -9,10 +9,7 @@ import 'notification_dispatcher.dart';
 /// If the event is in [EventStatus.draft] mode, no notifications are sent.
 /// When created directly in [EventStatus.published] mode, interested section
 /// members are notified.
-Future<void> onNewEventCreated(
-  FirestoreEvent<EmulatorDocumentSnapshot?> event,
-  Firebase firebase,
-) async {
+Future<void> onNewEventCreated(FirestoreEvent<EmulatorDocumentSnapshot?> event, Firebase firebase) async {
   final eventData = event.data?.data() ?? <String, dynamic>{};
   final sectionId = event.params['sectionId'] ?? '';
   final eventId = event.data?.id ?? '';
@@ -45,10 +42,7 @@ Future<void> onNewEventCreated(
 ///
 /// When an event transitions from draft to published, triggers sending
 /// notifications to interested section members.
-Future<void> onEventUpdated(
-  FirestoreEvent<Change<EmulatorDocumentSnapshot>?> event,
-  Firebase firebase,
-) async {
+Future<void> onEventUpdated(FirestoreEvent<Change<EmulatorDocumentSnapshot>?> event, Firebase firebase) async {
   final beforeData = event.data?.before?.data() ?? <String, dynamic>{};
   final afterData = event.data?.after?.data() ?? <String, dynamic>{};
   final sectionId = event.params['sectionId'] ?? '';
@@ -60,9 +54,7 @@ Future<void> onEventUpdated(
 
   // Only trigger when transitioning from non-published (e.g. draft) to published
   if (beforeStatus != EventStatus.published.name && afterStatus == EventStatus.published.name) {
-    logger.info(
-      'Event published: eventId=$eventId, sectionId=$sectionId, title=$title',
-    );
+    logger.info('Event published: eventId=$eventId, sectionId=$sectionId, title=$title');
 
     await notifySectionMembersOfEvent(
       firebase: firebase,

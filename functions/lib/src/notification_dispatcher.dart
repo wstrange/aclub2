@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_admin_sdk/messaging.dart' as admin_messaging;
 import 'package:firebase_functions/firebase_functions.dart';
 import 'package:shared_models/shared_models.dart';
+import 'package:firebase_functions/logger.dart' as logger;
 
 /// Sends a notification to a single user via in-app and FCM push channels,
 /// respecting the user's [NotificationPreferences].
@@ -25,7 +26,7 @@ Future<void> sendNotificationToUser({
   try {
     profile = UserProfile.fromJson({...?userDoc.data(), 'id': userId});
   } on Object catch (error) {
-    logger.warn('Skipping malformed profile for $userId: $error');
+    logger.info('Skipping malformed profile for $userId: $error');
     return;
   }
 
@@ -53,12 +54,7 @@ Future<void> sendNotificationToUser({
 
   if (prefs.pushEnabled && profile.fcmTokens.isNotEmpty) {
     channels.add('push');
-    final data = <String, String>{
-      'type': type,
-      'sectionId': sectionId,
-      'eventId': eventId,
-      'link': link,
-    };
+    final data = <String, String>{'type': type, 'sectionId': sectionId, 'eventId': eventId, 'link': link};
 
     if (Platform.environment['FUNCTIONS_EMULATOR'] == 'true') {
       logger.info(
@@ -74,9 +70,7 @@ Future<void> sendNotificationToUser({
           data: data,
         ),
       );
-      logger.info(
-        'FCM push sent to $userId: success=${response.successCount}, failure=${response.failureCount}.',
-      );
+      logger.info('FCM push sent to $userId: success=${response.successCount}, failure=${response.failureCount}.');
     }
   }
 }
@@ -93,12 +87,7 @@ Future<void> notifySectionMembersOfEvent({
 }) async {
   final firestore = firebase.adminApp.firestore();
   final link = '/events/$eventId';
-  final data = <String, String>{
-    'type': type,
-    'sectionId': sectionId,
-    'eventId': eventId,
-    'link': link,
-  };
+  final data = <String, String>{'type': type, 'sectionId': sectionId, 'eventId': eventId, 'link': link};
 
   try {
     final pushTokens = <String>[];
@@ -113,7 +102,7 @@ Future<void> notifySectionMembersOfEvent({
       try {
         profile = UserProfile.fromJson({...?profileDoc.data(), 'id': member.id});
       } on Object catch (error) {
-        logger.warn('Skipping malformed profile for ${member.id}: $error');
+        logger.info('Skipping malformed profile for ${member.id}: $error');
         continue;
       }
 
@@ -144,9 +133,7 @@ Future<void> notifySectionMembersOfEvent({
             data: data,
           ),
         );
-        logger.info(
-          'FCM push sent: success=${response.successCount}, failure=${response.failureCount}.',
-        );
+        logger.info('FCM push sent: success=${response.successCount}, failure=${response.failureCount}.');
       }
     }
 

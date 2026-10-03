@@ -1,19 +1,15 @@
 import 'package:firebase_functions/firebase_functions.dart';
 import 'package:shared_models/shared_models.dart';
-
+import 'package:firebase_functions/logger.dart' as logger;
 import 'notification_dispatcher.dart';
 
 /// Helper to fetch event title and data from Firestore.
-Future<Map<String, dynamic>> _fetchEventData(
-  Firebase firebase,
-  String sectionId,
-  String eventId,
-) async {
+Future<Map<String, dynamic>> _fetchEventData(Firebase firebase, String sectionId, String eventId) async {
   try {
     final doc = await firebase.adminApp.firestore().doc('sections/$sectionId/events/$eventId').get();
     return doc.data() ?? <String, dynamic>{};
   } catch (error) {
-    logger.warn('Failed to fetch event $eventId in section $sectionId: $error');
+    logger.info('Failed to fetch event $eventId in section $sectionId: $error');
     return <String, dynamic>{};
   }
 }
@@ -27,10 +23,7 @@ Future<Map<String, dynamic>> _fetchEventData(
 ///   (authId != userId), notifies the member that they have been added.
 /// * When status is [RegistrationStatus.waitlisted], notifies the member that
 ///   they are on the waitlist.
-Future<void> onRegistrationCreated(
-  FirestoreAuthEvent<EmulatorDocumentSnapshot?> event,
-  Firebase firebase,
-) async {
+Future<void> onRegistrationCreated(FirestoreAuthEvent<EmulatorDocumentSnapshot?> event, Firebase firebase) async {
   final regData = event.data?.data() ?? <String, dynamic>{};
   final sectionId = event.params['sectionId'] ?? '';
   final eventId = event.params['eventId'] ?? '';
@@ -113,8 +106,7 @@ Future<void> onRegistrationUpdated(
   final eventData = await _fetchEventData(firebase, sectionId, eventId);
   final eventTitle = eventData['title']?.toString() ?? 'Event';
 
-  if (beforeStatus != RegistrationStatus.approved.name &&
-      afterStatus == RegistrationStatus.approved.name) {
+  if (beforeStatus != RegistrationStatus.approved.name && afterStatus == RegistrationStatus.approved.name) {
     logger.info('User $userId approved for event $eventId ($eventTitle)');
     await sendNotificationToUser(
       firebase: firebase,
@@ -126,8 +118,7 @@ Future<void> onRegistrationUpdated(
       sectionId: sectionId,
       eventId: eventId,
     );
-  } else if (beforeStatus != RegistrationStatus.waitlisted.name &&
-      afterStatus == RegistrationStatus.waitlisted.name) {
+  } else if (beforeStatus != RegistrationStatus.waitlisted.name && afterStatus == RegistrationStatus.waitlisted.name) {
     logger.info('User $userId moved to waitlist for event $eventId ($eventTitle)');
     await sendNotificationToUser(
       firebase: firebase,
@@ -139,8 +130,7 @@ Future<void> onRegistrationUpdated(
       sectionId: sectionId,
       eventId: eventId,
     );
-  } else if (beforeStatus != RegistrationStatus.rejected.name &&
-      afterStatus == RegistrationStatus.rejected.name) {
+  } else if (beforeStatus != RegistrationStatus.rejected.name && afterStatus == RegistrationStatus.rejected.name) {
     logger.info('User $userId registration rejected for event $eventId ($eventTitle)');
     await sendNotificationToUser(
       firebase: firebase,
@@ -160,10 +150,7 @@ Future<void> onRegistrationUpdated(
 ///
 /// Only sends a notification when a leader/manager removes the user.
 /// If the member withdrew themselves (authId == userId), notification is skipped.
-Future<void> onRegistrationDeleted(
-  FirestoreAuthEvent<EmulatorDocumentSnapshot?> event,
-  Firebase firebase,
-) async {
+Future<void> onRegistrationDeleted(FirestoreAuthEvent<EmulatorDocumentSnapshot?> event, Firebase firebase) async {
   final regData = event.data?.data() ?? <String, dynamic>{};
   final sectionId = event.params['sectionId'] ?? '';
   final eventId = event.params['eventId'] ?? '';
@@ -188,9 +175,7 @@ Future<void> onRegistrationDeleted(
     final eventData = await _fetchEventData(firebase, sectionId, eventId);
     final eventTitle = eventData['title']?.toString() ?? 'Event';
 
-    logger.info(
-      'User $userId was removed from event $eventId by leader (authId: $authId). Notifying user.',
-    );
+    logger.info('User $userId was removed from event $eventId by leader (authId: $authId). Notifying user.');
 
     await sendNotificationToUser(
       firebase: firebase,
