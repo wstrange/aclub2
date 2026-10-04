@@ -85,6 +85,9 @@ class AdminRepository {
         emailVerified: true,
       ),
     );
+    if (user.isAdmin) {
+      await auth.setCustomUserClaims(user.uid, customUserClaims: {'role': 'admin'});
+    }
   }
 
   Future<void> createUserProfile(UserProfile profile) async {
@@ -147,7 +150,6 @@ class AdminRepository {
           emergencyContactName: '${u.firstName} ${u.lastName} (Emergency)',
           emergencyContactPhone: '555-0100${u.uid.substring(u.uid.length - 1)}',
           notificationPreferences: const NotificationPreferences(),
-          isAdmin: u.isAdmin,
           complatedProfile: true,
           waiverSignedDate: now,
           createdAt: now,

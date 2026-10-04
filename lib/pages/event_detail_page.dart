@@ -579,7 +579,13 @@ class _RegistrationSection extends HookWidget {
       await setStatus(registration, RegistrationStatus.approved);
     }
 
-    Future<void> unregister(String userId, {required String confirmTitle, required String confirmMessage, required String successMessage}) async {
+    Future<void> unregister(
+      String userId, {
+      required String confirmTitle,
+      required String confirmMessage,
+      required String successMessage,
+      String? deletedByUserId,
+    }) async {
       final cubit = context.read<EventDetailsCubit>();
       final confirmed = await showDialog<bool>(
         context: context,
@@ -601,7 +607,7 @@ class _RegistrationSection extends HookWidget {
       if (confirmed != true) return;
       isSaving.value = true;
       try {
-        await cubit.removeRegistration(userId);
+        await cubit.removeRegistration(userId, deletedByUserId: deletedByUserId);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage)));
         }
@@ -620,6 +626,7 @@ class _RegistrationSection extends HookWidget {
         confirmTitle: 'Remove registration?',
         confirmMessage: 'This removes the participant from the event.',
         successMessage: 'Registration removed.',
+        deletedByUserId: currentUid,
       );
     }
 
@@ -631,8 +638,10 @@ class _RegistrationSection extends HookWidget {
         confirmTitle: 'Withdraw from event?',
         confirmMessage: 'You will no longer be registered for this event.',
         successMessage: 'You have withdrawn from the event.',
+        deletedByUserId: uid,
       );
     }
+
 
     Future<void> register() async {
       if (currentUid == null) {

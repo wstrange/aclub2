@@ -212,15 +212,31 @@ class AlpineRepository {
         .update({'status': newStatus});
   }
 
-  Future<void> removeRegistration(String sectionId, String eventId, String userId) async {
-    await _firestore
+  /// Removes a registration for [userId] from [eventId] in [sectionId].
+  ///
+  /// Stamps [deletedByUserId] on the document before deleting it so the
+  /// Firestore onDelete trigger can tell whether the deletion was a
+  /// self-withdrawal (deletedByUserId == userId) or a leader removal.
+  Future<void> removeRegistration(
+    String sectionId,
+    String eventId,
+    String userId, {
+    String? deletedByUserId,
+  }) async {
+    final ref = _firestore
         .collection('sections')
         .doc(sectionId)
         .collection('events')
         .doc(eventId)
         .collection('registrations')
-        .doc(userId)
-        .delete();
+        .doc(userId);
+
+    // Stamp who is performing the deletion so the onDelete Cloud Function
+    // trigger can distinguish a self-withdrawal from a leader removal.
+    if (deletedByUserId != null) {
+      await ref.update({'deletedByUserId': deletedByUserId});
+    }
+    await ref.delete();
   }
 
   /// Templates

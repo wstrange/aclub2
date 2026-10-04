@@ -14,7 +14,6 @@ part 'user_profile.g.dart';
 /// NOT stored here. It is tracked via [Section.managerIds] on the relevant
 /// section documents.
 ///
-/// /// TODO: replace with isAdmin: bool
 @freezed
 abstract class UserProfile with _$UserProfile {
   const factory UserProfile({
@@ -48,11 +47,6 @@ abstract class UserProfile with _$UserProfile {
 
     // The default section to login as
     String? defaultSectionId,
-
-    /// Whether this user has global admin access.
-    /// All other roles (section manager, trip leader, member) are per-section
-    /// and are stored on each [SectionMember] document.
-    @Default(false) bool isAdmin,
 
     @Default(false) bool complatedProfile,
 

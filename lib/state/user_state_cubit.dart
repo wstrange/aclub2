@@ -59,7 +59,10 @@ class UserStateCubit extends CubitSignal<UserState?> {
       currentSection = userSections.first;
     }
 
-    _log.info('UserState loaded: user=${authUser.email}, currentSection=${currentSection.name}');
+    final tokenResult = await authUser.getIdTokenResult(force);
+    final isAdmin = tokenResult.claims?['role'] == 'admin' || tokenResult.claims?['admin'] == true;
+
+    _log.info('UserState loaded: user=${authUser.email}, currentSection=${currentSection.name}, isAdmin=$isAdmin');
     emit(
       UserState(
         userProfile: profile,
@@ -67,6 +70,7 @@ class UserStateCubit extends CubitSignal<UserState?> {
         userSections: userSections,
         currentSection: currentSection,
         memberships: memberships,
+        isAdmin: isAdmin,
       ),
     );
   }
@@ -81,8 +85,9 @@ class UserStateCubit extends CubitSignal<UserState?> {
     return null;
   }
 
-  /// True if the user is a section manager or trip leader of [sectionId].
+  /// True if the user is a section manager or trip leader of [sectionId], or a global admin.
   bool canManageSection(String sectionId) {
+    if (state.value?.isAdmin ?? false) return true;
     final role = roleFor(sectionId);
     return role == SectionRole.sectionManager || role == SectionRole.tripLeader;
   }

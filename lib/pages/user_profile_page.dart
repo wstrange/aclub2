@@ -73,7 +73,7 @@ class UserProfileCubit extends CubitSignal<UserProfileFormState> {
 }
 
 /// Loads the signed-in member's profile, then passes that model to the editor.
-class UserProfilePage extends StatelessWidget {
+class UserProfilePage extends HookWidget {
   const UserProfilePage({super.key});
 
   @override
@@ -83,27 +83,23 @@ class UserProfilePage extends StatelessWidget {
       return const Scaffold(body: Center(child: Text('Sign in to edit your profile.')));
     }
 
-    return FutureBuilder<UserProfile?>(
-      // Always refetch on entry so the form reflects the committed document
-      // value, even if a stale profile was left in the repository cache.
-      future: repository.getUserProfile(authUser.uid, reload: true),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        if (snapshot.hasError) {
-          return Scaffold(body: Center(child: Text('Could not load profile: ${snapshot.error}')));
-        }
-        final user = snapshot.data;
-        if (user == null) {
-          return const Scaffold(body: Center(child: Text('Profile not found.')));
-        }
+    final profileFuture = useMemoized(() => repository.getUserProfile(authUser.uid, reload: true), [authUser.uid]);
+    final snapshot = useFuture(profileFuture);
 
-        return BlocSignalProvider<UserProfileCubit>(
-          create: (_) => UserProfileCubit(user, authUser),
-          child: _UserProfileForm(user: user, authUser: authUser),
-        );
-      },
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (snapshot.hasError) {
+      return Scaffold(body: Center(child: Text('Could not load profile: ${snapshot.error}')));
+    }
+    final user = snapshot.data;
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text('Profile not found.')));
+    }
+
+    return BlocSignalProvider<UserProfileCubit>(
+      create: (_) => UserProfileCubit(user, authUser),
+      child: _UserProfileForm(user: user, authUser: authUser),
     );
   }
 }
@@ -129,7 +125,6 @@ class _UserProfileForm extends HookWidget {
     final emergencyRelation = useTextEditingController(text: user.emergencyContactRelation ?? '');
     final medicalConditions = useTextEditingController(text: user.medicalConditions ?? '');
     final certifications = useTextEditingController(text: user.certifications.join(', '));
-    final isAdmin = useState(user.isAdmin);
     final completedProfile = useState(user.complatedProfile);
     final pushEnabled = useState(user.notificationPreferences.pushEnabled);
     final emailEnabled = useState(user.notificationPreferences.emailEnabled);
@@ -160,7 +155,6 @@ class _UserProfileForm extends HookWidget {
         emergencyContactRelation: _emptyToNull(emergencyRelation.text),
         medicalConditions: _emptyToNull(medicalConditions.text),
         certifications: splitList(certifications.text),
-        isAdmin: isAdmin.value,
         complatedProfile: true,
         notificationPreferences: user.notificationPreferences.copyWith(
           pushEnabled: pushEnabled.value,
@@ -250,11 +244,6 @@ class _UserProfileForm extends HookWidget {
               ),
 
               _sectionTitle('Status (Remove latet)'),
-              SwitchListTile(
-                value: isAdmin.value,
-                onChanged: (value) => isAdmin.value = value,
-                title: const Text('Administrator'),
-              ),
               SwitchListTile(
                 value: completedProfile.value,
                 onChanged: (value) => completedProfile.value = value,

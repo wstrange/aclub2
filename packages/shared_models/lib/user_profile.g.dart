@@ -22,7 +22,6 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
           .toList() ??
       const [],
   defaultSectionId: json['defaultSectionId'] as String?,
-  isAdmin: json['isAdmin'] as bool? ?? false,
   complatedProfile: json['complatedProfile'] as bool? ?? false,
   waiverSignedDate: const NullableTimestampConverter().fromJson(
     json['waiverSignedDate'],
@@ -50,7 +49,6 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'medicalConditions': instance.medicalConditions,
       'certifications': instance.certifications,
       'defaultSectionId': instance.defaultSectionId,
-      'isAdmin': instance.isAdmin,
       'complatedProfile': instance.complatedProfile,
       'waiverSignedDate': const NullableTimestampConverter().toJson(
         instance.waiverSignedDate,

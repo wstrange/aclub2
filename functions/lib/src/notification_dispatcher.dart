@@ -162,6 +162,64 @@ Future<void> notifySectionMembersOfEvent({
   }
 }
 
+/// Notifies trip leaders and creator of an event that a member has withdrawn
+/// their registration.
+///
+Future<void> notifyTripLeadersOfWithdrawal({
+  required Firebase firebase,
+  required String sectionId,
+  required String eventId,
+  required String eventTitle,
+  required Map<String, dynamic> eventData,
+  required String withdrawingUserId,
+}) async {
+  final firestore = firebase.adminApp.firestore();
+
+  // Find withdrawing member's name
+  String memberName = 'A member';
+  final memberDoc = await firestore.doc('users/$withdrawingUserId').get();
+  if (memberDoc.exists) {
+    final data = memberDoc.data();
+    final first = data?['firstName']?.toString() ?? '';
+    final last = data?['lastName']?.toString() ?? '';
+    final full = '$first $last'.trim();
+    if (full.isNotEmpty) {
+      memberName = full;
+    }
+  }
+
+  // Collect unique leader IDs (tripLeaderIds + creatorId)
+  final leaders = <String>{};
+  final tripLeaderIds = eventData['tripLeaderIds'];
+  if (tripLeaderIds is List) {
+    for (final id in tripLeaderIds) {
+      if (id != null && id.toString().isNotEmpty) {
+        leaders.add(id.toString());
+      }
+    }
+  }
+  final creatorId = eventData['creatorId']?.toString();
+  if (creatorId != null && creatorId.isNotEmpty) {
+    leaders.add(creatorId);
+  }
+
+  // Don't notify the withdrawing member themselves if they are listed as a leader
+  leaders.remove(withdrawingUserId);
+
+  for (final leaderId in leaders) {
+    await sendNotificationToUser(
+      firebase: firebase,
+      userId: leaderId,
+      title: 'Withdrawal: $eventTitle',
+      message: '$memberName has withdrawn from "$eventTitle".',
+      link: '/events/$eventId',
+      type: 'registration_withdrawn',
+      sectionId: sectionId,
+      eventId: eventId,
+    );
+  }
+}
+
 /// Notifies trip leaders and creator of an event that an applicant submitted a
 /// pending registration request.
 Future<void> notifyTripLeadersOfPendingRegistration({

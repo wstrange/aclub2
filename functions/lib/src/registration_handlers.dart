@@ -170,8 +170,17 @@ Future<void> handleRegistrationUpdated({
 
 /// Core logic for handling a deleted registration (used by emulator trigger & HTTPS endpoints).
 ///
-/// Only sends a notification when a leader/manager removes the user.
-/// If the member withdrew themselves (authId == userId), notification is skipped.
+/// * When a member withdraws themselves (`deletedByUserId == userId` from the
+///   doc, or `authId == userId` for HTTPS-triggered calls), notifies the trip
+///   leaders and creator of the event.
+/// * When a leader/manager removes a member, notifies the member that they
+///   have been removed.
+///
+/// > **Why `deletedByUserId` instead of `authId`?**
+/// > `FirestoreAuthEvent.authId` identifies the Cloud IAM principal (service
+/// > account) that made the write, *not* the Firebase Auth UID of the
+/// > end-user. The client stamps `deletedByUserId` on the document before
+/// > deleting it so the trigger can reliably detect self-withdrawal.
 Future<void> handleRegistrationDeleted({
   required Firebase firebase,
   required String sectionId,
@@ -189,20 +198,31 @@ Future<void> handleRegistrationDeleted({
 
   if (userId.isEmpty) return;
 
-  // Requirement: only when a leader removes them.
-  // If the user removed themselves (withdrew), authId matches userId.
-  if (authId != null && authId == userId) {
-    logger.info('User $userId withdrew themselves from event $eventId. Skipping notification.');
+  // Prefer the client-stamped field; fall back to authId for HTTPS-triggered paths.
+  final effectiveDeletedBy = regData?['deletedByUserId']?.toString() ?? authId;
+  final isSelfWithdrawal = effectiveDeletedBy != null && effectiveDeletedBy == userId;
+
+  final eventData = await fetchEventData(firebase, sectionId, eventId);
+  final eventTitle = eventData['title']?.toString() ?? 'Event';
+
+  // Self-withdrawal: notify trip leaders and creator
+  if (isSelfWithdrawal) {
+    logger.info('User $userId withdrew from event $eventId. Notifying trip leaders.');
+    await notifyTripLeadersOfWithdrawal(
+      firebase: firebase,
+      sectionId: sectionId,
+      eventId: eventId,
+      eventTitle: eventTitle,
+      eventData: eventData,
+      withdrawingUserId: userId,
+    );
     return;
   }
 
-  // Only notify if they held an active or waitlisted status prior to deletion
+  // Leader removal: only notify if they held an active or waitlisted status prior to deletion
   if (status == RegistrationStatus.approved.name ||
       status == RegistrationStatus.pending.name ||
       status == RegistrationStatus.waitlisted.name) {
-    final eventData = await fetchEventData(firebase, sectionId, eventId);
-    final eventTitle = eventData['title']?.toString() ?? 'Event';
-
     logger.info('User $userId was removed from event $eventId by leader (authId: $authId). Notifying user.');
 
     await sendNotificationToUser(

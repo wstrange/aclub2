@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserState {
 
- UserProfile get userProfile; User get user; List<Section> get userSections; Section get currentSection; List<SectionMember> get memberships;
+ UserProfile get userProfile; User get user; List<Section> get userSections; Section get currentSection; List<SectionMember> get memberships; bool get isAdmin;
 /// Create a copy of UserState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,14 +27,14 @@ $UserStateCopyWith<UserState> get copyWith => _$UserStateCopyWithImpl<UserState>
 @override
 bool operator ==(Object other) {
   final _this = this as UserState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserState&&(identical(other.userProfile, _this.userProfile) || other.userProfile == _this.userProfile)&&(identical(other.user, _this.user) || other.user == _this.user)&&const DeepCollectionEquality().equals(other.userSections, _this.userSections)&&(identical(other.currentSection, _this.currentSection) || other.currentSection == _this.currentSection)&&const DeepCollectionEquality().equals(other.memberships, _this.memberships));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserState&&(identical(other.userProfile, _this.userProfile) || other.userProfile == _this.userProfile)&&(identical(other.user, _this.user) || other.user == _this.user)&&const DeepCollectionEquality().equals(other.userSections, _this.userSections)&&(identical(other.currentSection, _this.currentSection) || other.currentSection == _this.currentSection)&&const DeepCollectionEquality().equals(other.memberships, _this.memberships)&&(identical(other.isAdmin, _this.isAdmin) || other.isAdmin == _this.isAdmin));
 }
 
 
 @override
 int get hashCode {
   final _this = this as UserState;
-  return Object.hash(runtimeType,_this.userProfile,_this.user,const DeepCollectionEquality().hash(_this.userSections),_this.currentSection,const DeepCollectionEquality().hash(_this.memberships));
+  return Object.hash(runtimeType,_this.userProfile,_this.user,const DeepCollectionEquality().hash(_this.userSections),_this.currentSection,const DeepCollectionEquality().hash(_this.memberships),_this.isAdmin);
 }
 
 
@@ -46,7 +46,7 @@ abstract mixin class $UserStateCopyWith<$Res>  {
   factory $UserStateCopyWith(UserState value, $Res Function(UserState) _then) = _$UserStateCopyWithImpl;
 @useResult
 $Res call({
- UserProfile userProfile, User user, List<Section> userSections, Section currentSection, List<SectionMember> memberships
+ UserProfile userProfile, User user, List<Section> userSections, Section currentSection, List<SectionMember> memberships, bool isAdmin
 });
 
 
@@ -63,14 +63,15 @@ class _$UserStateCopyWithImpl<$Res>
 
 /// Create a copy of UserState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userProfile = null,Object? user = null,Object? userSections = null,Object? currentSection = null,Object? memberships = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? userProfile = null,Object? user = null,Object? userSections = null,Object? currentSection = null,Object? memberships = null,Object? isAdmin = null,}) {
   return _then(UserState(
 userProfile: null == userProfile ? _self.userProfile : userProfile // ignore: cast_nullable_to_non_nullable
 as UserProfile,user: null == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
 as User,userSections: null == userSections ? _self.userSections : userSections // ignore: cast_nullable_to_non_nullable
 as List<Section>,currentSection: null == currentSection ? _self.currentSection : currentSection // ignore: cast_nullable_to_non_nullable
 as Section,memberships: null == memberships ? _self.memberships : memberships // ignore: cast_nullable_to_non_nullable
-as List<SectionMember>,
+as List<SectionMember>,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of UserState
@@ -170,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( UserProfile userProfile,  User user,  List<Section> userSections,  Section currentSection,  List<SectionMember> memberships)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( UserProfile userProfile,  User user,  List<Section> userSections,  Section currentSection,  List<SectionMember> memberships,  bool isAdmin)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserState() when $default != null:
-return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSection,_that.memberships);case _:
+return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSection,_that.memberships,_that.isAdmin);case _:
   return orElse();
 
 }
@@ -191,10 +192,10 @@ return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSec
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( UserProfile userProfile,  User user,  List<Section> userSections,  Section currentSection,  List<SectionMember> memberships)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( UserProfile userProfile,  User user,  List<Section> userSections,  Section currentSection,  List<SectionMember> memberships,  bool isAdmin)  $default,) {final _that = this;
 switch (_that) {
 case _UserState():
-return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSection,_that.memberships);}
+return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSection,_that.memberships,_that.isAdmin);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -208,10 +209,10 @@ return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSec
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( UserProfile userProfile,  User user,  List<Section> userSections,  Section currentSection,  List<SectionMember> memberships)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( UserProfile userProfile,  User user,  List<Section> userSections,  Section currentSection,  List<SectionMember> memberships,  bool isAdmin)?  $default,) {final _that = this;
 switch (_that) {
 case _UserState() when $default != null:
-return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSection,_that.memberships);case _:
+return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSection,_that.memberships,_that.isAdmin);case _:
   return null;
 
 }
@@ -223,7 +224,7 @@ return $default(_that.userProfile,_that.user,_that.userSections,_that.currentSec
 
 
 class _UserState extends UserState {
-  const _UserState({required this.userProfile, required this.user, required  List<Section> userSections, required this.currentSection, required  List<SectionMember> memberships}): _userSections = userSections,_memberships = memberships,super._();
+  const _UserState({required this.userProfile, required this.user, required  List<Section> userSections, required this.currentSection, required  List<SectionMember> memberships, this.isAdmin = false}): _userSections = userSections,_memberships = memberships,super._();
   
 
 @override final  UserProfile userProfile;
@@ -243,6 +244,7 @@ class _UserState extends UserState {
   return EqualUnmodifiableListView(_memberships);
 }
 
+@override@JsonKey() final  bool isAdmin;
 
 /// Create a copy of UserState
 /// with the given fields replaced by the non-null parameter values.
@@ -254,13 +256,13 @@ _$UserStateCopyWith<_UserState> get copyWith => __$UserStateCopyWithImpl<_UserSt
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserState&&(identical(other.userProfile, userProfile) || other.userProfile == userProfile)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other.userSections, _userSections)&&(identical(other.currentSection, currentSection) || other.currentSection == currentSection)&&const DeepCollectionEquality().equals(other.memberships, _memberships));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserState&&(identical(other.userProfile, userProfile) || other.userProfile == userProfile)&&(identical(other.user, user) || other.user == user)&&const DeepCollectionEquality().equals(other.userSections, _userSections)&&(identical(other.currentSection, currentSection) || other.currentSection == currentSection)&&const DeepCollectionEquality().equals(other.memberships, _memberships)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,userProfile,user,const DeepCollectionEquality().hash(_userSections),currentSection,const DeepCollectionEquality().hash(_memberships));
+    return Object.hash(runtimeType,userProfile,user,const DeepCollectionEquality().hash(_userSections),currentSection,const DeepCollectionEquality().hash(_memberships),isAdmin);
 }
 
 
@@ -272,7 +274,7 @@ abstract mixin class _$UserStateCopyWith<$Res> implements $UserStateCopyWith<$Re
   factory _$UserStateCopyWith(_UserState value, $Res Function(_UserState) _then) = __$UserStateCopyWithImpl;
 @override @useResult
 $Res call({
- UserProfile userProfile, User user, List<Section> userSections, Section currentSection, List<SectionMember> memberships
+ UserProfile userProfile, User user, List<Section> userSections, Section currentSection, List<SectionMember> memberships, bool isAdmin
 });
 
 
@@ -289,14 +291,15 @@ class __$UserStateCopyWithImpl<$Res>
 
 /// Create a copy of UserState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userProfile = null,Object? user = null,Object? userSections = null,Object? currentSection = null,Object? memberships = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? userProfile = null,Object? user = null,Object? userSections = null,Object? currentSection = null,Object? memberships = null,Object? isAdmin = null,}) {
   return _then(_UserState(
 userProfile: null == userProfile ? _self.userProfile : userProfile // ignore: cast_nullable_to_non_nullable
 as UserProfile,user: null == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
 as User,userSections: null == userSections ? _self._userSections : userSections // ignore: cast_nullable_to_non_nullable
 as List<Section>,currentSection: null == currentSection ? _self.currentSection : currentSection // ignore: cast_nullable_to_non_nullable
 as Section,memberships: null == memberships ? _self._memberships : memberships // ignore: cast_nullable_to_non_nullable
-as List<SectionMember>,
+as List<SectionMember>,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

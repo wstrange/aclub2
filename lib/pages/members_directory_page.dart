@@ -26,7 +26,7 @@ class MembersDirectoryPage extends StatelessWidget {
           );
         }
 
-        final isGlobalAdmin = userState.userProfile.isAdmin;
+        final isGlobalAdmin = userState.isAdmin;
 
         if (isGlobalAdmin) {
           return FutureBuilder<List<Section>>(

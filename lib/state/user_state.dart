@@ -16,8 +16,9 @@ sealed class UserState with _$UserState {
     required List<Section> userSections,
     required Section currentSection,
     required List<SectionMember> memberships,
+    @Default(false) bool isAdmin,
   }) = _UserState;
 
   @override
-  String toString() => 'UserState(user: ${user.email}, section: ${currentSection.name})';
+  String toString() => 'UserState(user: ${user.email}, section: ${currentSection.name}, isAdmin: $isAdmin)';
 }

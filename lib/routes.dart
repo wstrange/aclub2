@@ -172,6 +172,25 @@ Future<List<AppRoute>> appGuard(List<AppRoute> current, List<AppRoute> proposed)
     profile = await repository.getUserProfile(user.uid);
   }
 
+  // 2. Waiver check — must be signed within the past 365 days.
+  final waiverSignedDate = profile?.waiverSignedDate;
+  final bool waiverCurrent = waiverSignedDate != null && DateTime.now().difference(waiverSignedDate).inDays < 365;
+  final bool headingToWaiver = proposed.any((r) => r is WaiverRoute);
+
+  if (!waiverCurrent) {
+    if (!headingToWaiver) {
+      _log.info('Waiver not current for ${user.uid}, redirecting to WaiverRoute');
+      return const [WaiverRoute()];
+    }
+    return proposed;
+  }
+
+  // Waiver is current; skip waiver page if explicitly requested
+  if (headingToWaiver) {
+    proposed = const [HomeRoute()];
+  }
+
+  // 3. Profile completion check
   final bool profileComplete = profile != null && profile.complatedProfile;
   final bool headingToProfile = proposed.any((r) => r is UserProfileRoute);
 
@@ -186,24 +205,6 @@ Future<List<AppRoute>> appGuard(List<AppRoute> current, List<AppRoute> proposed)
   // Profile is complete; allow viewing/editing profile if requested
   if (headingToProfile) {
     return proposed;
-  }
-
-  // 3. Waiver check — must be signed within the past 365 days.
-  final waiverSignedDate = profile.waiverSignedDate;
-  final bool waiverCurrent = waiverSignedDate != null && DateTime.now().difference(waiverSignedDate).inDays < 365;
-  final bool headingToWaiver = proposed.any((r) => r is WaiverRoute);
-
-  if (!waiverCurrent) {
-    if (!headingToWaiver) {
-      _log.info('Waiver not current for ${user.uid}, redirecting to WaiverRoute');
-      return const [WaiverRoute()];
-    }
-    return proposed;
-  }
-
-  // Waiver is current; skip waiver page if explicitly requested
-  if (headingToWaiver) {
-    return const [HomeRoute()];
   }
 
   // 4. Section membership check

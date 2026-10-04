@@ -8,7 +8,7 @@ import '../repo.dart';
 import '../routes.dart';
 import '../state/user_state_cubit.dart';
 
-class SectionSelectionPage extends StatelessWidget {
+class SectionSelectionPage extends HookWidget {
   const SectionSelectionPage({super.key});
 
   @override
@@ -18,32 +18,33 @@ class SectionSelectionPage extends StatelessWidget {
       return const Scaffold(body: Center(child: Text('Sign in to select sections.')));
     }
 
-    return FutureBuilder<List<dynamic>>(
-      future: Future.wait([repository.getSections(), repository.getUserMemberships(user.uid)]),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        if (snapshot.hasError) {
-          return Scaffold(body: Center(child: Text('Error loading sections: ${snapshot.error}')));
-        }
+    final loadFuture = useMemoized(
+      () => Future.wait([repository.getSections(), repository.getUserMemberships(user.uid)]),
+      [user.uid],
+    );
+    final snapshot = useFuture(loadFuture);
 
-        final sections = (snapshot.data?[0] as List<Section>?) ?? [];
-        final memberships = (snapshot.data?[1] as List<SectionMember>?) ?? const <SectionMember>[];
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (snapshot.hasError) {
+      return Scaffold(body: Center(child: Text('Error loading sections: ${snapshot.error}')));
+    }
 
-        if (sections.isEmpty) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Select Sections')),
-            body: const Center(child: Text('No sections available.')),
-          );
-        }
+    final sections = (snapshot.data?[0] as List<Section>?) ?? [];
+    final memberships = (snapshot.data?[1] as List<SectionMember>?) ?? const <SectionMember>[];
 
-        return _SectionSelectionForm(
-          userId: user.uid,
-          sections: sections,
-          initialSelected: memberships.map((m) => m.sectionId).toList(),
-        );
-      },
+    if (sections.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Select Sections')),
+        body: const Center(child: Text('No sections available.')),
+      );
+    }
+
+    return _SectionSelectionForm(
+      userId: user.uid,
+      sections: sections,
+      initialSelected: memberships.map((m) => m.sectionId).toList(),
     );
   }
 }

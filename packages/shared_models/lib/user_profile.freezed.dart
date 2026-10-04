@@ -23,10 +23,7 @@ mixin _$UserProfile {
  List<String> get certifications;/// Membership is NOT stored on the profile. The source of truth is the
 /// `sections/{sectionId}/members/{userId}` subcollection. This field was
 /// removed so section membership can't be accidentally read from here.
- String? get defaultSectionId;/// Whether this user has global admin access.
-/// All other roles (section manager, trip leader, member) are per-section
-/// and are stored on each [SectionMember] document.
- bool get isAdmin; bool get complatedProfile;/// The date and time the user last signed the waiver.
+ String? get defaultSectionId; bool get complatedProfile;/// The date and time the user last signed the waiver.
 /// `null` means never signed. Used to enforce annual re-signing:
 /// if more than 365 days have elapsed, the user is redirected to the
 /// waiver page on next login.
@@ -50,20 +47,20 @@ $UserProfileCopyWith<UserProfile> get copyWith => _$UserProfileCopyWithImpl<User
 @override
 bool operator ==(Object other) {
   final _this = this as UserProfile;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfile&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.firstName, _this.firstName) || other.firstName == _this.firstName)&&(identical(other.lastName, _this.lastName) || other.lastName == _this.lastName)&&(identical(other.email, _this.email) || other.email == _this.email)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.emergencyContactName, _this.emergencyContactName) || other.emergencyContactName == _this.emergencyContactName)&&(identical(other.emergencyContactPhone, _this.emergencyContactPhone) || other.emergencyContactPhone == _this.emergencyContactPhone)&&(identical(other.emergencyContactRelation, _this.emergencyContactRelation) || other.emergencyContactRelation == _this.emergencyContactRelation)&&(identical(other.medicalConditions, _this.medicalConditions) || other.medicalConditions == _this.medicalConditions)&&const DeepCollectionEquality().equals(other.certifications, _this.certifications)&&(identical(other.defaultSectionId, _this.defaultSectionId) || other.defaultSectionId == _this.defaultSectionId)&&(identical(other.isAdmin, _this.isAdmin) || other.isAdmin == _this.isAdmin)&&(identical(other.complatedProfile, _this.complatedProfile) || other.complatedProfile == _this.complatedProfile)&&(identical(other.waiverSignedDate, _this.waiverSignedDate) || other.waiverSignedDate == _this.waiverSignedDate)&&const DeepCollectionEquality().equals(other.fcmTokens, _this.fcmTokens)&&(identical(other.notificationPreferences, _this.notificationPreferences) || other.notificationPreferences == _this.notificationPreferences)&&(identical(other.createdAt, _this.createdAt) || other.createdAt == _this.createdAt)&&(identical(other.updatedAt, _this.updatedAt) || other.updatedAt == _this.updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfile&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.firstName, _this.firstName) || other.firstName == _this.firstName)&&(identical(other.lastName, _this.lastName) || other.lastName == _this.lastName)&&(identical(other.email, _this.email) || other.email == _this.email)&&(identical(other.phone, _this.phone) || other.phone == _this.phone)&&(identical(other.emergencyContactName, _this.emergencyContactName) || other.emergencyContactName == _this.emergencyContactName)&&(identical(other.emergencyContactPhone, _this.emergencyContactPhone) || other.emergencyContactPhone == _this.emergencyContactPhone)&&(identical(other.emergencyContactRelation, _this.emergencyContactRelation) || other.emergencyContactRelation == _this.emergencyContactRelation)&&(identical(other.medicalConditions, _this.medicalConditions) || other.medicalConditions == _this.medicalConditions)&&const DeepCollectionEquality().equals(other.certifications, _this.certifications)&&(identical(other.defaultSectionId, _this.defaultSectionId) || other.defaultSectionId == _this.defaultSectionId)&&(identical(other.complatedProfile, _this.complatedProfile) || other.complatedProfile == _this.complatedProfile)&&(identical(other.waiverSignedDate, _this.waiverSignedDate) || other.waiverSignedDate == _this.waiverSignedDate)&&const DeepCollectionEquality().equals(other.fcmTokens, _this.fcmTokens)&&(identical(other.notificationPreferences, _this.notificationPreferences) || other.notificationPreferences == _this.notificationPreferences)&&(identical(other.createdAt, _this.createdAt) || other.createdAt == _this.createdAt)&&(identical(other.updatedAt, _this.updatedAt) || other.updatedAt == _this.updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as UserProfile;
-  return Object.hash(runtimeType,_this.id,_this.firstName,_this.lastName,_this.email,_this.phone,_this.emergencyContactName,_this.emergencyContactPhone,_this.emergencyContactRelation,_this.medicalConditions,const DeepCollectionEquality().hash(_this.certifications),_this.defaultSectionId,_this.isAdmin,_this.complatedProfile,_this.waiverSignedDate,const DeepCollectionEquality().hash(_this.fcmTokens),_this.notificationPreferences,_this.createdAt,_this.updatedAt);
+  return Object.hash(runtimeType,_this.id,_this.firstName,_this.lastName,_this.email,_this.phone,_this.emergencyContactName,_this.emergencyContactPhone,_this.emergencyContactRelation,_this.medicalConditions,const DeepCollectionEquality().hash(_this.certifications),_this.defaultSectionId,_this.complatedProfile,_this.waiverSignedDate,const DeepCollectionEquality().hash(_this.fcmTokens),_this.notificationPreferences,_this.createdAt,_this.updatedAt);
 }
 
 @override
 String toString() {
   final _this = this as UserProfile;
-  return 'UserProfile(id: ${_this.id}, firstName: ${_this.firstName}, lastName: ${_this.lastName}, email: ${_this.email}, phone: ${_this.phone}, emergencyContactName: ${_this.emergencyContactName}, emergencyContactPhone: ${_this.emergencyContactPhone}, emergencyContactRelation: ${_this.emergencyContactRelation}, medicalConditions: ${_this.medicalConditions}, certifications: ${_this.certifications}, defaultSectionId: ${_this.defaultSectionId}, isAdmin: ${_this.isAdmin}, complatedProfile: ${_this.complatedProfile}, waiverSignedDate: ${_this.waiverSignedDate}, fcmTokens: ${_this.fcmTokens}, notificationPreferences: ${_this.notificationPreferences}, createdAt: ${_this.createdAt}, updatedAt: ${_this.updatedAt})';
+  return 'UserProfile(id: ${_this.id}, firstName: ${_this.firstName}, lastName: ${_this.lastName}, email: ${_this.email}, phone: ${_this.phone}, emergencyContactName: ${_this.emergencyContactName}, emergencyContactPhone: ${_this.emergencyContactPhone}, emergencyContactRelation: ${_this.emergencyContactRelation}, medicalConditions: ${_this.medicalConditions}, certifications: ${_this.certifications}, defaultSectionId: ${_this.defaultSectionId}, complatedProfile: ${_this.complatedProfile}, waiverSignedDate: ${_this.waiverSignedDate}, fcmTokens: ${_this.fcmTokens}, notificationPreferences: ${_this.notificationPreferences}, createdAt: ${_this.createdAt}, updatedAt: ${_this.updatedAt})';
 }
 
 
@@ -74,7 +71,7 @@ abstract mixin class $UserProfileCopyWith<$Res>  {
   factory $UserProfileCopyWith(UserProfile value, $Res Function(UserProfile) _then) = _$UserProfileCopyWithImpl;
 @useResult
 $Res call({
- String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, String? defaultSectionId, bool isAdmin, bool complatedProfile,@NullableTimestampConverter() DateTime? waiverSignedDate, List<String> fcmTokens,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, String? defaultSectionId, bool complatedProfile,@NullableTimestampConverter() DateTime? waiverSignedDate, List<String> fcmTokens,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -91,7 +88,7 @@ class _$UserProfileCopyWithImpl<$Res>
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = freezed,Object? phone = freezed,Object? emergencyContactName = null,Object? emergencyContactPhone = null,Object? emergencyContactRelation = freezed,Object? medicalConditions = freezed,Object? certifications = null,Object? defaultSectionId = freezed,Object? isAdmin = null,Object? complatedProfile = null,Object? waiverSignedDate = freezed,Object? fcmTokens = null,Object? notificationPreferences = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = freezed,Object? phone = freezed,Object? emergencyContactName = null,Object? emergencyContactPhone = null,Object? emergencyContactRelation = freezed,Object? medicalConditions = freezed,Object? certifications = null,Object? defaultSectionId = freezed,Object? complatedProfile = null,Object? waiverSignedDate = freezed,Object? fcmTokens = null,Object? notificationPreferences = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(UserProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
@@ -104,8 +101,7 @@ as String,emergencyContactRelation: freezed == emergencyContactRelation ? _self.
 as String?,medicalConditions: freezed == medicalConditions ? _self.medicalConditions : medicalConditions // ignore: cast_nullable_to_non_nullable
 as String?,certifications: null == certifications ? _self.certifications : certifications // ignore: cast_nullable_to_non_nullable
 as List<String>,defaultSectionId: freezed == defaultSectionId ? _self.defaultSectionId : defaultSectionId // ignore: cast_nullable_to_non_nullable
-as String?,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
-as bool,complatedProfile: null == complatedProfile ? _self.complatedProfile : complatedProfile // ignore: cast_nullable_to_non_nullable
+as String?,complatedProfile: null == complatedProfile ? _self.complatedProfile : complatedProfile // ignore: cast_nullable_to_non_nullable
 as bool,waiverSignedDate: freezed == waiverSignedDate ? _self.waiverSignedDate : waiverSignedDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,fcmTokens: null == fcmTokens ? _self.fcmTokens : fcmTokens // ignore: cast_nullable_to_non_nullable
 as List<String>,notificationPreferences: null == notificationPreferences ? _self.notificationPreferences : notificationPreferences // ignore: cast_nullable_to_non_nullable
@@ -205,10 +201,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile, @NullableTimestampConverter()  DateTime? waiverSignedDate,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool complatedProfile, @NullableTimestampConverter()  DateTime? waiverSignedDate,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
-return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.defaultSectionId,_that.isAdmin,_that.complatedProfile,_that.waiverSignedDate,_that.fcmTokens,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.defaultSectionId,_that.complatedProfile,_that.waiverSignedDate,_that.fcmTokens,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -226,10 +222,10 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile, @NullableTimestampConverter()  DateTime? waiverSignedDate,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool complatedProfile, @NullableTimestampConverter()  DateTime? waiverSignedDate,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile():
-return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.defaultSectionId,_that.isAdmin,_that.complatedProfile,_that.waiverSignedDate,_that.fcmTokens,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.defaultSectionId,_that.complatedProfile,_that.waiverSignedDate,_that.fcmTokens,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -246,10 +242,10 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool isAdmin,  bool complatedProfile, @NullableTimestampConverter()  DateTime? waiverSignedDate,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String firstName,  String lastName,  String? email,  String? phone,  String emergencyContactName,  String emergencyContactPhone,  String? emergencyContactRelation,  String? medicalConditions,  List<String> certifications,  String? defaultSectionId,  bool complatedProfile, @NullableTimestampConverter()  DateTime? waiverSignedDate,  List<String> fcmTokens, @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson)  NotificationPreferences notificationPreferences, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
-return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.defaultSectionId,_that.isAdmin,_that.complatedProfile,_that.waiverSignedDate,_that.fcmTokens,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.emergencyContactName,_that.emergencyContactPhone,_that.emergencyContactRelation,_that.medicalConditions,_that.certifications,_that.defaultSectionId,_that.complatedProfile,_that.waiverSignedDate,_that.fcmTokens,_that.notificationPreferences,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -261,7 +257,7 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,
 @JsonSerializable()
 
 class _UserProfile implements UserProfile {
-  const _UserProfile({required this.id, required this.firstName, required this.lastName, this.email, this.phone, required this.emergencyContactName, required this.emergencyContactPhone, this.emergencyContactRelation, this.medicalConditions,  List<String> certifications = const [], this.defaultSectionId, this.isAdmin = false, this.complatedProfile = false, @NullableTimestampConverter() this.waiverSignedDate,  List<String> fcmTokens = const [], @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) required this.notificationPreferences, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _certifications = certifications,_fcmTokens = fcmTokens;
+  const _UserProfile({required this.id, required this.firstName, required this.lastName, this.email, this.phone, required this.emergencyContactName, required this.emergencyContactPhone, this.emergencyContactRelation, this.medicalConditions,  List<String> certifications = const [], this.defaultSectionId, this.complatedProfile = false, @NullableTimestampConverter() this.waiverSignedDate,  List<String> fcmTokens = const [], @JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) required this.notificationPreferences, @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _certifications = certifications,_fcmTokens = fcmTokens;
   factory _UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
 
 /// Firebase Auth UID — used as the Firestore document ID.
@@ -289,10 +285,6 @@ class _UserProfile implements UserProfile {
 /// `sections/{sectionId}/members/{userId}` subcollection. This field was
 /// removed so section membership can't be accidentally read from here.
 @override final  String? defaultSectionId;
-/// Whether this user has global admin access.
-/// All other roles (section manager, trip leader, member) are per-section
-/// and are stored on each [SectionMember] document.
-@override@JsonKey() final  bool isAdmin;
 @override@JsonKey() final  bool complatedProfile;
 /// The date and time the user last signed the waiver.
 /// `null` means never signed. Used to enforce annual re-signing:
@@ -335,18 +327,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.emergencyContactName, emergencyContactName) || other.emergencyContactName == emergencyContactName)&&(identical(other.emergencyContactPhone, emergencyContactPhone) || other.emergencyContactPhone == emergencyContactPhone)&&(identical(other.emergencyContactRelation, emergencyContactRelation) || other.emergencyContactRelation == emergencyContactRelation)&&(identical(other.medicalConditions, medicalConditions) || other.medicalConditions == medicalConditions)&&const DeepCollectionEquality().equals(other.certifications, _certifications)&&(identical(other.defaultSectionId, defaultSectionId) || other.defaultSectionId == defaultSectionId)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.complatedProfile, complatedProfile) || other.complatedProfile == complatedProfile)&&(identical(other.waiverSignedDate, waiverSignedDate) || other.waiverSignedDate == waiverSignedDate)&&const DeepCollectionEquality().equals(other.fcmTokens, _fcmTokens)&&(identical(other.notificationPreferences, notificationPreferences) || other.notificationPreferences == notificationPreferences)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.emergencyContactName, emergencyContactName) || other.emergencyContactName == emergencyContactName)&&(identical(other.emergencyContactPhone, emergencyContactPhone) || other.emergencyContactPhone == emergencyContactPhone)&&(identical(other.emergencyContactRelation, emergencyContactRelation) || other.emergencyContactRelation == emergencyContactRelation)&&(identical(other.medicalConditions, medicalConditions) || other.medicalConditions == medicalConditions)&&const DeepCollectionEquality().equals(other.certifications, _certifications)&&(identical(other.defaultSectionId, defaultSectionId) || other.defaultSectionId == defaultSectionId)&&(identical(other.complatedProfile, complatedProfile) || other.complatedProfile == complatedProfile)&&(identical(other.waiverSignedDate, waiverSignedDate) || other.waiverSignedDate == waiverSignedDate)&&const DeepCollectionEquality().equals(other.fcmTokens, _fcmTokens)&&(identical(other.notificationPreferences, notificationPreferences) || other.notificationPreferences == notificationPreferences)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,firstName,lastName,email,phone,emergencyContactName,emergencyContactPhone,emergencyContactRelation,medicalConditions,const DeepCollectionEquality().hash(_certifications),defaultSectionId,isAdmin,complatedProfile,waiverSignedDate,const DeepCollectionEquality().hash(_fcmTokens),notificationPreferences,createdAt,updatedAt);
+    return Object.hash(runtimeType,id,firstName,lastName,email,phone,emergencyContactName,emergencyContactPhone,emergencyContactRelation,medicalConditions,const DeepCollectionEquality().hash(_certifications),defaultSectionId,complatedProfile,waiverSignedDate,const DeepCollectionEquality().hash(_fcmTokens),notificationPreferences,createdAt,updatedAt);
 }
 
 @override
 String toString() {
-    return 'UserProfile(id: $id, firstName: $firstName, lastName: $lastName, email: $email, phone: $phone, emergencyContactName: $emergencyContactName, emergencyContactPhone: $emergencyContactPhone, emergencyContactRelation: $emergencyContactRelation, medicalConditions: $medicalConditions, certifications: $certifications, defaultSectionId: $defaultSectionId, isAdmin: $isAdmin, complatedProfile: $complatedProfile, waiverSignedDate: $waiverSignedDate, fcmTokens: $fcmTokens, notificationPreferences: $notificationPreferences, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'UserProfile(id: $id, firstName: $firstName, lastName: $lastName, email: $email, phone: $phone, emergencyContactName: $emergencyContactName, emergencyContactPhone: $emergencyContactPhone, emergencyContactRelation: $emergencyContactRelation, medicalConditions: $medicalConditions, certifications: $certifications, defaultSectionId: $defaultSectionId, complatedProfile: $complatedProfile, waiverSignedDate: $waiverSignedDate, fcmTokens: $fcmTokens, notificationPreferences: $notificationPreferences, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -357,7 +349,7 @@ abstract mixin class _$UserProfileCopyWith<$Res> implements $UserProfileCopyWith
   factory _$UserProfileCopyWith(_UserProfile value, $Res Function(_UserProfile) _then) = __$UserProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, String? defaultSectionId, bool isAdmin, bool complatedProfile,@NullableTimestampConverter() DateTime? waiverSignedDate, List<String> fcmTokens,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String id, String firstName, String lastName, String? email, String? phone, String emergencyContactName, String emergencyContactPhone, String? emergencyContactRelation, String? medicalConditions, List<String> certifications, String? defaultSectionId, bool complatedProfile,@NullableTimestampConverter() DateTime? waiverSignedDate, List<String> fcmTokens,@JsonKey(toJson: _notificationPreferencesToJson, fromJson: _notificationPreferencesFromJson) NotificationPreferences notificationPreferences,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -374,7 +366,7 @@ class __$UserProfileCopyWithImpl<$Res>
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = freezed,Object? phone = freezed,Object? emergencyContactName = null,Object? emergencyContactPhone = null,Object? emergencyContactRelation = freezed,Object? medicalConditions = freezed,Object? certifications = null,Object? defaultSectionId = freezed,Object? isAdmin = null,Object? complatedProfile = null,Object? waiverSignedDate = freezed,Object? fcmTokens = null,Object? notificationPreferences = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = freezed,Object? phone = freezed,Object? emergencyContactName = null,Object? emergencyContactPhone = null,Object? emergencyContactRelation = freezed,Object? medicalConditions = freezed,Object? certifications = null,Object? defaultSectionId = freezed,Object? complatedProfile = null,Object? waiverSignedDate = freezed,Object? fcmTokens = null,Object? notificationPreferences = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_UserProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
@@ -387,8 +379,7 @@ as String,emergencyContactRelation: freezed == emergencyContactRelation ? _self.
 as String?,medicalConditions: freezed == medicalConditions ? _self.medicalConditions : medicalConditions // ignore: cast_nullable_to_non_nullable
 as String?,certifications: null == certifications ? _self._certifications : certifications // ignore: cast_nullable_to_non_nullable
 as List<String>,defaultSectionId: freezed == defaultSectionId ? _self.defaultSectionId : defaultSectionId // ignore: cast_nullable_to_non_nullable
-as String?,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
-as bool,complatedProfile: null == complatedProfile ? _self.complatedProfile : complatedProfile // ignore: cast_nullable_to_non_nullable
+as String?,complatedProfile: null == complatedProfile ? _self.complatedProfile : complatedProfile // ignore: cast_nullable_to_non_nullable
 as bool,waiverSignedDate: freezed == waiverSignedDate ? _self.waiverSignedDate : waiverSignedDate // ignore: cast_nullable_to_non_nullable
 as DateTime?,fcmTokens: null == fcmTokens ? _self._fcmTokens : fcmTokens // ignore: cast_nullable_to_non_nullable
 as List<String>,notificationPreferences: null == notificationPreferences ? _self.notificationPreferences : notificationPreferences // ignore: cast_nullable_to_non_nullable

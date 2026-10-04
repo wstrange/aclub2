@@ -62,8 +62,12 @@ class EventDetailsCubit extends CubitSignal<EventDetailsState> {
   }
 
   /// Removes [userId] from this event's registrations.
-  Future<void> removeRegistration(String userId) async {
-    await repository.removeRegistration(sectionId, eventId, userId);
+  ///
+  /// Pass [deletedByUserId] (the Firebase Auth UID of the caller) so the
+  /// repo can stamp it on the document before deletion, allowing the
+  /// onDelete Cloud Function trigger to detect self-withdrawal vs. leader removal.
+  Future<void> removeRegistration(String userId, {String? deletedByUserId}) async {
+    await repository.removeRegistration(sectionId, eventId, userId, deletedByUserId: deletedByUserId);
   }
 
   /// Adds [userId] to the event's trip leader list.
