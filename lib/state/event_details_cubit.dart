@@ -70,6 +70,12 @@ class EventDetailsCubit extends CubitSignal<EventDetailsState> {
     await repository.removeRegistration(sectionId, eventId, userId, deletedByUserId: deletedByUserId);
   }
 
+
+  /// Withdraws the current user from this event (sets status to withdrawn).
+  Future<void> withdrawSelf(String userId, {String? withdrawnByUserId}) async {
+    await repository.withdrawRegistration(sectionId, eventId, userId, withdrawnByUserId: withdrawnByUserId);
+  }
+
   /// Adds [userId] to the event's trip leader list.
   Future<void> assignTripLeader(String userId) async {
     final event = state.value.event;

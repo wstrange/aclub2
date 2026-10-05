@@ -165,9 +165,40 @@ Future<void> handleRegistrationUpdated({
       sectionId: sectionId,
       eventId: eventId,
     );
+  } else if (afterStatus == RegistrationStatus.withdrawn.name) {
+    // Detect self-withdrawal - client sets withdrawnByUserId
+    final withdrawnBy = afterData?['withdrawnByUserId']?.toString();
+    final isSelfWithdrawal = withdrawnBy != null && withdrawnBy == userId;
+    if (isSelfWithdrawal) {
+      logger.info('User $userId withdrew from event $eventId ($eventTitle)');
+      await notifyTripLeadersOfWithdrawal(
+        firebase: firebase,
+        sectionId: sectionId,
+        eventId: eventId,
+        eventTitle: eventTitle,
+        eventData: eventData,
+        withdrawingUserId: userId,
+      );
+    } else if (beforeStatus != null &&
+        (beforeStatus == RegistrationStatus.approved.name ||
+            beforeStatus == RegistrationStatus.pending.name ||
+            beforeStatus == RegistrationStatus.waitlisted.name)) {
+      // Leader-initiated withdrawal/removal represented as withdrawn
+      logger.info('User $userId removed from event $eventId by leader (withdrawnBy: $withdrawnBy). Notifying user.');
+      await sendNotificationToUser(
+        firebase: firebase,
+        userId: userId,
+        title: 'Event Update: $eventTitle',
+        message: 'You have been removed from "$eventTitle".',
+        link: '/events/$eventId',
+        type: 'registration_removed',
+        sectionId: sectionId,
+        eventId: eventId,
+      );
+    }
   }
-}
 
+}
 /// Core logic for handling a deleted registration (used by emulator trigger & HTTPS endpoints).
 ///
 /// * When a member withdraws themselves (`deletedByUserId == userId` from the

@@ -212,6 +212,24 @@ class AlpineRepository {
         .update({'status': newStatus});
   }
 
+  Future<void> withdrawRegistration(String sectionId, String eventId, String userId,
+      {String? withdrawnByUserId}) async {
+    final now = DateTime.now();
+    await _firestore
+        .collection('sections')
+        .doc(sectionId)
+        .collection('events')
+        .doc(eventId)
+        .collection('registrations')
+        .doc(userId)
+        .update({
+      'status': 'withdrawn',
+      'withdrawnByUserId': withdrawnByUserId ?? userId,
+      'withdrawnAt': now,
+      'updatedAt': now,
+    });
+  }
+
   /// Removes a registration for [userId] from [eventId] in [sectionId].
   ///
   /// Stamps [deletedByUserId] on the document before deleting it so the

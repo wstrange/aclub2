@@ -23,7 +23,7 @@ enum EventStatus { draft, published }
 enum Difficulty { easy, moderate, hard }
 
 /// A member's registration state for an event.
-enum RegistrationStatus { pending, approved, waitlisted, rejected, attended, absent }
+enum RegistrationStatus { pending, approved, waitlisted, rejected, attended, absent, withdrawn }
 
 /// Delivery channels for a notification.
 enum NotificationChannel { push, email, inApp }

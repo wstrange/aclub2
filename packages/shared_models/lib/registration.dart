@@ -38,6 +38,12 @@ abstract class Registration with _$Registration {
     // ── Timestamps ────────────────────────────────────────────────────────
     @TimestampConverter() required DateTime registeredAt,
     @TimestampConverter() required DateTime updatedAt,
+
+    /// User who withdrew this registration (self or leader).
+    String? withdrawnByUserId,
+
+    /// When the registration was withdrawn.
+    @TimestampConverter() DateTime? withdrawnAt,
   }) = _Registration;
 
   factory Registration.fromJson(Map<String, dynamic> json) =>

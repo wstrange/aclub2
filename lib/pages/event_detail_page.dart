@@ -633,13 +633,38 @@ class _RegistrationSection extends HookWidget {
     Future<void> withdraw() async {
       final uid = currentUid;
       if (uid == null) return;
-      await unregister(
-        uid,
-        confirmTitle: 'Withdraw from event?',
-        confirmMessage: 'You will no longer be registered for this event.',
-        successMessage: 'You have withdrawn from the event.',
-        deletedByUserId: uid,
+      final cubit = context.read<EventDetailsCubit>();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Withdraw from event?'),
+          content: const Text('You will no longer be registered for this event.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Withdraw'),
+            ),
+          ],
+        ),
       );
+      if (confirmed != true) return;
+      isSaving.value = true;
+      try {
+        await cubit.withdrawSelf(uid, withdrawnByUserId: uid);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You have withdrawn from the event.')));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to withdraw: $e')));
+        }
+      } finally {
+        isSaving.value = false;
+      }
     }
 
 
@@ -822,9 +847,10 @@ class _RegistrationSection extends HookWidget {
       RegistrationStatus.rejected => 'Rejected',
       RegistrationStatus.attended => 'Attended',
       RegistrationStatus.absent => 'Absent',
+      RegistrationStatus.withdrawn => 'Withdrawn',
     };
 
-    final bool canRegister = currentUid != null && myRegistration == null && (hasSpace || event.requiresApproval);
+    final bool canRegister = currentUid != null && (myRegistration == null || myRegistration.status == RegistrationStatus.withdrawn) && (hasSpace || event.requiresApproval);
 
     // Registrations a leader/manager can act on: pending, waitlisted, approved.
     final manageable = registrations
@@ -876,7 +902,7 @@ class _RegistrationSection extends HookWidget {
                       : const Text('Register'),
                 ),
               ),
-            ] else if (myRegistration != null) ...[
+            ] else if (myRegistration != null && myRegistration.status != RegistrationStatus.withdrawn) ...[
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,

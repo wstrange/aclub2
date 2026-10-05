@@ -63,12 +63,21 @@ void main() {
       expect(isRejectedTransition, isTrue);
     });
 
+    test('Registration withdrawal transition detection', () {
+      final beforeApproved = {'status': RegistrationStatus.approved.name};
+      final afterWithdrawn = {'status': RegistrationStatus.withdrawn.name};
+      final isWithdrawal = beforeApproved['status'] != RegistrationStatus.withdrawn.name &&
+          afterWithdrawn['status'] == RegistrationStatus.withdrawn.name;
+      expect(isWithdrawal, isTrue);
+    });
+
+
     test('Self-withdrawal detected via deletedByUserId field (client-stamped)', () {
       const userId = 'user-123';
 
       // Self-withdrawal: client stamps deletedByUserId == userId on the doc
       final regData = {'userId': userId, 'deletedByUserId': userId};
-      final effectiveDeletedBy = regData['deletedByUserId'] ?? /* authId fallback */ null;
+      final effectiveDeletedBy = regData['deletedByUserId'];
       final isSelfWithdrawal = effectiveDeletedBy != null && effectiveDeletedBy == userId;
       expect(isSelfWithdrawal, isTrue);
     });
@@ -89,7 +98,7 @@ void main() {
 
       final regData = <String, dynamic>{'userId': userId}; // no deletedByUserId
       final effectiveDeletedBy = regData['deletedByUserId']?.toString() ?? authId;
-      final isSelfWithdrawal = effectiveDeletedBy != null && effectiveDeletedBy == userId;
+      final isSelfWithdrawal = effectiveDeletedBy == userId;
       expect(isSelfWithdrawal, isTrue);
     });
 
