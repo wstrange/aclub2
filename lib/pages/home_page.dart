@@ -2,19 +2,23 @@ import 'package:aclub2/state/user_state_cubit.dart';
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
 import '../routes.dart';
 import '../state/user_state.dart';
+import '../widgets/calendar_agenda_view.dart';
 import '../widgets/calendar_view.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends HookWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isAgendaView = useState<bool?>(null);
+
     return BlocSignalBuilder<UserStateCubit, UserState?>(
       builder: (context, state) {
         if (state == null) {
@@ -24,6 +28,7 @@ class HomePage extends StatelessWidget {
         final currentSectionId = state.currentSection.id;
         final isCurrentValid = state.userSections.any((s) => s.id == currentSectionId);
         final canManage = context.read<UserStateCubit>().canManageSection(currentSectionId);
+        final showAgenda = isAgendaView.value ?? (MediaQuery.sizeOf(context).width < 650);
 
         return Scaffold(
           appBar: AppBar(
@@ -47,6 +52,13 @@ class HomePage extends StatelessWidget {
               ),
             ),
             actions: [
+              IconButton(
+                icon: Icon(showAgenda ? Icons.calendar_month_outlined : Icons.view_agenda_outlined),
+                tooltip: showAgenda ? 'Switch to month grid' : 'Switch to agenda list',
+                onPressed: () {
+                  isAgendaView.value = !showAgenda;
+                },
+              ),
               _NotificationIconButton(userId: state.userProfile.id),
               IconButton(
                 icon: const Icon(Icons.logout),
@@ -121,14 +133,23 @@ class HomePage extends StatelessWidget {
               ],
             ),
           ),
-          body: CalendarView(
-            key: ValueKey(state.currentSection.id),
-            sectionId: state.currentSection.id,
-            userId: state.user.uid,
-            onEventTap: (event) {
-              context.push(EventDetailRoute(sectionId: event.sectionId, eventId: event.id));
-            },
-          ),
+          body: showAgenda
+              ? CalendarAgendaView(
+                  key: ValueKey('agenda_${state.currentSection.id}'),
+                  sectionId: state.currentSection.id,
+                  userId: state.user.uid,
+                  onEventTap: (event) {
+                    context.push(EventDetailRoute(sectionId: event.sectionId, eventId: event.id));
+                  },
+                )
+              : CalendarView(
+                  key: ValueKey('grid_${state.currentSection.id}'),
+                  sectionId: state.currentSection.id,
+                  userId: state.user.uid,
+                  onEventTap: (event) {
+                    context.push(EventDetailRoute(sectionId: event.sectionId, eventId: event.id));
+                  },
+                ),
         );
       },
     );

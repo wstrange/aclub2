@@ -296,5 +296,12 @@ Admin-managed markdown templates that can be inserted into event description fie
 * What is the replacement for the desktop oauth plugin that is deprecated.
 * Test when a user withdraws from an event - the leaders should get notified. Do we want to move the user to a "withdrawn" status???
 
+* Better home page. More events listed vs clicking on dates.
 
+• Live Weather & Avalanche Integration: Dynamic syncing with regional avalanche safety portals and mountain weather advisories directly on the trip page.
+• Group Rosters & Emergency Access: Quick-access dashboards for trip leaders to view participant lists, emergency contacts, and vital medical/dietary notes when offline in the backcountry.
+
+
+• Limited-Width Calendar Display: A highly readable, mobile-friendly monthly calendar layout optimized to show multiple overlapping trips on narrow phone screens.
+• Offline Capability & GPX Handling: Basic offline caching of trip details and the ability to upload or export GPX route files for navigation.
 
