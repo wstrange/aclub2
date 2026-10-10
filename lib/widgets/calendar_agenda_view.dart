@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shared_models/shared_models.dart';
@@ -186,54 +185,38 @@ class CalendarAgendaView extends HookWidget {
                         ),
                       ),
                       const Spacer(),
-                      // ── Filter Slider (All events / My events) ─────────
-                      CupertinoSlidingSegmentedControl<CalendarEventFilter>(
-                        groupValue: filter.value,
-                        backgroundColor:
-                            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                        thumbColor: theme.colorScheme.surface,
-                        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                        children: {
-                          CalendarEventFilter.all: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isVeryNarrow ? 6 : 10,
-                              vertical: 4,
-                            ),
-                            child: Text(
+                      // ── Filter Segmented Button (All events / My events) ─
+                      SegmentedButton<CalendarEventFilter>(
+                        segments: [
+                          ButtonSegment<CalendarEventFilter>(
+                            value: CalendarEventFilter.all,
+                            label: Text(
                               isVeryNarrow ? 'All' : 'All events',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: filter.value == CalendarEventFilter.all
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
-                                color: filter.value == CalendarEventFilter.all
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.onSurfaceVariant,
-                              ),
+                              style: const TextStyle(fontSize: 11),
                             ),
                           ),
-                          CalendarEventFilter.mine: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isVeryNarrow ? 6 : 10,
-                              vertical: 4,
-                            ),
-                            child: Text(
+                          ButtonSegment<CalendarEventFilter>(
+                            value: CalendarEventFilter.mine,
+                            label: Text(
                               isVeryNarrow ? 'Mine' : 'My events',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: filter.value == CalendarEventFilter.mine
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
-                                color: filter.value == CalendarEventFilter.mine
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.onSurfaceVariant,
-                              ),
+                              style: const TextStyle(fontSize: 11),
                             ),
                           ),
+                        ],
+                        selected: {filter.value},
+                        onSelectionChanged: (newSelection) {
+                          if (newSelection.isNotEmpty) {
+                            filter.value = newSelection.first;
+                          }
                         },
-                        onValueChanged: (val) {
-                          if (val != null) filter.value = val;
-                        },
+                        showSelectedIcon: false,
+                        style: ButtonStyle(
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: WidgetStatePropertyAll(
+                            EdgeInsets.symmetric(horizontal: isVeryNarrow ? 6 : 10),
+                          ),
+                        ),
                       ),
                       const Spacer(),
                       if (!isCurrentMonth)
