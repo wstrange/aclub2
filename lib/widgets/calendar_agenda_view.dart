@@ -1,52 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shared_models/shared_models.dart';
 
-import '../repo.dart';
-import 'calendar_view.dart' show CalendarEventFilter;
-
-const List<String> _monthNames = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-const List<String> _shortMonthNames = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-const List<String> _weekDayNames = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-];
-
-const List<String> _shortWeekDayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+import 'calendar_common.dart';
 
 /// A compact month-agenda view that lists all events for the displayed month
 /// in a scrollable vertical list, grouped by date.
@@ -71,54 +27,21 @@ class CalendarAgendaView extends HookWidget {
     final displayedMonth = useState(DateTime(now.year, now.month));
     final filter = useState(CalendarEventFilter.all);
 
-    final currentUserId = userId ?? FirebaseAuth.instance.currentUser?.uid;
-
-    // ── Data streams (same as CalendarView) ──────────────────────────────
-    final eventsStream = useMemoized(
-      () => repository.streamSectionEvents(sectionId),
-      [sectionId],
+    final calendarState = useCalendarEvents(
+      sectionId: sectionId,
+      userId: userId,
+      filter: filter.value,
     );
-    final eventsSnapshot = useStream(eventsStream);
 
-    final registrationsStream = useMemoized(
-      () => currentUserId != null
-          ? repository.streamUserRegisteredEventIds(currentUserId)
-          : Stream.value(const <String>{}),
-      [currentUserId],
-    );
-    final registrationsSnapshot = useStream(registrationsStream);
-    final registeredEventIds = registrationsSnapshot.data ?? const <String>{};
-
-    if (eventsSnapshot.connectionState == ConnectionState.waiting && !eventsSnapshot.hasData) {
+    if (calendarState.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (eventsSnapshot.hasError) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            'Error loading events: ${eventsSnapshot.error}',
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ),
-      );
+    if (calendarState.error != null) {
+      return CalendarErrorView(error: calendarState.error);
     }
 
-    final events = eventsSnapshot.data ?? [];
-
-    // ── Filtering ────────────────────────────────────────────────────────
-    final filteredEvents = useMemoized(() {
-      if (filter.value == CalendarEventFilter.all || currentUserId == null) {
-        return events;
-      }
-      return events.where((event) {
-        final isCreator = event.creatorId == currentUserId;
-        final isLeader = event.tripLeaderIds.contains(currentUserId);
-        final isRegistered = registeredEventIds.contains(event.id);
-        return isCreator || isLeader || isRegistered;
-      }).toList();
-    }, [events, filter.value, currentUserId, registeredEventIds]);
+    final filteredEvents = calendarState.filteredEvents;
 
     // ── Build grouped agenda for the displayed month ─────────────────────
     final year = displayedMonth.value.year;
@@ -130,11 +53,7 @@ class CalendarAgendaView extends HookWidget {
     final dayEntries = <_DayEntry>[];
     for (var d = 1; d <= daysInMonth; d++) {
       final date = DateTime(year, month, d);
-      final dayEvents = filteredEvents.where((event) {
-        final startNorm = DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
-        final endNorm = DateTime(event.endDate.year, event.endDate.month, event.endDate.day);
-        return date.compareTo(startNorm) >= 0 && date.compareTo(endNorm) <= 0;
-      }).toList();
+      final dayEvents = getEventsForDay(filteredEvents, date);
       if (dayEvents.isNotEmpty) {
         // Sort events within a day by start time.
         dayEvents.sort((a, b) => a.startDate.compareTo(b.startDate));
@@ -158,157 +77,68 @@ class CalendarAgendaView extends HookWidget {
       displayedMonth.value = DateTime(today.year, today.month);
     }
 
-    final isCurrentMonth = now.year == year && now.month == month;
+    return CalendarScaffold(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Month Navigation Header ──────────────────────────────────
+          CalendarMonthHeader(
+            displayedMonth: displayedMonth.value,
+            filter: filter.value,
+            onFilterChanged: (f) => filter.value = f,
+            onPreviousMonth: goToPreviousMonth,
+            onNextMonth: goToNextMonth,
+            onToday: goToToday,
+          ),
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 650),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Month Navigation Header ──────────────────────────────────
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 450;
-                final isVeryNarrow = constraints.maxWidth < 380;
-                final theme = Theme.of(context);
+          const Divider(height: 1),
 
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${isNarrow ? _shortMonthNames[month - 1] : _monthNames[month - 1]} $year',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isNarrow ? 14 : null,
-                        ),
-                      ),
-                      const Spacer(),
-                      // ── Filter Segmented Button (All events / My events) ─
-                      SegmentedButton<CalendarEventFilter>(
-                        segments: [
-                          ButtonSegment<CalendarEventFilter>(
-                            value: CalendarEventFilter.all,
-                            label: Text(
-                              isVeryNarrow ? 'All' : 'All events',
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                          ),
-                          ButtonSegment<CalendarEventFilter>(
-                            value: CalendarEventFilter.mine,
-                            label: Text(
-                              isVeryNarrow ? 'Mine' : 'My events',
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                          ),
-                        ],
-                        selected: {filter.value},
-                        onSelectionChanged: (newSelection) {
-                          if (newSelection.isNotEmpty) {
-                            filter.value = newSelection.first;
-                          }
-                        },
-                        showSelectedIcon: false,
-                        style: ButtonStyle(
-                          visualDensity: VisualDensity.compact,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          padding: WidgetStatePropertyAll(
-                            EdgeInsets.symmetric(horizontal: isVeryNarrow ? 6 : 10),
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      if (!isCurrentMonth)
-                        if (isNarrow)
-                          IconButton(
-                            icon: const Icon(Icons.today, size: 20),
-                            tooltip: 'Today',
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
-                            onPressed: goToToday,
-                          )
-                        else
-                          TextButton(
-                            onPressed: goToToday,
-                            style: TextButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                            ),
-                            child: const Text('Today'),
-                          ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left, size: 22),
-                        tooltip: 'Previous month',
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
-                        onPressed: goToPreviousMonth,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right, size: 22),
-                        tooltip: 'Next month',
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
-                        onPressed: goToNextMonth,
-                      ),
-                    ],
+          // ── Event count summary ──────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: Text(
+              dayEntries.isEmpty
+                  ? 'No events this month'
+                  : '${filteredEvents.where((e) {
+                      final s = DateTime(e.startDate.year, e.startDate.month, e.startDate.day);
+                      final en = DateTime(e.endDate.year, e.endDate.month, e.endDate.day);
+                      final monthStart = DateTime(year, month, 1);
+                      final monthEnd = DateTime(year, month, daysInMonth);
+                      return s.compareTo(monthEnd) <= 0 && en.compareTo(monthStart) >= 0;
+                    }).length} event${filteredEvents.length == 1 ? '' : 's'} across ${dayEntries.length} day${dayEntries.length == 1 ? '' : 's'}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-                );
-              },
             ),
+          ),
 
-            const Divider(height: 1),
-
-            // ── Event count summary ──────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Text(
-                dayEntries.isEmpty
-                    ? 'No events this month'
-                    : '${filteredEvents.where((e) {
-                        final s = DateTime(e.startDate.year, e.startDate.month, e.startDate.day);
-                        final en = DateTime(e.endDate.year, e.endDate.month, e.endDate.day);
-                        final monthStart = DateTime(year, month, 1);
-                        final monthEnd = DateTime(year, month, daysInMonth);
-                        return s.compareTo(monthEnd) <= 0 && en.compareTo(monthStart) >= 0;
-                      }).length} event${filteredEvents.length == 1 ? '' : 's'} across ${dayEntries.length} day${dayEntries.length == 1 ? '' : 's'}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+          // ── Agenda List ──────────────────────────────────────────────
+          Expanded(
+            child: dayEntries.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.event_busy_outlined,
+                          size: 48,
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No events scheduled this month.',
+                          style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                        ),
+                      ],
                     ),
-              ),
-            ),
-
-            // ── Agenda List ──────────────────────────────────────────────
-            Expanded(
-              child: dayEntries.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.event_busy_outlined,
-                            size: 48,
-                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'No events scheduled this month.',
-                            style: TextStyle(color: Theme.of(context).colorScheme.outline),
-                          ),
-                        ],
-                      ),
-                    )
-                  : _AgendaList(
-                      dayEntries: dayEntries,
-                      now: now,
-                      onEventTap: onEventTap,
-                    ),
-            ),
-          ],
-        ),
+                  )
+                : _AgendaList(
+                    dayEntries: dayEntries,
+                    now: now,
+                    onEventTap: onEventTap,
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -423,17 +253,17 @@ class _DateHeader extends StatelessWidget {
     final isTomorrow = date.year == now.year && date.month == now.month && date.day == now.day + 1;
     final isYesterday = date.year == now.year && date.month == now.month && date.day == now.day - 1;
 
-    final weekDay = _shortWeekDayNames[date.weekday % 7];
+    final weekDay = calendarShortWeekDayNames[date.weekday % 7];
 
     String label;
     if (isToday) {
-      label = 'Today · $weekDay, ${_shortMonthNames[date.month - 1]} ${date.day}';
+      label = 'Today · $weekDay, ${calendarShortMonthNames[date.month - 1]} ${date.day}';
     } else if (isTomorrow) {
-      label = 'Tomorrow · $weekDay, ${_shortMonthNames[date.month - 1]} ${date.day}';
+      label = 'Tomorrow · $weekDay, ${calendarShortMonthNames[date.month - 1]} ${date.day}';
     } else if (isYesterday) {
-      label = 'Yesterday · $weekDay, ${_shortMonthNames[date.month - 1]} ${date.day}';
+      label = 'Yesterday · $weekDay, ${calendarShortMonthNames[date.month - 1]} ${date.day}';
     } else {
-      label = '${_weekDayNames[date.weekday % 7]}, ${_shortMonthNames[date.month - 1]} ${date.day}';
+      label = '${calendarWeekDayNames[date.weekday % 7]}, ${calendarShortMonthNames[date.month - 1]} ${date.day}';
     }
 
     return Container(

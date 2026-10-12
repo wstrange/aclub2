@@ -1,3 +1,4 @@
+import 'package:aclub2/widgets/calendar_common.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_models/shared_models.dart';
 
@@ -33,26 +34,19 @@ void main() {
 
       final events = [singleDayEvent, multiDayEvent];
 
-      bool isEventOnDay(Event event, DateTime targetDay) {
-        final target = DateTime(targetDay.year, targetDay.month, targetDay.day);
-        final startNorm = DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
-        final endNorm = DateTime(event.endDate.year, event.endDate.month, event.endDate.day);
-        return target.compareTo(startNorm) >= 0 && target.compareTo(endNorm) <= 0;
-      }
-
-      // Check single day event
+      // Check single day event using shared isEventOnDay
       expect(isEventOnDay(singleDayEvent, DateTime(2026, 9, 14)), isFalse);
       expect(isEventOnDay(singleDayEvent, DateTime(2026, 9, 15)), isTrue);
       expect(isEventOnDay(singleDayEvent, DateTime(2026, 9, 16)), isFalse);
 
-      // Check multi day event
+      // Check multi day event using shared isEventOnDay
       expect(isEventOnDay(multiDayEvent, DateTime(2026, 9, 17)), isFalse);
       expect(isEventOnDay(multiDayEvent, DateTime(2026, 9, 18)), isTrue);
       expect(isEventOnDay(multiDayEvent, DateTime(2026, 9, 19)), isTrue);
       expect(isEventOnDay(multiDayEvent, DateTime(2026, 9, 20)), isTrue);
       expect(isEventOnDay(multiDayEvent, DateTime(2026, 9, 21)), isFalse);
 
-      final day19Events = events.where((e) => isEventOnDay(e, DateTime(2026, 9, 19))).toList();
+      final day19Events = getEventsForDay(events, DateTime(2026, 9, 19));
       expect(day19Events.length, equals(1));
       expect(day19Events.first.title, equals('Weekend Camp'));
     });
@@ -132,22 +126,22 @@ void main() {
       final allEvents = [createdEvent, managedEvent, registeredEvent, unassociatedEvent];
       final registeredEventIds = {'ev-registered'};
 
-      List<Event> filterEvents(List<Event> events, {required bool myEventsOnly}) {
-        if (!myEventsOnly) return events;
-        return events.where((event) {
-          final isCreator = event.creatorId == currentUserId;
-          final isLeader = event.tripLeaderIds.contains(currentUserId);
-          final isRegistered = registeredEventIds.contains(event.id);
-          return isCreator || isLeader || isRegistered;
-        }).toList();
-      }
-
-      // "All events" returns all 4 events
-      final allFiltered = filterEvents(allEvents, myEventsOnly: false);
+      // "All events" returns all 4 events using shared filterCalendarEvents
+      final allFiltered = filterCalendarEvents(
+        events: allEvents,
+        filter: CalendarEventFilter.all,
+        userId: currentUserId,
+        registeredEventIds: registeredEventIds,
+      );
       expect(allFiltered.length, equals(4));
 
       // "My events" returns exactly 3 events (created, managed, registered), excluding unrelated
-      final myFiltered = filterEvents(allEvents, myEventsOnly: true);
+      final myFiltered = filterCalendarEvents(
+        events: allEvents,
+        filter: CalendarEventFilter.mine,
+        userId: currentUserId,
+        registeredEventIds: registeredEventIds,
+      );
       expect(myFiltered.length, equals(3));
       expect(myFiltered.map((e) => e.id).toSet(), equals({'ev-created', 'ev-managed', 'ev-registered'}));
       expect(myFiltered.any((e) => e.id == 'ev-unrelated'), isFalse);
@@ -203,11 +197,7 @@ void main() {
       final dayEntries = <DateTime, List<Event>>{};
       for (var d = 1; d <= daysInMonth; d++) {
         final date = DateTime(year, month, d);
-        final dayEvents = events.where((event) {
-          final startNorm = DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
-          final endNorm = DateTime(event.endDate.year, event.endDate.month, event.endDate.day);
-          return date.compareTo(startNorm) >= 0 && date.compareTo(endNorm) <= 0;
-        }).toList();
+        final dayEvents = getEventsForDay(events, date);
 
         if (dayEvents.isNotEmpty) {
           dayEvents.sort((a, b) => a.startDate.compareTo(b.startDate));
