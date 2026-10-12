@@ -18,9 +18,7 @@ final _log = Logger('EventDetailPage');
 
 /// Read-only page showing full details for an [Event].
 /// Edit functionality is reached from here, not from the calendar.
-class EventDetailPage extends HookWidget {
-  const EventDetailPage({super.key, required this.sectionId, required this.eventId});
-
+class const EventDetailPage({super.key, required this.sectionId, required this.eventId}) extends HookWidget {
   final String sectionId;
   final String eventId;
 
@@ -71,9 +69,7 @@ class EventDetailPage extends HookWidget {
 /// The fully-loaded detail view for an [event]. Consumes the surrounding
 /// [EventDetailsCubit] (provided by [EventDetailPage]) for registrations and
 /// mutations; UI-only flows such as dialogs and snackbars live here.
-class _EventDetailView extends StatelessWidget {
-  const _EventDetailView({required this.sectionId, required this.event});
-
+class const _EventDetailView({required this.sectionId, required this.event}) extends StatelessWidget {
   final String sectionId;
   final Event event;
 
@@ -322,9 +318,7 @@ class _EventDetailView extends StatelessWidget {
 
 /// Shows the event's creator and trip leaders. A section manager or trip
 /// leader can assign additional trip leaders from the section's members.
-class _LeadershipSection extends HookWidget {
-  const _LeadershipSection({required this.sectionId, required this.event});
-
+class const _LeadershipSection({required this.sectionId, required this.event}) extends HookWidget {
   final String sectionId;
   final Event event;
 
@@ -534,9 +528,7 @@ class _LeadershipSection extends HookWidget {
 /// Shows the current user's registration status for an [event] and lets them
 /// register. Approval-required events go to a waitlist; otherwise the user is
 /// added directly if the event has space.
-class _RegistrationSection extends HookWidget {
-  const _RegistrationSection({required this.event});
-
+class const _RegistrationSection({required this.event}) extends HookWidget {
   final Event event;
 
   @override

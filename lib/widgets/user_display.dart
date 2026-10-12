@@ -29,9 +29,7 @@ String resolveUserDisplay(String uid, UserProfile? profile) {
 }
 
 /// Resolves a user ID and renders the user's display name / email as text.
-class UserDisplay extends HookWidget {
-  const UserDisplay({super.key, required this.userId, this.style});
-
+class const UserDisplay({super.key, required this.userId, this.style}) extends HookWidget {
   final String userId;
   final TextStyle? style;
 

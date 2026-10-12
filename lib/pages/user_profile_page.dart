@@ -9,33 +9,23 @@ import 'package:shared_models/shared_models.dart';
 import '../routes.dart';
 import '../state/user_state_cubit.dart';
 
-sealed class UserProfileFormState {
-  const UserProfileFormState();
-}
+sealed class const UserProfileFormState();
 
-class UserFormInitial extends UserProfileFormState {
-  const UserFormInitial();
-}
+class const UserFormInitial() extends UserProfileFormState;
 
-class UserFormSaving extends UserProfileFormState {
-  const UserFormSaving();
-}
+class const UserFormSaving() extends UserProfileFormState;
 
-class UserFormSuccess extends UserProfileFormState {
-  const UserFormSuccess(this.user);
-
+class const UserFormSuccess(this.user) extends UserProfileFormState {
   final UserProfile user;
 }
 
-class UserFormError extends UserProfileFormState {
-  const UserFormError(this.message);
-
+class const UserFormError(this.message) extends UserProfileFormState {
   final String message;
 }
 
 /// Saves edits to the [user] and Firebase Auth [authUser] supplied by the caller.
-class UserProfileCubit extends CubitSignal<UserProfileFormState> {
-  UserProfileCubit(this.user, [this.authUser]) : super(initialState: const UserFormInitial());
+class UserProfileCubit(this.user, [this.authUser]) extends CubitSignal<UserProfileFormState> {
+  this : super(initialState: const UserFormInitial());
 
   UserProfile user;
   User? authUser;
@@ -73,9 +63,7 @@ class UserProfileCubit extends CubitSignal<UserProfileFormState> {
 }
 
 /// Loads the signed-in member's profile, then passes that model to the editor.
-class UserProfilePage extends HookWidget {
-  const UserProfilePage({super.key});
-
+class const UserProfilePage({super.key}) extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final authUser = FirebaseAuth.instance.currentUser;
@@ -104,9 +92,7 @@ class UserProfilePage extends HookWidget {
   }
 }
 
-class _UserProfileForm extends HookWidget {
-  const _UserProfileForm({required this.user, this.authUser});
-
+class const _UserProfileForm({required this.user, this.authUser}) extends HookWidget {
   final UserProfile user;
   final User? authUser;
 

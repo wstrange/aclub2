@@ -13,14 +13,12 @@ import '../routes.dart';
 ///   and re-evaluates the router guard, which will then route to [HomeRoute].
 /// * **Decline** — signs the user out. The auth-state listener in [main.dart]
 ///   clears [userStateCubit] and re-evaluates the router, landing on [SignInRoute].
-class WaiverPage extends StatefulWidget {
-  const WaiverPage({super.key});
-
+class const WaiverPage({super.key}) extends StatefulWidget {
   @override
   State<WaiverPage> createState() => _WaiverPageState();
 }
 
-class _WaiverPageState extends State<WaiverPage> {
+class _WaiverPageState() extends State<WaiverPage> {
   String? _waiverText;
   bool _loading = true;
   bool _saving = false;

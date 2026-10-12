@@ -7,9 +7,7 @@ import 'package:shared_models/shared_models.dart';
 import '../repo.dart';
 
 /// Creates or edits a [Template]. [templateId] is empty when creating.
-class TemplateEditPage extends StatelessWidget {
-  const TemplateEditPage({super.key, required this.templateId});
-
+class const TemplateEditPage({super.key, required this.templateId}) extends StatelessWidget {
   final String templateId;
 
   bool get isCreate => templateId.isEmpty;
@@ -65,9 +63,7 @@ class TemplateEditPage extends StatelessWidget {
   }
 }
 
-class TemplateEditorForm extends HookWidget {
-  const TemplateEditorForm({super.key, required this.isCreate, required this.initialTemplate});
-
+class const TemplateEditorForm({super.key, required this.isCreate, required this.initialTemplate}) extends HookWidget {
   final bool isCreate;
   final Template initialTemplate;
 

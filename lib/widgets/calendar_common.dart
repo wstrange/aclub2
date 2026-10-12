@@ -6,7 +6,7 @@ import 'package:shared_models/shared_models.dart';
 import '../repo.dart';
 
 /// Filter selection for calendar events: all events or only events associated with the user.
-enum CalendarEventFilter { all, mine }
+enum CalendarEventFilter() { all, mine }
 
 /// Full month names (January–December).
 const List<String> calendarMonthNames = [
@@ -109,23 +109,14 @@ List<Event> filterCalendarEvents({
 }
 
 /// Represents the loaded stream state for calendar views.
-class CalendarEventsState {
-  const CalendarEventsState({
-    required this.events,
-    required this.filteredEvents,
-    required this.registeredEventIds,
-    required this.currentUserId,
-    required this.isLoading,
-    required this.error,
-  });
-
-  final List<Event> events;
-  final List<Event> filteredEvents;
-  final Set<String> registeredEventIds;
-  final String? currentUserId;
-  final bool isLoading;
-  final Object? error;
-}
+class const CalendarEventsState({
+  required final List<Event> events,
+  required final List<Event> filteredEvents,
+  required final Set<String> registeredEventIds,
+  required final String? currentUserId,
+  required final bool isLoading,
+  required final Object? error,
+});
 
 /// Hook that loads section events, user registrations, and provides filtered events.
 CalendarEventsState useCalendarEvents({
@@ -176,9 +167,7 @@ CalendarEventsState useCalendarEvents({
 }
 
 /// Standard centered layout container with max width constraint for calendar views.
-class CalendarScaffold extends StatelessWidget {
-  const CalendarScaffold({super.key, required this.child, this.maxWidth = 650});
-
+class const CalendarScaffold({super.key, required this.child, this.maxWidth = 650}) extends StatelessWidget {
   final Widget child;
   final double maxWidth;
 
@@ -194,9 +183,7 @@ class CalendarScaffold extends StatelessWidget {
 }
 
 /// Standard error display for calendar widgets.
-class CalendarErrorView extends StatelessWidget {
-  const CalendarErrorView({super.key, required this.error});
-
+class const CalendarErrorView({super.key, required this.error}) extends StatelessWidget {
   final Object? error;
 
   @override
@@ -214,8 +201,7 @@ class CalendarErrorView extends StatelessWidget {
 }
 
 /// Responsive month navigation header shared between monthly calendar and agenda views.
-class CalendarMonthHeader extends StatelessWidget {
-  const CalendarMonthHeader({
+class const CalendarMonthHeader({
     super.key,
     required this.displayedMonth,
     required this.filter,
@@ -223,8 +209,7 @@ class CalendarMonthHeader extends StatelessWidget {
     required this.onPreviousMonth,
     required this.onNextMonth,
     required this.onToday,
-  });
-
+  }) extends StatelessWidget {
   final DateTime displayedMonth;
   final CalendarEventFilter filter;
   final ValueChanged<CalendarEventFilter> onFilterChanged;

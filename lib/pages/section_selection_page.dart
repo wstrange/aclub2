@@ -8,9 +8,7 @@ import '../repo.dart';
 import '../routes.dart';
 import '../state/user_state_cubit.dart';
 
-class SectionSelectionPage extends HookWidget {
-  const SectionSelectionPage({super.key});
-
+class const SectionSelectionPage({super.key}) extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -49,9 +47,7 @@ class SectionSelectionPage extends HookWidget {
   }
 }
 
-class _SectionSelectionForm extends HookWidget {
-  const _SectionSelectionForm({required this.userId, required this.sections, required this.initialSelected});
-
+class const _SectionSelectionForm({required this.userId, required this.sections, required this.initialSelected}) extends HookWidget {
   final String userId;
   final List<Section> sections;
   final List<String> initialSelected;

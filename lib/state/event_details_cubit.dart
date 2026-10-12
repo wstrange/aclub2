@@ -10,8 +10,8 @@ import '../repo.dart';
 /// screen. Subscribes to the Firestore streams for [sectionId]/[eventId] on
 /// creation and cancels them on [close]; the owning widget must create and
 /// dispose it (one per event details screen).
-class EventDetailsCubit extends CubitSignal<EventDetailsState> {
-  EventDetailsCubit({required this.sectionId, required this.eventId})
+class EventDetailsCubit({required this.sectionId, required this.eventId}) extends CubitSignal<EventDetailsState> {
+  this
       : super(initialState: EventDetailsState(sectionId: sectionId, eventId: eventId)) {
     _subscribe();
   }

@@ -12,9 +12,7 @@ import '../state/user_state.dart';
 import '../widgets/calendar_agenda_view.dart';
 import '../widgets/calendar_view.dart';
 
-class HomePage extends HookWidget {
-  const HomePage({super.key});
-
+class const HomePage({super.key}) extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final isAgendaView = useState<bool?>(null);
@@ -160,9 +158,7 @@ class HomePage extends HookWidget {
 ///
 /// Shown when the current user is a global admin, or a manager/trip leader of
 /// the currently selected section (read from the loaded [UserState]).
-class _TemplatesDrawerTile extends StatelessWidget {
-  const _TemplatesDrawerTile();
-
+class const _TemplatesDrawerTile() extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
@@ -177,9 +173,7 @@ class _TemplatesDrawerTile extends StatelessWidget {
 }
 
 /// App bar icon button displaying a badge with the count of unread notifications.
-class _NotificationIconButton extends StatelessWidget {
-  const _NotificationIconButton({required this.userId});
-
+class const _NotificationIconButton({required this.userId}) extends StatelessWidget {
   final String userId;
 
   @override

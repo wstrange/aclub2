@@ -9,11 +9,11 @@ const String defaultSectionId = "national";
 
 final repository = AlpineRepository();
 
-class AlpineRepository {
-  final FirebaseFirestore? _customFirestore;
+class AlpineRepository({FirebaseFirestore? firestore}) {
+  final FirebaseFirestore? _customFirestore = firestore;
   FirebaseFirestore get _firestore => _customFirestore ?? FirebaseFirestore.instance;
 
-  AlpineRepository({FirebaseFirestore? firestore}) : _customFirestore = firestore;
+  this;
 
   Stream<List<Section>> streamSections() {
     return _firestore.collection('sections').snapshots().map((snapshot) {

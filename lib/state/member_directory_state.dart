@@ -4,12 +4,10 @@ import 'package:shared_models/shared_models.dart';
 part 'member_directory_state.freezed.dart';
 
 /// Combines a [SectionMember] record with the resolved [UserProfile], if available.
-class MemberDirectoryEntry {
-  const MemberDirectoryEntry({
+class const MemberDirectoryEntry({
     required this.member,
     this.profile,
-  });
-
+  }) {
   final SectionMember member;
   final UserProfile? profile;
 
@@ -69,9 +67,7 @@ class MemberDirectoryEntry {
 }
 
 @freezed
-abstract class MemberDirectoryState with _$MemberDirectoryState {
-  const MemberDirectoryState._();
-
+abstract class const MemberDirectoryState._() with _$MemberDirectoryState {
   const factory MemberDirectoryState({
     required String sectionId,
     @Default(<MemberDirectoryEntry>[]) List<MemberDirectoryEntry> entries,

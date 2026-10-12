@@ -91,9 +91,7 @@ class EventEditPage extends StatelessWidget {
   }
 }
 
-class _EventEditForm extends HookWidget {
-  const _EventEditForm({required this.sectionId, required this.initialEvent, this.isCreate = false});
-
+class const _EventEditForm({required this.sectionId, required this.initialEvent, this.isCreate = false}) extends HookWidget {
   final String sectionId;
   final Event initialEvent;
   final bool isCreate;
@@ -581,9 +579,7 @@ class _EventEditForm extends HookWidget {
 /// Button above the description field that opens a popup listing templates in
 /// the device's language (defaulting to English) and inserts the chosen one
 /// into the description.
-class _InsertTemplateRow extends HookWidget {
-  const _InsertTemplateRow({required this.descriptionController});
-
+class const _InsertTemplateRow({required this.descriptionController}) extends HookWidget {
   final TextEditingController descriptionController;
 
   @override

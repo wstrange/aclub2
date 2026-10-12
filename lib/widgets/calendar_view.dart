@@ -8,9 +8,7 @@ export 'calendar_common.dart' show CalendarEventFilter;
 
 /// A monthly calendar widget that displays events for a given [sectionId],
 /// allowing navigation through months and showing event titles on scheduled days.
-class CalendarView extends HookWidget {
-  const CalendarView({super.key, required this.sectionId, this.userId, this.onEventTap});
-
+class const CalendarView({super.key, required this.sectionId, this.userId, this.onEventTap}) extends HookWidget {
   final String sectionId;
   final String? userId;
   final void Function(Event event)? onEventTap;
@@ -248,16 +246,14 @@ class CalendarView extends HookWidget {
   }
 }
 
-class _DayCell extends StatelessWidget {
-  const _DayCell({
+class const _DayCell({
     required this.date,
     required this.isCurrentMonth,
     required this.isToday,
     required this.isSelected,
     required this.events,
     required this.onTap,
-  });
-
+  }) extends StatelessWidget {
   final DateTime date;
   final bool isCurrentMonth;
   final bool isToday;

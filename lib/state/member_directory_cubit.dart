@@ -14,8 +14,8 @@ final _log = Logger('MemberDirectoryCubit');
 /// Subscribes to [AlpineRepository.streamSectionMembers] on initialization and
 /// resolves full [UserProfile] records for rich display. Cancels subscriptions
 /// on [close].
-class MemberDirectoryCubit extends CubitSignal<MemberDirectoryState> {
-  MemberDirectoryCubit({required this.sectionId, this._repository, bool autoSubscribe = true})
+class MemberDirectoryCubit({required this.sectionId, this._repository, bool autoSubscribe = true}) extends CubitSignal<MemberDirectoryState> {
+  this
     : super(initialState: MemberDirectoryState(sectionId: sectionId)) {
     if (autoSubscribe) {
       _subscribe();

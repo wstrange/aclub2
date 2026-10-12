@@ -6,9 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../routes.dart';
 
-class SignInPage extends StatelessWidget {
-  const SignInPage({super.key});
-
+class const SignInPage({super.key}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SignInScreen(

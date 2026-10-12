@@ -265,7 +265,7 @@ void main() {
   });
 }
 
-class _FakeAlpineRepository extends AlpineRepository {
+class _FakeAlpineRepository() extends AlpineRepository {
   String? updatedSectionId;
   String? updatedUserId;
   SectionRole? updatedRole;

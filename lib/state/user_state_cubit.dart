@@ -10,8 +10,8 @@ final _log = Logger('UserStateCubit');
 
 /// Manages the authenticated user's session state, including their profile,
 /// section memberships, and currently selected active section.
-class UserStateCubit extends CubitSignal<UserState?> {
-  UserStateCubit() : super(initialState: null);
+class UserStateCubit() extends CubitSignal<UserState?> {
+  this : super(initialState: null);
 
   /// Ensures [UserState] is fully loaded and initialized.
   ///

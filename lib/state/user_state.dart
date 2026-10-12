@@ -7,9 +7,7 @@ part 'user_state.freezed.dart';
 /// Holds current state information about the logged in user.
 /// this is not stored in firestore - it is created on logon
 @freezed
-sealed class UserState with _$UserState {
-  const UserState._();
-
+sealed class const UserState._() with _$UserState {
   const factory UserState({
     required UserProfile userProfile,
     required User user,

@@ -11,9 +11,7 @@ import '../state/user_state_cubit.dart';
 
 /// Screen allowing members to look up, search, and view profiles of other
 /// members in the same section.
-class MembersDirectoryPage extends StatelessWidget {
-  const MembersDirectoryPage({super.key, this.initialSectionId});
-
+class const MembersDirectoryPage({super.key, this.initialSectionId}) extends StatelessWidget {
   final String? initialSectionId;
 
   @override
@@ -70,12 +68,10 @@ class MembersDirectoryPage extends StatelessWidget {
   }
 }
 
-class _MembersDirectoryView extends StatefulWidget {
-  const _MembersDirectoryView({
+class const _MembersDirectoryView({
     required this.userSections,
     this.isGlobalAdmin = false,
-  });
-
+  }) extends StatefulWidget {
   final List<Section> userSections;
   final bool isGlobalAdmin;
 
@@ -83,7 +79,7 @@ class _MembersDirectoryView extends StatefulWidget {
   State<_MembersDirectoryView> createState() => _MembersDirectoryViewState();
 }
 
-class _MembersDirectoryViewState extends State<_MembersDirectoryView> {
+class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -408,14 +404,12 @@ class _MembersDirectoryViewState extends State<_MembersDirectoryView> {
   }
 }
 
-class _MemberCard extends StatelessWidget {
-  const _MemberCard({
+class const _MemberCard({
     required this.entry,
     required this.onTap,
     this.canManageRoles = false,
     this.onEditRole,
-  });
-
+  }) extends StatelessWidget {
   final MemberDirectoryEntry entry;
   final VoidCallback onTap;
   final bool canManageRoles;
@@ -537,13 +531,11 @@ class _MemberCard extends StatelessWidget {
   };
 }
 
-class _RoleBadge extends StatelessWidget {
-  const _RoleBadge({
+class const _RoleBadge({
     required this.label,
     required this.color,
     required this.icon,
-  });
-
+  }) extends StatelessWidget {
   final String label;
   final Color color;
   final IconData icon;
@@ -572,13 +564,11 @@ class _RoleBadge extends StatelessWidget {
   }
 }
 
-class _MemberDetailBottomSheet extends StatelessWidget {
-  const _MemberDetailBottomSheet({
+class const _MemberDetailBottomSheet({
     required this.entry,
     this.canManageRoles = false,
     this.onEditRole,
-  });
-
+  }) extends StatelessWidget {
   final MemberDirectoryEntry entry;
   final bool canManageRoles;
   final VoidCallback? onEditRole;
@@ -763,14 +753,12 @@ class _MemberDetailBottomSheet extends StatelessWidget {
   }
 }
 
-class _DetailTile extends StatelessWidget {
-  const _DetailTile({
+class const _DetailTile({
     required this.icon,
     required this.title,
     required this.value,
     this.trailing,
-  });
-
+  }) extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
@@ -813,12 +801,10 @@ String _roleName(SectionRole role) => switch (role) {
   SectionRole.member => 'Member',
 };
 
-class _ChangeRoleDialog extends StatefulWidget {
-  const _ChangeRoleDialog({
+class const _ChangeRoleDialog({
     required this.memberName,
     required this.currentRole,
-  });
-
+  }) extends StatefulWidget {
   final String memberName;
   final SectionRole currentRole;
 
@@ -826,7 +812,7 @@ class _ChangeRoleDialog extends StatefulWidget {
   State<_ChangeRoleDialog> createState() => _ChangeRoleDialogState();
 }
 
-class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
+class _ChangeRoleDialogState() extends State<_ChangeRoleDialog> {
   late SectionRole _selectedRole;
 
   @override

@@ -19,29 +19,17 @@ import 'state/user_state_cubit.dart';
 
 final _log = Logger('route');
 
-sealed class AppRoute extends KaiselRoute {
-  const AppRoute();
-}
+sealed class const AppRoute() extends KaiselRoute;
 
-final class HomeRoute extends AppRoute {
-  const HomeRoute();
-}
+final class const HomeRoute() extends AppRoute;
 
-final class SignInRoute extends AppRoute {
-  const SignInRoute();
-}
+final class const SignInRoute() extends AppRoute;
 
-final class UserProfileRoute extends AppRoute {
-  const UserProfileRoute();
-}
+final class const UserProfileRoute() extends AppRoute;
 
-final class SectionSelectionRoute extends AppRoute {
-  const SectionSelectionRoute();
-}
+final class const SectionSelectionRoute() extends AppRoute;
 
-final class EventEditRoute extends AppRoute {
-  const EventEditRoute({required this.sectionId, required this.eventId});
-
+final class const EventEditRoute({required this.sectionId, required this.eventId}) extends AppRoute {
   final String sectionId;
   final String eventId;
 
@@ -49,9 +37,7 @@ final class EventEditRoute extends AppRoute {
   List<Object?> get props => [sectionId, eventId];
 }
 
-final class EventDetailRoute extends AppRoute {
-  const EventDetailRoute({required this.sectionId, required this.eventId});
-
+final class const EventDetailRoute({required this.sectionId, required this.eventId}) extends AppRoute {
   final String sectionId;
   final String eventId;
 
@@ -59,22 +45,16 @@ final class EventDetailRoute extends AppRoute {
   List<Object?> get props => [sectionId, eventId];
 }
 
-final class EventCreateRoute extends AppRoute {
-  const EventCreateRoute({required this.sectionId});
-
+final class const EventCreateRoute({required this.sectionId}) extends AppRoute {
   final String sectionId;
 
   @override
   List<Object?> get props => [sectionId];
 }
 
-final class TemplateListRoute extends AppRoute {
-  const TemplateListRoute();
-}
+final class const TemplateListRoute() extends AppRoute;
 
-final class TemplateEditRoute extends AppRoute {
-  const TemplateEditRoute({this.templateId = ''});
-
+final class const TemplateEditRoute({this.templateId = ''}) extends AppRoute {
   /// Empty [templateId] creates a new template.
   final String templateId;
 
@@ -82,22 +62,16 @@ final class TemplateEditRoute extends AppRoute {
   List<Object?> get props => [templateId];
 }
 
-final class MembersDirectoryRoute extends AppRoute {
-  const MembersDirectoryRoute({this.sectionId});
-
+final class const MembersDirectoryRoute({this.sectionId}) extends AppRoute {
   final String? sectionId;
 
   @override
   List<Object?> get props => [sectionId];
 }
 
-final class WaiverRoute extends AppRoute {
-  const WaiverRoute();
-}
+final class const WaiverRoute() extends AppRoute;
 
-final class AuthProfileRoute extends AppRoute {
-  const AuthProfileRoute();
-}
+final class const AuthProfileRoute() extends AppRoute;
 
 KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignInRoute()}) {
   return KaiselRouterConfig<AppRoute>(

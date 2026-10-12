@@ -9,14 +9,12 @@ import 'calendar_common.dart';
 ///
 /// Designed for mobile screens where a full calendar grid wastes space.
 /// Reuses the same data streams and filter logic as [CalendarView].
-class CalendarAgendaView extends HookWidget {
-  const CalendarAgendaView({
+class const CalendarAgendaView({
     super.key,
     required this.sectionId,
     this.userId,
     this.onEventTap,
-  });
-
+  }) extends HookWidget {
   final String sectionId;
   final String? userId;
   final void Function(Event event)? onEventTap;
@@ -145,20 +143,17 @@ class CalendarAgendaView extends HookWidget {
 }
 
 /// Groups events by date for agenda rendering.
-class _DayEntry {
-  const _DayEntry({required this.date, required this.events});
+class const _DayEntry({required this.date, required this.events}) {
   final DateTime date;
   final List<Event> events;
 }
 
 /// The scrollable agenda list with date headers and event rows.
-class _AgendaList extends HookWidget {
-  const _AgendaList({
+class const _AgendaList({
     required this.dayEntries,
     required this.now,
     this.onEventTap,
-  });
-
+  }) extends HookWidget {
   final List<_DayEntry> dayEntries;
   final DateTime now;
   final void Function(Event event)? onEventTap;
@@ -240,9 +235,7 @@ class _AgendaItem {
 }
 
 /// Sticky-style date section header.
-class _DateHeader extends StatelessWidget {
-  const _DateHeader({required this.date, required this.now});
-
+class const _DateHeader({required this.date, required this.now}) extends StatelessWidget {
   final DateTime date;
   final DateTime now;
 
@@ -297,13 +290,11 @@ class _DateHeader extends StatelessWidget {
 }
 
 /// A single event row in the agenda list.
-class _EventRow extends StatelessWidget {
-  const _EventRow({
+class const _EventRow({
     required this.event,
     required this.dayDate,
     this.onTap,
-  });
-
+  }) extends StatelessWidget {
   final Event event;
   final DateTime dayDate;
   final VoidCallback? onTap;
