@@ -24,8 +24,10 @@ import 'state/user_state_cubit.dart';
 /// This is not a secret that must be protected. It is public.
 const _googleClientId = '797970173318-61nopoe594icajtj7u0c3pql7ep20see.apps.googleusercontent.com';
 
+final _log = Logger('main');
+
 void main() async {
-  Logger.root.level = Level.ALL;
+  Logger.root.level = kDebugMode ? Level.ALL : Level.WARNING;
   Logger.root.onRecord.listen((record) {
     print('${record.level.name}: ${record.message}');
   });
@@ -63,7 +65,7 @@ void main() async {
           unawaited(routerConfig.router.reevaluate());
         }
       } catch (e) {
-        print('Error in authStateChanges listener: $e');
+        _log.warning('Error in authStateChanges listener: $e');
       }
     });
 
@@ -81,9 +83,32 @@ void main() async {
         ),
       ),
     );
-  } catch (e) {
-    print('Error: $e');
+  } catch (e, st) {
+    _log.severe('Failed to initialize app: $e', e, st);
+    _runBootstrapErrorApp(e);
   }
+}
+
+/// Last-resort error UI when bootstrap (Firebase init, provider config, or
+/// guard evaluation) fails. Without this, a bootstrap failure leaves the
+/// app on a blank screen in release with no visible diagnostics.
+void _runBootstrapErrorApp(Object error) {
+  runApp(
+    MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              'The app failed to start. Please try again later.\n\n$error',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 Future<void> _connectToFirebaseEmulator() async {
@@ -98,7 +123,7 @@ Future<void> _connectToFirebaseEmulator() async {
   }
 
   localHost = 'localhost';
-  print('Connecting to Firebase Emulator at $localHost...');
+  _log.info('Connecting to Firebase Emulator at $localHost...');
 
   try {
     // Optional: Turn off SSL/Persistence constraints if hitting emulator sync lags
@@ -115,6 +140,6 @@ Future<void> _connectToFirebaseEmulator() async {
     // Connect Storage Emulator if you use it (default port: 9199)
     // await FirebaseStorage.instance.useStorageEmulator(localHost, 9199);
   } catch (e) {
-    print('Error connecting to Firebase Emulator: $e');
+    _log.warning('Error connecting to Firebase Emulator: $e');
   }
 }

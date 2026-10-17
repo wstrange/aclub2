@@ -39,9 +39,6 @@ class const UserDisplay({super.key, required this.userId, this.style}) extends H
     final snapshot = useFuture(profileFuture);
 
     final profile = snapshot.hasData ? snapshot.data : null;
-    return Text(
-      profile == null ? '…' : resolveUserDisplay(userId, profile),
-      style: style,
-    );
+    return Text(profile == null ? '…' : resolveUserDisplay(userId, profile), style: style);
   }
 }

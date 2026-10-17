@@ -460,32 +460,36 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
 
   // Called on login. Checks to see if the user has a complated profile.
   // if not, creates a stub profile for them.
-
+  //
+  // Uses a `merge` write (not a transaction) so concurrent invocations — the
+  // router guard and the sign-in action can both run right after login —
+  // converge on the same stub instead of racing a get-then-set.
   Future<void> checkProfile(User userInfo) async {
     final up = await getUserProfile(userInfo.uid);
+    if (up != null) return;
 
-    if (up == null) {
-      _log.info("Creating stub profile for ${userInfo.email}");
+    _log.info("Creating stub profile for ${userInfo.email}");
 
-      final user = UserProfile(
-        id: userInfo.uid,
-        firstName: '',
-        lastName: '',
-        email: userInfo.email,
-        phone: '555-1212',
-        emergencyContactName: '',
-        emergencyContactPhone: '',
-        notificationPreferences: NotificationPreferences(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        complatedProfile: false,
-        waiverSignedDate: null,
-      );
+    final user = UserProfile(
+      id: userInfo.uid,
+      firstName: '',
+      lastName: '',
+      email: userInfo.email,
+      phone: null,
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      notificationPreferences: NotificationPreferences(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      complatedProfile: false,
+      waiverSignedDate: null,
+    );
 
-      await createUserProfile(user);
+    // merge: concurrent stub creations (e.g. guard + sign-in action) converge
+    // on the same stub instead of racing a get-then-set.
+    await _firestore.collection('users').doc(user.id).set(user.toJson(), SetOptions(merge: true));
 
-      _log.info("Created stub profile for ${userInfo.email}");
-    }
+    _log.info("Created stub profile for ${userInfo.email}");
   }
 
   // ── Notifications ──────────────────────────────────────────────────────────

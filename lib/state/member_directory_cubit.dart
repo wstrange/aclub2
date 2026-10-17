@@ -27,6 +27,16 @@ class MemberDirectoryCubit({required this.sectionId, this._repository, bool auto
   String sectionId;
   StreamSubscription<List<SectionMember>>? _membersSub;
 
+  /// Emits only while the cubit is open. Stream listeners capture in-flight
+  /// async continuations (e.g. `await _repo.getUserProfiles(...)` inside the
+  /// snapshot callback below); after [close] cancels the subscription, such
+  /// a continuation can still resume, and a bare `emit` would then trigger
+  /// the post-close debug assert.
+  void _safeEmit(MemberDirectoryState newState) {
+    if (isClosed) return;
+    emit(newState);
+  }
+
   void _subscribe() {
     _membersSub?.cancel();
     emit(value.copyWith(sectionId: sectionId, isLoading: true, error: null));
@@ -38,17 +48,20 @@ class MemberDirectoryCubit({required this.sectionId, this._repository, bool auto
             try {
               final uids = members.map((m) => m.id).toList();
               final profiles = await _repo.getUserProfiles(uids);
+              if (isClosed) return;
               final entries = members.map((m) => MemberDirectoryEntry(member: m, profile: profiles[m.id])).toList();
-              emit(value.copyWith(entries: entries, isLoading: false, error: null));
+              _safeEmit(value.copyWith(entries: entries, isLoading: false, error: null));
             } catch (e, st) {
               _log.warning('Error resolving member profiles: $e', e, st);
+              if (isClosed) return;
               final entries = members.map((m) => MemberDirectoryEntry(member: m)).toList();
-              emit(value.copyWith(entries: entries, isLoading: false, error: e));
+              _safeEmit(value.copyWith(entries: entries, isLoading: false, error: e));
             }
           },
           onError: (Object e, StackTrace st) {
             _log.warning('Error streaming section members: $e', e, st);
-            emit(value.copyWith(isLoading: false, error: e));
+            if (isClosed) return;
+            _safeEmit(value.copyWith(isLoading: false, error: e));
           },
         );
   }
@@ -91,6 +104,7 @@ class MemberDirectoryCubit({required this.sectionId, this._repository, bool auto
       await _repo.updateMemberRole(sectionId: sectionId, userId: userId, newRole: newRole);
     } catch (e, st) {
       _log.warning('Error updating member role: $e', e, st);
+      if (isClosed) return;
       emit(value.copyWith(entries: originalEntries, error: e));
       rethrow;
     }
