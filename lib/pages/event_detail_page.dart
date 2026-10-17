@@ -12,6 +12,7 @@ import '../routes.dart';
 import '../state/event_details_cubit.dart';
 import '../state/event_details_state.dart';
 import '../state/user_state_cubit.dart';
+import '../widgets/add_participant_sheet.dart';
 import '../widgets/user_display.dart';
 
 final _log = Logger('EventDetailPage');
@@ -77,9 +78,8 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final userState = context.watch<UserStateCubit>().state.value;
-    final canManage = currentUid != null &&
-        userState != null &&
-        context.read<UserStateCubit>().canManageSection(sectionId);
+    final canManage =
+        currentUid != null && userState != null && context.read<UserStateCubit>().canManageSection(sectionId);
 
     Future<void> openEdit() async {
       await context.push(EventEditRoute(sectionId: sectionId, eventId: event.id));
@@ -96,14 +96,8 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
             'Copy over the current participants and trip leaders?',
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(null),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Event only'),
-            ),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(null), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Event only')),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('Copy participants & leaders'),
@@ -126,9 +120,7 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event copied.')));
         // Edit the copy; if it is saved, swap the original event's details for
         // the copied event's details so the user ends up viewing the copy.
-        final saved = await context.pushForResult<bool>(
-          EventEditRoute(sectionId: sectionId, eventId: copy.id),
-        );
+        final saved = await context.pushForResult<bool>(EventEditRoute(sectionId: sectionId, eventId: copy.id));
         if (saved == true && context.mounted) {
           context.replaceTop(EventDetailRoute(sectionId: sectionId, eventId: copy.id));
         }
@@ -146,10 +138,7 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
           title: const Text('Delete Event'),
           content: Text('Are you sure you want to delete "${event.title}"? This cannot be undone.'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: Theme.of(dialogContext).colorScheme.error),
               onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -183,10 +172,7 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
     return Scaffold(
       appBar: AppBar(
         title: const Text('Event Details'),
-        actions: [
-          if (canManage)
-            IconButton(icon: const Icon(Icons.edit), tooltip: 'Edit Event', onPressed: openEdit),
-        ],
+        actions: [if (canManage) IconButton(icon: const Icon(Icons.edit), tooltip: 'Edit Event', onPressed: openEdit)],
       ),
       body: SafeArea(
         child: ListView(
@@ -326,9 +312,8 @@ class const _LeadershipSection({required this.sectionId, required this.event}) e
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final userState = context.watch<UserStateCubit>().state.value;
-    final canManage = currentUid != null &&
-        userState != null &&
-        context.read<UserStateCubit>().canManageSection(sectionId);
+    final canManage =
+        currentUid != null && userState != null && context.read<UserStateCubit>().canManageSection(sectionId);
 
     final leaderIds = event.tripLeaderIds;
 
@@ -585,14 +570,8 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
           title: Text(confirmTitle),
           content: Text(confirmMessage),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Remove'),
-            ),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Remove')),
           ],
         ),
       );
@@ -632,14 +611,8 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
           title: const Text('Withdraw from event?'),
           content: const Text('You will no longer be registered for this event.'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Withdraw'),
-            ),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Withdraw')),
           ],
         ),
       );
@@ -648,7 +621,8 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
       try {
         await cubit.withdrawSelf(uid, withdrawnByUserId: uid);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You have withdrawn from the event.')));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('You have withdrawn from the event.')));
         }
       } catch (e) {
         if (context.mounted) {
@@ -658,7 +632,6 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
         isSaving.value = false;
       }
     }
-
 
     Future<void> register() async {
       if (currentUid == null) {
@@ -764,68 +737,17 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
       final registeredIds = registrations.map((r) => r.userId).toSet();
       showModalBottomSheet<void>(
         context: context,
-        showDragHandle: true,
+        isScrollControlled: true,
+        useSafeArea: true,
         builder: (sheetContext) {
-          return SafeArea(
-            child: FutureBuilder<List<SectionMember>>(
-              future: repository.getSectionMembers(event.sectionId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(child: Text('Error loading members: ${snapshot.error}')),
-                  );
-                }
-                final candidates = (snapshot.data ?? const <SectionMember>[])
-                    .where((m) => !registeredIds.contains(m.id))
-                    .toList();
-
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text(
-                        'Add Participant',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    if (candidates.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(child: Text('All section members are already registered.')),
-                      )
-                    else
-                      Flexible(
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: candidates.length,
-                          itemBuilder: (context, index) {
-                            final member = candidates[index];
-                            return ListTile(
-                              leading: const Icon(Icons.person_outline),
-                              title: UserDisplay(userId: member.id, style: const TextStyle(fontSize: 14)),
-                              subtitle: Text(member.sectionRole.name),
-                              enabled: !isSaving.value,
-                              onTap: () {
-                                Navigator.of(sheetContext).pop();
-                                pickAddStatus(member.id);
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
+          return AddParticipantSheet(
+            sectionId: event.sectionId,
+            excludedIds: registeredIds,
+            isSaving: isSaving,
+            onPickMember: (userId) {
+              Navigator.of(sheetContext).pop();
+              pickAddStatus(userId);
+            },
           );
         },
       );
@@ -842,7 +764,10 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
       RegistrationStatus.withdrawn => 'Withdrawn',
     };
 
-    final bool canRegister = currentUid != null && (myRegistration == null || myRegistration.status == RegistrationStatus.withdrawn) && (hasSpace || event.requiresApproval);
+    final bool canRegister =
+        currentUid != null &&
+        (myRegistration == null || myRegistration.status == RegistrationStatus.withdrawn) &&
+        (hasSpace || event.requiresApproval);
 
     // Registrations a leader/manager can act on: pending, waitlisted, approved.
     final manageable = registrations

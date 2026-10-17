@@ -9,6 +9,17 @@ const String defaultSectionId = "national";
 
 final repository = AlpineRepository();
 
+/// One bounded page of section members (see [AlpineRepository.getSectionMembersPage]).
+class MembersPage({required this.members, this.nextCursor}) {
+  final List<SectionMember> members;
+
+  /// Firestore `QueryDocumentSnapshot` used to fetch the next page. `null`
+  /// once the whole subcollection has been paged through.
+  final Object? nextCursor;
+
+  bool get hasMore => nextCursor != null;
+}
+
 class AlpineRepository({FirebaseFirestore? firestore}) {
   final FirebaseFirestore? _customFirestore = firestore;
   FirebaseFirestore get _firestore => _customFirestore ?? FirebaseFirestore.instance;
@@ -35,9 +46,53 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
     return snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList();
   }
 
-  Stream<List<SectionMember>> streamSectionMembers(String sectionId) {
-    return _firestore.collection('sections').doc(sectionId).collection('members').snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList();
+  /// Fetches a bounded page of section members.
+  ///
+  /// Unlike [getSectionMembers] (which reads the whole subcollection, costing
+  /// one read per member), this costs at most [limit] document reads per call,
+  /// making picker-style UIs scale with the visible page rather than with the
+  /// size of the section. Pass the previous page's [MembersPage.nextCursor] as
+  /// [startAfter] to fetch the next page.
+  Future<MembersPage> getSectionMembersPage(String sectionId, {int limit = 40, Object? startAfter}) async {
+    var query = _firestore.collection('sections').doc(sectionId).collection('members').limit(limit);
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter as QueryDocumentSnapshot<Map<String, dynamic>>);
+    }
+    final snapshot = await query.get();
+    return MembersPage(
+      members: snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList(),
+      nextCursor: snapshot.docs.isEmpty ? null : snapshot.docs.last,
+    );
+  }
+
+  /// Counts section members with an aggregate query.
+  ///
+  /// Aggregate count queries are billed as 1 read per 1000 matching documents
+  /// instead of 1 read per document, so they are a cheap way to show true
+  /// counts alongside a windowed member list (see [streamSectionMembers]).
+  /// Filter to a [SectionRole] by passing [role].
+  Future<int> getSectionMemberCount(String sectionId, {SectionRole? role}) async {
+    Query<Map<String, dynamic>> query = _firestore.collection('sections').doc(sectionId).collection('members');
+    if (role != null) {
+      query = query.where('sectionRole', isEqualTo: role.name);
+    }
+    final snapshot = await query.count().get();
+    return snapshot.count ?? 0;
+  }
+
+  /// Streams a bounded realtime window of at most [limit] section members
+  /// (cost model matches [getSectionMembersPage]: reads scale with [limit],
+  /// not with the size of the section). The [MembersPage.nextCursor] of the
+  /// current window can be passed to [getSectionMembersPage] to page beyond
+  /// what the listener covers.
+  Stream<MembersPage> streamSectionMembers(String sectionId, {int limit = 40}) {
+    return _firestore.collection('sections').doc(sectionId).collection('members').limit(limit).snapshots().map((
+      snapshot,
+    ) {
+      return MembersPage(
+        members: snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList(),
+        nextCursor: snapshot.docs.isEmpty ? null : snapshot.docs.last,
+      );
     });
   }
 
@@ -157,23 +212,19 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
   Stream<Set<String>> streamUserRegisteredEventIds(String userId) {
     if (userId.isEmpty) return Stream.value(const <String>{});
     _log.fine('streamUserRegisteredEventIds for user $userId');
-    return _firestore
-        .collectionGroup('registrations')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
-          final eventIds = <String>{};
-          for (final doc in snapshot.docs) {
-            final data = doc.data();
-            if (data['status'] != RegistrationStatus.rejected.name) {
-              final eventId = doc.reference.parent.parent?.id;
-              if (eventId != null) {
-                eventIds.add(eventId);
-              }
-            }
+    return _firestore.collectionGroup('registrations').where('userId', isEqualTo: userId).snapshots().map((snapshot) {
+      final eventIds = <String>{};
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['status'] != RegistrationStatus.rejected.name) {
+          final eventId = doc.reference.parent.parent?.id;
+          if (eventId != null) {
+            eventIds.add(eventId);
           }
-          return eventIds;
-        });
+        }
+      }
+      return eventIds;
+    });
   }
 
   Future<List<Registration>> getEventRegistrations(String sectionId, String eventId) async {
@@ -212,8 +263,12 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
         .update({'status': newStatus});
   }
 
-  Future<void> withdrawRegistration(String sectionId, String eventId, String userId,
-      {String? withdrawnByUserId}) async {
+  Future<void> withdrawRegistration(
+    String sectionId,
+    String eventId,
+    String userId, {
+    String? withdrawnByUserId,
+  }) async {
     final now = DateTime.now();
     await _firestore
         .collection('sections')
@@ -223,11 +278,11 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
         .collection('registrations')
         .doc(userId)
         .update({
-      'status': 'withdrawn',
-      'withdrawnByUserId': withdrawnByUserId ?? userId,
-      'withdrawnAt': now,
-      'updatedAt': now,
-    });
+          'status': 'withdrawn',
+          'withdrawnByUserId': withdrawnByUserId ?? userId,
+          'withdrawnAt': now,
+          'updatedAt': now,
+        });
   }
 
   /// Removes a registration for [userId] from [eventId] in [sectionId].
@@ -235,12 +290,7 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
   /// Stamps [deletedByUserId] on the document before deleting it so the
   /// Firestore onDelete trigger can tell whether the deletion was a
   /// self-withdrawal (deletedByUserId == userId) or a leader removal.
-  Future<void> removeRegistration(
-    String sectionId,
-    String eventId,
-    String userId, {
-    String? deletedByUserId,
-  }) async {
+  Future<void> removeRegistration(String sectionId, String eventId, String userId, {String? deletedByUserId}) async {
     final ref = _firestore
         .collection('sections')
         .doc(sectionId)
@@ -398,11 +448,13 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
   /// `FieldPath.documentId` with a bare user ID is not supported.
   Future<List<SectionMember>> getUserMemberships(String uid, {List<Section>? sections}) async {
     final allSections = sections ?? await getSections();
-    final results = await Future.wait(allSections.map((section) async {
-      final doc = await _firestore.collection('sections').doc(section.id).collection('members').doc(uid).get();
-      if (!doc.exists || doc.data() == null) return null;
-      return SectionMember.fromJson({...doc.data()!, 'id': doc.id, 'sectionId': section.id});
-    }));
+    final results = await Future.wait(
+      allSections.map((section) async {
+        final doc = await _firestore.collection('sections').doc(section.id).collection('members').doc(uid).get();
+        if (!doc.exists || doc.data() == null) return null;
+        return SectionMember.fromJson({...doc.data()!, 'id': doc.id, 'sectionId': section.id});
+      }),
+    );
     return results.whereType<SectionMember>().toList();
   }
 
@@ -430,12 +482,9 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
     required SectionRole newRole,
   }) async {
     _log.info("Updating role of user $userId in section $sectionId to ${newRole.name}");
-    await _firestore
-        .collection('sections')
-        .doc(sectionId)
-        .collection('members')
-        .doc(userId)
-        .update({'sectionRole': newRole.name});
+    await _firestore.collection('sections').doc(sectionId).collection('members').doc(userId).update({
+      'sectionRole': newRole.name,
+    });
   }
 
   // Set user's chosen sections. The authoritative membership record is the
@@ -497,28 +546,17 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
   /// Streams notifications for a given recipient [userId], newest first.
   Stream<List<NotificationModel>> streamNotifications(String userId) {
     _log.fine('streamNotifications for user $userId');
-    return _firestore
-        .collection('notifications')
-        .where('recipientId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
-          final list = snapshot.docs
-              .map((doc) => NotificationModel.fromJson({...doc.data(), 'id': doc.id}))
-              .toList();
-          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return list;
-        });
+    return _firestore.collection('notifications').where('recipientId', isEqualTo: userId).snapshots().map((snapshot) {
+      final list = snapshot.docs.map((doc) => NotificationModel.fromJson({...doc.data(), 'id': doc.id})).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
   }
 
   /// Gets all notifications for a given recipient [userId], newest first.
   Future<List<NotificationModel>> getNotifications(String userId) async {
-    final snapshot = await _firestore
-        .collection('notifications')
-        .where('recipientId', isEqualTo: userId)
-        .get();
-    final list = snapshot.docs
-        .map((doc) => NotificationModel.fromJson({...doc.data(), 'id': doc.id}))
-        .toList();
+    final snapshot = await _firestore.collection('notifications').where('recipientId', isEqualTo: userId).get();
+    final list = snapshot.docs.map((doc) => NotificationModel.fromJson({...doc.data(), 'id': doc.id})).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
@@ -545,10 +583,7 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
   /// Deletes all notifications for a given recipient [userId].
   Future<void> deleteAllNotifications(String userId) async {
     _log.fine('Deleting all notifications for user $userId');
-    final snapshot = await _firestore
-        .collection('notifications')
-        .where('recipientId', isEqualTo: userId)
-        .get();
+    final snapshot = await _firestore.collection('notifications').where('recipientId', isEqualTo: userId).get();
     final batch = _firestore.batch();
     for (final doc in snapshot.docs) {
       batch.delete(doc.reference);

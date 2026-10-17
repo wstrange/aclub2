@@ -9,6 +9,38 @@ import '../state/member_directory_state.dart';
 import '../state/user_state.dart';
 import '../state/user_state_cubit.dart';
 
+/// Role filter options for the app-bar dropdown: label shown for each filter
+/// value (null = no role filter, i.e. all members). Managers and trip leaders
+/// are members too, so there is no "Members" entry — "All members" covers it.
+const List<(SectionRole?, String)> _roleFilterEntries = [
+  (null, 'All members'),
+  (SectionRole.sectionManager, 'Managers'),
+  (SectionRole.tripLeader, 'Trip Leaders'),
+];
+
+/// Title for the all-members / load-more tile: shows loaded-of-total while
+/// the member list is windowed, and the plain total once everything is loaded
+/// (or when only window counts are available).
+String _allTileTitle(MemberDirectoryState state) {
+  if (state.hasMoreMembers) {
+    return 'All members (${state.totalCount} of ${state.allTotal ?? '…'})';
+  }
+  return 'All members (${state.displayAllCount})';
+}
+
+/// Subtitle spelling out what tapping the tile does.
+String _allTileSubtitle(MemberDirectoryState state) {
+  if (state.hasMoreMembers) {
+    final remaining = state.allTotal == null ? null : state.allTotal! - state.totalCount;
+    return remaining == null ? 'Tap to load more members' : '$remaining more members available — tap to load';
+  }
+  if (state.selectedRole != null) return 'Tap to show every member';
+  if (state.allTotal != null && state.allTotal! > state.totalCount) {
+    return '${state.allTotal! - state.totalCount} not loaded yet — tap to refresh';
+  }
+  return 'Tap to show every member';
+}
+
 /// Screen allowing members to look up, search, and view profiles of other
 /// members in the same section.
 class const MembersDirectoryPage({super.key, this.initialSectionId}) extends StatelessWidget {
@@ -19,9 +51,7 @@ class const MembersDirectoryPage({super.key, this.initialSectionId}) extends Sta
     return BlocSignalBuilder<UserStateCubit, UserState?>(
       builder: (context, userState) {
         if (userState == null) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
         final isGlobalAdmin = userState.isAdmin;
@@ -37,15 +67,12 @@ class const MembersDirectoryPage({super.key, this.initialSectionId}) extends Sta
               final targetSectionId = initialSectionId != null && sections.any((s) => s.id == initialSectionId)
                   ? initialSectionId!
                   : (sections.any((s) => s.id == userState.currentSection.id)
-                      ? userState.currentSection.id
-                      : sections.first.id);
+                        ? userState.currentSection.id
+                        : sections.first.id);
 
               return BlocSignalProvider<MemberDirectoryCubit>(
                 create: (_) => MemberDirectoryCubit(sectionId: targetSectionId),
-                child: _MembersDirectoryView(
-                  userSections: sections,
-                  isGlobalAdmin: true,
-                ),
+                child: _MembersDirectoryView(userSections: sections, isGlobalAdmin: true),
               );
             },
           );
@@ -58,20 +85,14 @@ class const MembersDirectoryPage({super.key, this.initialSectionId}) extends Sta
 
         return BlocSignalProvider<MemberDirectoryCubit>(
           create: (_) => MemberDirectoryCubit(sectionId: targetSectionId),
-          child: _MembersDirectoryView(
-            userSections: userSections,
-            isGlobalAdmin: false,
-          ),
+          child: _MembersDirectoryView(userSections: userSections, isGlobalAdmin: false),
         );
       },
     );
   }
 }
 
-class const _MembersDirectoryView({
-    required this.userSections,
-    this.isGlobalAdmin = false,
-  }) extends StatefulWidget {
+class const _MembersDirectoryView({required this.userSections, this.isGlobalAdmin = false}) extends StatefulWidget {
   final List<Section> userSections;
   final bool isGlobalAdmin;
 
@@ -111,10 +132,7 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
                           .map(
                             (s) => DropdownMenuItem(
                               value: s.id,
-                              child: Text(
-                                '${s.name} Directory',
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                              ),
+                              child: Text('${s.name} Directory', style: const TextStyle(fontWeight: FontWeight.w600)),
                             ),
                           )
                           .toList(),
@@ -127,6 +145,34 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
                   )
                 : Text('${currentSection.name} Directory'),
             actions: [
+              // Role filter as a dropdown — filters are rarely used, so they
+              // live in the app bar instead of taking up permanent screen
+              // space. Tinted when active so a filter is never forgotten.
+              PopupMenuButton<SectionRole?>(
+                tooltip: 'Filter by role',
+                icon: state.selectedRole == null
+                    ? const Icon(Icons.filter_list)
+                    : Icon(Icons.filter_list, color: Theme.of(context).colorScheme.primary),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                initialValue: state.selectedRole,
+                onSelected: (role) => context.read<MemberDirectoryCubit>().setRoleFilter(role),
+                itemBuilder: (context) => [
+                  for (final entry in _roleFilterEntries)
+                    PopupMenuItem<SectionRole?>(
+                      value: entry.$1,
+                      child: Row(
+                        children: [
+                          if (state.selectedRole == entry.$1)
+                            const Icon(Icons.check, size: 18)
+                          else
+                            const Icon(Icons.check, size: 18, color: Colors.transparent),
+                          const SizedBox(width: 8),
+                          Text(entry.$2),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
               IconButton(
                 icon: const Icon(Icons.refresh),
                 tooltip: 'Refresh',
@@ -169,53 +215,35 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
                 ),
               ),
 
-              // Filter chips for roles
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Row(
-                  children: [
-                    FilterChip(
-                      label: Text('All (${state.totalCount})'),
-                      selected: state.selectedRole == null,
-                      onSelected: (_) => context.read<MemberDirectoryCubit>().setRoleFilter(null),
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      avatar: const Icon(Icons.admin_panel_settings, size: 16),
-                      label: Text('Managers (${state.managerCount})'),
-                      selected: state.selectedRole == SectionRole.sectionManager,
-                      onSelected: (selected) => context.read<MemberDirectoryCubit>().setRoleFilter(
-                            selected ? SectionRole.sectionManager : null,
-                          ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      avatar: const Icon(Icons.explore, size: 16),
-                      label: Text('Trip Leaders (${state.tripLeaderCount})'),
-                      selected: state.selectedRole == SectionRole.tripLeader,
-                      onSelected: (selected) => context.read<MemberDirectoryCubit>().setRoleFilter(
-                            selected ? SectionRole.tripLeader : null,
-                          ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      avatar: const Icon(Icons.person, size: 16),
-                      label: Text('Members (${state.memberCount})'),
-                      selected: state.selectedRole == SectionRole.member,
-                      onSelected: (selected) => context.read<MemberDirectoryCubit>().setRoleFilter(
-                            selected ? SectionRole.member : null,
-                          ),
-                    ),
-                  ],
+              // All members / load more tile.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  child: ListTile(
+                    title: Text(_allTileTitle(state), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(_allTileSubtitle(state)),
+                    trailing: state.isLoadingMore
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : state.hasMoreMembers
+                        ? const Icon(Icons.expand_more)
+                        : null,
+                    onTap: () {
+                      final cubit = context.read<MemberDirectoryCubit>();
+                      // While member data is windowed, tapping loads the next
+                      // page; otherwise tapping clears any role filter.
+                      if (state.hasMoreMembers) {
+                        cubit.loadMore();
+                      } else {
+                        cubit.setRoleFilter(null);
+                      }
+                    },
+                  ),
                 ),
               ),
-              const Divider(height: 16),
 
               // Members list
-              Expanded(
-                child: _buildMembersList(context, state, canManageRoles),
-              ),
+              Expanded(child: _buildMembersList(context, state, canManageRoles)),
             ],
           ),
         );
@@ -237,10 +265,7 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
               const SizedBox(height: 16),
-              Text(
-                'Failed to load member directory',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('Failed to load member directory', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Text(
                 '${state.error}',
@@ -268,17 +293,21 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                isFiltering ? Icons.search_off : Icons.group_off_outlined,
-                size: 48,
-                color: Colors.grey,
-              ),
+              Icon(isFiltering ? Icons.search_off : Icons.group_off_outlined, size: 48, color: Colors.grey),
               const SizedBox(height: 16),
               Text(
                 isFiltering ? 'No members match your criteria' : 'No members found in this section',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               if (isFiltering) ...[
+                if (state.hasMoreMembers) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Search covers loaded members — tap "All members" above to load more.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: () {
@@ -299,7 +328,7 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
     return RefreshIndicator(
       onRefresh: () => context.read<MemberDirectoryCubit>().refresh(),
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 32),
         itemCount: filtered.length,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
@@ -319,9 +348,7 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheetContext) => _MemberDetailBottomSheet(
         entry: entry,
         canManageRoles: canManageRoles,
@@ -338,10 +365,7 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
     final selectedRole = await showDialog<SectionRole>(
       context: context,
       builder: (dialogContext) {
-        return _ChangeRoleDialog(
-          memberName: entry.displayName,
-          currentRole: currentRole,
-        );
+        return _ChangeRoleDialog(memberName: entry.displayName, currentRole: currentRole);
       },
     );
 
@@ -361,10 +385,7 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
             'You are removing your own Section Manager role for this section. You will lose access to manage member roles and section settings.',
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(confirmContext).pop(false),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.of(confirmContext).pop(false), child: const Text('Cancel')),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Theme.of(confirmContext).colorScheme.error),
               onPressed: () => Navigator.of(confirmContext).pop(true),
@@ -380,13 +401,9 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
     try {
       await cubit.updateMemberRole(entry.userId, selectedRole);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Updated ${entry.displayName}\'s role to ${_roleName(selectedRole)}',
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Updated ${entry.displayName}\'s role to ${_roleName(selectedRole)}')));
         if (entry.userId == currentUserId) {
           userStateCubit.refresh();
         }
@@ -394,22 +411,15 @@ class _MembersDirectoryViewState() extends State<_MembersDirectoryView> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Theme.of(context).colorScheme.error,
-            content: Text('Failed to update role: $e'),
-          ),
+          SnackBar(backgroundColor: Theme.of(context).colorScheme.error, content: Text('Failed to update role: $e')),
         );
       }
     }
   }
 }
 
-class const _MemberCard({
-    required this.entry,
-    required this.onTap,
-    this.canManageRoles = false,
-    this.onEditRole,
-  }) extends StatelessWidget {
+class const _MemberCard({required this.entry, required this.onTap, this.canManageRoles = false, this.onEditRole})
+    extends StatelessWidget {
   final MemberDirectoryEntry entry;
   final VoidCallback onTap;
   final bool canManageRoles;
@@ -438,10 +448,7 @@ class const _MemberCard({
                 radius: 24,
                 backgroundColor: roleColor.withValues(alpha: 0.2),
                 foregroundColor: roleColor,
-                child: Text(
-                  entry.initials,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
+                child: Text(entry.initials, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -453,16 +460,10 @@ class const _MemberCard({
                         Expanded(
                           child: Text(
                             entry.displayName,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                           ),
                         ),
-                        _RoleBadge(
-                          label: entry.roleDisplayName,
-                          color: roleColor,
-                          icon: roleIcon,
-                        ),
+                        _RoleBadge(label: entry.roleDisplayName, color: roleColor, icon: roleIcon),
                       ],
                     ),
                     if (entry.email != null && entry.email!.isNotEmpty) ...[
@@ -474,9 +475,7 @@ class const _MemberCard({
                           Expanded(
                             child: Text(
                               entry.email!,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
+                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -531,11 +530,7 @@ class const _MemberCard({
   };
 }
 
-class const _RoleBadge({
-    required this.label,
-    required this.color,
-    required this.icon,
-  }) extends StatelessWidget {
+class const _RoleBadge({required this.label, required this.color, required this.icon}) extends StatelessWidget {
   final String label;
   final Color color;
   final IconData icon;
@@ -564,11 +559,8 @@ class const _RoleBadge({
   }
 }
 
-class const _MemberDetailBottomSheet({
-    required this.entry,
-    this.canManageRoles = false,
-    this.onEditRole,
-  }) extends StatelessWidget {
+class const _MemberDetailBottomSheet({required this.entry, this.canManageRoles = false, this.onEditRole})
+    extends StatelessWidget {
   final MemberDirectoryEntry entry;
   final bool canManageRoles;
   final VoidCallback? onEditRole;
@@ -602,30 +594,20 @@ class const _MemberDetailBottomSheet({
                   radius: 32,
                   backgroundColor: roleColor.withValues(alpha: 0.2),
                   foregroundColor: roleColor,
-                  child: Text(
-                    entry.initials,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-                  ),
+                  child: Text(entry.initials, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        entry.displayName,
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                      ),
+                      Text(entry.displayName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 6),
                       Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
                         spacing: 8,
                         children: [
-                          _RoleBadge(
-                            label: entry.roleDisplayName,
-                            color: roleColor,
-                            icon: roleIcon,
-                          ),
+                          _RoleBadge(label: entry.roleDisplayName, color: roleColor, icon: roleIcon),
                           if (canManageRoles && onEditRole != null)
                             ActionChip(
                               avatar: const Icon(Icons.edit, size: 14),
@@ -649,11 +631,7 @@ class const _MemberDetailBottomSheet({
             const SizedBox(height: 12),
 
             // Membership information
-            _DetailTile(
-              icon: Icons.calendar_today_outlined,
-              title: 'Member Since',
-              value: _formatDate(entry.joinedAt),
-            ),
+            _DetailTile(icon: Icons.calendar_today_outlined, title: 'Member Since', value: _formatDate(entry.joinedAt)),
 
             // Contact: Email
             if (entry.email != null && entry.email!.isNotEmpty)
@@ -666,9 +644,8 @@ class const _MemberDetailBottomSheet({
                   tooltip: 'Copy email',
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: entry.email!));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Email copied to clipboard')),
-                    );
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(const SnackBar(content: Text('Email copied to clipboard')));
                   },
                 ),
               ),
@@ -684,9 +661,8 @@ class const _MemberDetailBottomSheet({
                   tooltip: 'Copy phone',
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: entry.phone!));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Phone copied to clipboard')),
-                    );
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(const SnackBar(content: Text('Phone copied to clipboard')));
                   },
                 ),
               ),
@@ -706,10 +682,7 @@ class const _MemberDetailBottomSheet({
                 spacing: 8,
                 runSpacing: 6,
                 children: entry.certifications.map((cert) {
-                  return Chip(
-                    label: Text(cert),
-                    avatar: const Icon(Icons.verified, size: 16),
-                  );
+                  return Chip(label: Text(cert), avatar: const Icon(Icons.verified, size: 16));
                 }).toList(),
               ),
             ],
@@ -731,10 +704,7 @@ class const _MemberDetailBottomSheet({
                   const SizedBox(width: 12),
                 ],
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Close'),
-                  ),
+                  child: OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
                 ),
               ],
             ),
@@ -746,19 +716,25 @@ class const _MemberDetailBottomSheet({
 
   static String _formatDate(DateTime date) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
 }
 
-class const _DetailTile({
-    required this.icon,
-    required this.title,
-    required this.value,
-    this.trailing,
-  }) extends StatelessWidget {
+class const _DetailTile({required this.icon, required this.title, required this.value, this.trailing})
+    extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
@@ -777,14 +753,8 @@ class const _DetailTile({
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                ),
-                Text(
-                  value,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-                ),
+                Text(title, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -801,10 +771,7 @@ String _roleName(SectionRole role) => switch (role) {
   SectionRole.member => 'Member',
 };
 
-class const _ChangeRoleDialog({
-    required this.memberName,
-    required this.currentRole,
-  }) extends StatefulWidget {
+class const _ChangeRoleDialog({required this.memberName, required this.currentRole}) extends StatefulWidget {
   final String memberName;
   final SectionRole currentRole;
 
@@ -870,14 +837,9 @@ class _ChangeRoleDialogState() extends State<_ChangeRoleDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.of(context).pop(null), child: const Text('Cancel')),
         FilledButton(
-          onPressed: _selectedRole != widget.currentRole
-              ? () => Navigator.of(context).pop(_selectedRole)
-              : null,
+          onPressed: _selectedRole != widget.currentRole ? () => Navigator.of(context).pop(_selectedRole) : null,
           child: const Text('Save'),
         ),
       ],
@@ -923,19 +885,11 @@ class _ChangeRoleDialogState() extends State<_ChangeRoleDialog> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),
-            Radio<SectionRole>(
-              value: role,
-              activeColor: color,
-            ),
+            Radio<SectionRole>(value: role, activeColor: color),
           ],
         ),
       ),

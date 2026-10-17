@@ -4,10 +4,7 @@ import 'package:shared_models/shared_models.dart';
 part 'member_directory_state.freezed.dart';
 
 /// Combines a [SectionMember] record with the resolved [UserProfile], if available.
-class const MemberDirectoryEntry({
-    required this.member,
-    this.profile,
-  }) {
+class const MemberDirectoryEntry({required this.member, this.profile}) {
   final SectionMember member;
   final UserProfile? profile;
 
@@ -75,7 +72,24 @@ abstract class const MemberDirectoryState._() with _$MemberDirectoryState {
     Object? error,
     @Default('') String searchQuery,
     SectionRole? selectedRole,
+
+    /// True while the loaded window may not cover the whole section and a
+    /// further page of members can be fetched with
+    /// [MemberDirectoryCubit.loadMore].
+    @Default(false) bool hasMoreMembers,
+
+    /// True while a "load more" page fetch is in flight.
+    @Default(false) bool isLoadingMore,
+
+    /// Section-wide member count fetched with an inexpensive aggregate count
+    /// query (1 read per 1000 docs). `null` while loading or on failure — the
+    /// UI then falls back to counts over the loaded window.
+    @Default(null) int? allTotal,
   }) = _MemberDirectoryState;
+
+  /// Count preferred for display: aggregate total when available, otherwise
+  /// the count over the loaded window.
+  int get displayAllCount => allTotal ?? totalCount;
 
   int get totalCount => entries.length;
   int get managerCount => entries.where((e) => e.role == SectionRole.sectionManager).length;

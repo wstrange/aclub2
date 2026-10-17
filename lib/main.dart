@@ -17,8 +17,6 @@ import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'routes.dart';
 import 'state/user_state_cubit.dart';
 
-// import 'firebase_options.dart';
-
 /// iOS/macOS client ID from Google Cloud Console (Firebase → iOS app aclub.ui).
 /// Native platforms require an iOS/macOS OAuth client, not the Web one.
 /// This is not a secret that must be protected. It is public.
@@ -100,10 +98,7 @@ void _runBootstrapErrorApp(Object error) {
         body: Padding(
           padding: const EdgeInsets.all(24),
           child: Center(
-            child: Text(
-              'The app failed to start. Please try again later.\n\n$error',
-              textAlign: TextAlign.center,
-            ),
+            child: Text('The app failed to start. Please try again later.\n\n$error', textAlign: TextAlign.center),
           ),
         ),
       ),

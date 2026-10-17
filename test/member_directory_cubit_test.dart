@@ -135,11 +135,7 @@ void main() {
     final allEntries = [regularMember, leaderA, manager, leaderB];
 
     test('counts members by role correctly', () {
-      final state = MemberDirectoryState(
-        sectionId: 'sec-1',
-        entries: allEntries,
-        isLoading: false,
-      );
+      final state = MemberDirectoryState(sectionId: 'sec-1', entries: allEntries, isLoading: false);
 
       expect(state.totalCount, equals(4));
       expect(state.managerCount, equals(1));
@@ -147,12 +143,16 @@ void main() {
       expect(state.memberCount, equals(1));
     });
 
+    test('display count prefers aggregate total and falls back to window count', () {
+      final windowOnly = MemberDirectoryState(sectionId: 'sec-1', entries: allEntries, isLoading: false);
+      expect(windowOnly.displayAllCount, equals(4));
+
+      final withTotal = MemberDirectoryState(sectionId: 'sec-1', entries: allEntries, isLoading: false, allTotal: 120);
+      expect(withTotal.displayAllCount, equals(120));
+    });
+
     test('sorts by role hierarchy (Managers -> Leaders -> Members) and then alphabetically', () {
-      final state = MemberDirectoryState(
-        sectionId: 'sec-1',
-        entries: allEntries,
-        isLoading: false,
-      );
+      final state = MemberDirectoryState(sectionId: 'sec-1', entries: allEntries, isLoading: false);
 
       final sorted = state.filteredEntries;
       expect(sorted.length, equals(4));
@@ -238,11 +238,7 @@ void main() {
 
     test('updateMemberRole calls repository and updates entries optimistically', () async {
       final fakeRepo = _FakeAlpineRepository();
-      final cubit = MemberDirectoryCubit(
-        sectionId: 'calgary',
-        repository: fakeRepo,
-        autoSubscribe: false,
-      );
+      final cubit = MemberDirectoryCubit(sectionId: 'calgary', repository: fakeRepo, autoSubscribe: false);
       addTearDown(cubit.close);
 
       final initialEntry = MemberDirectoryEntry(

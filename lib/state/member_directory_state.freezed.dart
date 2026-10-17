@@ -15,7 +15,14 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MemberDirectoryState {
 
- String get sectionId; List<MemberDirectoryEntry> get entries; bool get isLoading; Object? get error; String get searchQuery; SectionRole? get selectedRole;
+ String get sectionId; List<MemberDirectoryEntry> get entries; bool get isLoading; Object? get error; String get searchQuery; SectionRole? get selectedRole;/// True while the loaded window may not cover the whole section and a
+/// further page of members can be fetched with
+/// [MemberDirectoryCubit.loadMore].
+ bool get hasMoreMembers;/// True while a "load more" page fetch is in flight.
+ bool get isLoadingMore;/// Section-wide member count fetched with an inexpensive aggregate count
+/// query (1 read per 1000 docs). `null` while loading or on failure — the
+/// UI then falls back to counts over the loaded window.
+ int? get allTotal;
 /// Create a copy of MemberDirectoryState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +34,20 @@ $MemberDirectoryStateCopyWith<MemberDirectoryState> get copyWith => _$MemberDire
 @override
 bool operator ==(Object other) {
   final _this = this as MemberDirectoryState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MemberDirectoryState&&(identical(other.sectionId, _this.sectionId) || other.sectionId == _this.sectionId)&&const DeepCollectionEquality().equals(other.entries, _this.entries)&&(identical(other.isLoading, _this.isLoading) || other.isLoading == _this.isLoading)&&const DeepCollectionEquality().equals(other.error, _this.error)&&(identical(other.searchQuery, _this.searchQuery) || other.searchQuery == _this.searchQuery)&&(identical(other.selectedRole, _this.selectedRole) || other.selectedRole == _this.selectedRole));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MemberDirectoryState&&(identical(other.sectionId, _this.sectionId) || other.sectionId == _this.sectionId)&&const DeepCollectionEquality().equals(other.entries, _this.entries)&&(identical(other.isLoading, _this.isLoading) || other.isLoading == _this.isLoading)&&const DeepCollectionEquality().equals(other.error, _this.error)&&(identical(other.searchQuery, _this.searchQuery) || other.searchQuery == _this.searchQuery)&&(identical(other.selectedRole, _this.selectedRole) || other.selectedRole == _this.selectedRole)&&(identical(other.hasMoreMembers, _this.hasMoreMembers) || other.hasMoreMembers == _this.hasMoreMembers)&&(identical(other.isLoadingMore, _this.isLoadingMore) || other.isLoadingMore == _this.isLoadingMore)&&(identical(other.allTotal, _this.allTotal) || other.allTotal == _this.allTotal));
 }
 
 
 @override
 int get hashCode {
   final _this = this as MemberDirectoryState;
-  return Object.hash(runtimeType,_this.sectionId,const DeepCollectionEquality().hash(_this.entries),_this.isLoading,const DeepCollectionEquality().hash(_this.error),_this.searchQuery,_this.selectedRole);
+  return Object.hash(runtimeType,_this.sectionId,const DeepCollectionEquality().hash(_this.entries),_this.isLoading,const DeepCollectionEquality().hash(_this.error),_this.searchQuery,_this.selectedRole,_this.hasMoreMembers,_this.isLoadingMore,_this.allTotal);
 }
 
 @override
 String toString() {
   final _this = this as MemberDirectoryState;
-  return 'MemberDirectoryState(sectionId: ${_this.sectionId}, entries: ${_this.entries}, isLoading: ${_this.isLoading}, error: ${_this.error}, searchQuery: ${_this.searchQuery}, selectedRole: ${_this.selectedRole})';
+  return 'MemberDirectoryState(sectionId: ${_this.sectionId}, entries: ${_this.entries}, isLoading: ${_this.isLoading}, error: ${_this.error}, searchQuery: ${_this.searchQuery}, selectedRole: ${_this.selectedRole}, hasMoreMembers: ${_this.hasMoreMembers}, isLoadingMore: ${_this.isLoadingMore}, allTotal: ${_this.allTotal})';
 }
 
 
@@ -51,7 +58,7 @@ abstract mixin class $MemberDirectoryStateCopyWith<$Res>  {
   factory $MemberDirectoryStateCopyWith(MemberDirectoryState value, $Res Function(MemberDirectoryState) _then) = _$MemberDirectoryStateCopyWithImpl;
 @useResult
 $Res call({
- String sectionId, List<MemberDirectoryEntry> entries, bool isLoading, Object? error, String searchQuery, SectionRole? selectedRole
+ String sectionId, List<MemberDirectoryEntry> entries, bool isLoading, Object? error, String searchQuery, SectionRole? selectedRole, bool hasMoreMembers, bool isLoadingMore, int? allTotal
 });
 
 
@@ -68,14 +75,17 @@ class _$MemberDirectoryStateCopyWithImpl<$Res>
 
 /// Create a copy of MemberDirectoryState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? sectionId = null,Object? entries = null,Object? isLoading = null,Object? error = freezed,Object? searchQuery = null,Object? selectedRole = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? sectionId = null,Object? entries = null,Object? isLoading = null,Object? error = freezed,Object? searchQuery = null,Object? selectedRole = freezed,Object? hasMoreMembers = null,Object? isLoadingMore = null,Object? allTotal = freezed,}) {
   return _then(MemberDirectoryState(
 sectionId: null == sectionId ? _self.sectionId : sectionId // ignore: cast_nullable_to_non_nullable
 as String,entries: null == entries ? _self.entries : entries // ignore: cast_nullable_to_non_nullable
 as List<MemberDirectoryEntry>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,error: freezed == error ? _self.error : error ,searchQuery: null == searchQuery ? _self.searchQuery : searchQuery // ignore: cast_nullable_to_non_nullable
 as String,selectedRole: freezed == selectedRole ? _self.selectedRole : selectedRole // ignore: cast_nullable_to_non_nullable
-as SectionRole?,
+as SectionRole?,hasMoreMembers: null == hasMoreMembers ? _self.hasMoreMembers : hasMoreMembers // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
+as bool,allTotal: freezed == allTotal ? _self.allTotal : allTotal // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -160,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String sectionId,  List<MemberDirectoryEntry> entries,  bool isLoading,  Object? error,  String searchQuery,  SectionRole? selectedRole)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String sectionId,  List<MemberDirectoryEntry> entries,  bool isLoading,  Object? error,  String searchQuery,  SectionRole? selectedRole,  bool hasMoreMembers,  bool isLoadingMore,  int? allTotal)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MemberDirectoryState() when $default != null:
-return $default(_that.sectionId,_that.entries,_that.isLoading,_that.error,_that.searchQuery,_that.selectedRole);case _:
+return $default(_that.sectionId,_that.entries,_that.isLoading,_that.error,_that.searchQuery,_that.selectedRole,_that.hasMoreMembers,_that.isLoadingMore,_that.allTotal);case _:
   return orElse();
 
 }
@@ -181,10 +191,10 @@ return $default(_that.sectionId,_that.entries,_that.isLoading,_that.error,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String sectionId,  List<MemberDirectoryEntry> entries,  bool isLoading,  Object? error,  String searchQuery,  SectionRole? selectedRole)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String sectionId,  List<MemberDirectoryEntry> entries,  bool isLoading,  Object? error,  String searchQuery,  SectionRole? selectedRole,  bool hasMoreMembers,  bool isLoadingMore,  int? allTotal)  $default,) {final _that = this;
 switch (_that) {
 case _MemberDirectoryState():
-return $default(_that.sectionId,_that.entries,_that.isLoading,_that.error,_that.searchQuery,_that.selectedRole);case _:
+return $default(_that.sectionId,_that.entries,_that.isLoading,_that.error,_that.searchQuery,_that.selectedRole,_that.hasMoreMembers,_that.isLoadingMore,_that.allTotal);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +211,10 @@ return $default(_that.sectionId,_that.entries,_that.isLoading,_that.error,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String sectionId,  List<MemberDirectoryEntry> entries,  bool isLoading,  Object? error,  String searchQuery,  SectionRole? selectedRole)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String sectionId,  List<MemberDirectoryEntry> entries,  bool isLoading,  Object? error,  String searchQuery,  SectionRole? selectedRole,  bool hasMoreMembers,  bool isLoadingMore,  int? allTotal)?  $default,) {final _that = this;
 switch (_that) {
 case _MemberDirectoryState() when $default != null:
-return $default(_that.sectionId,_that.entries,_that.isLoading,_that.error,_that.searchQuery,_that.selectedRole);case _:
+return $default(_that.sectionId,_that.entries,_that.isLoading,_that.error,_that.searchQuery,_that.selectedRole,_that.hasMoreMembers,_that.isLoadingMore,_that.allTotal);case _:
   return null;
 
 }
@@ -216,7 +226,7 @@ return $default(_that.sectionId,_that.entries,_that.isLoading,_that.error,_that.
 
 
 class _MemberDirectoryState extends MemberDirectoryState {
-  const _MemberDirectoryState({required this.sectionId,  List<MemberDirectoryEntry> entries = const <MemberDirectoryEntry>[], this.isLoading = true, this.error, this.searchQuery = '', this.selectedRole}): _entries = entries,super._();
+  const _MemberDirectoryState({required this.sectionId,  List<MemberDirectoryEntry> entries = const <MemberDirectoryEntry>[], this.isLoading = true, this.error, this.searchQuery = '', this.selectedRole, this.hasMoreMembers = false, this.isLoadingMore = false, this.allTotal = null}): _entries = entries,super._();
   
 
 @override final  String sectionId;
@@ -231,6 +241,16 @@ class _MemberDirectoryState extends MemberDirectoryState {
 @override final  Object? error;
 @override@JsonKey() final  String searchQuery;
 @override final  SectionRole? selectedRole;
+/// True while the loaded window may not cover the whole section and a
+/// further page of members can be fetched with
+/// [MemberDirectoryCubit.loadMore].
+@override@JsonKey() final  bool hasMoreMembers;
+/// True while a "load more" page fetch is in flight.
+@override@JsonKey() final  bool isLoadingMore;
+/// Section-wide member count fetched with an inexpensive aggregate count
+/// query (1 read per 1000 docs). `null` while loading or on failure — the
+/// UI then falls back to counts over the loaded window.
+@override@JsonKey() final  int? allTotal;
 
 /// Create a copy of MemberDirectoryState
 /// with the given fields replaced by the non-null parameter values.
@@ -242,18 +262,18 @@ _$MemberDirectoryStateCopyWith<_MemberDirectoryState> get copyWith => __$MemberD
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _MemberDirectoryState&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&const DeepCollectionEquality().equals(other.entries, _entries)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&const DeepCollectionEquality().equals(other.error, error)&&(identical(other.searchQuery, searchQuery) || other.searchQuery == searchQuery)&&(identical(other.selectedRole, selectedRole) || other.selectedRole == selectedRole));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _MemberDirectoryState&&(identical(other.sectionId, sectionId) || other.sectionId == sectionId)&&const DeepCollectionEquality().equals(other.entries, _entries)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&const DeepCollectionEquality().equals(other.error, error)&&(identical(other.searchQuery, searchQuery) || other.searchQuery == searchQuery)&&(identical(other.selectedRole, selectedRole) || other.selectedRole == selectedRole)&&(identical(other.hasMoreMembers, hasMoreMembers) || other.hasMoreMembers == hasMoreMembers)&&(identical(other.isLoadingMore, isLoadingMore) || other.isLoadingMore == isLoadingMore)&&(identical(other.allTotal, allTotal) || other.allTotal == allTotal));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,sectionId,const DeepCollectionEquality().hash(_entries),isLoading,const DeepCollectionEquality().hash(error),searchQuery,selectedRole);
+    return Object.hash(runtimeType,sectionId,const DeepCollectionEquality().hash(_entries),isLoading,const DeepCollectionEquality().hash(error),searchQuery,selectedRole,hasMoreMembers,isLoadingMore,allTotal);
 }
 
 @override
 String toString() {
-    return 'MemberDirectoryState(sectionId: $sectionId, entries: $entries, isLoading: $isLoading, error: $error, searchQuery: $searchQuery, selectedRole: $selectedRole)';
+    return 'MemberDirectoryState(sectionId: $sectionId, entries: $entries, isLoading: $isLoading, error: $error, searchQuery: $searchQuery, selectedRole: $selectedRole, hasMoreMembers: $hasMoreMembers, isLoadingMore: $isLoadingMore, allTotal: $allTotal)';
 }
 
 
@@ -264,7 +284,7 @@ abstract mixin class _$MemberDirectoryStateCopyWith<$Res> implements $MemberDire
   factory _$MemberDirectoryStateCopyWith(_MemberDirectoryState value, $Res Function(_MemberDirectoryState) _then) = __$MemberDirectoryStateCopyWithImpl;
 @override @useResult
 $Res call({
- String sectionId, List<MemberDirectoryEntry> entries, bool isLoading, Object? error, String searchQuery, SectionRole? selectedRole
+ String sectionId, List<MemberDirectoryEntry> entries, bool isLoading, Object? error, String searchQuery, SectionRole? selectedRole, bool hasMoreMembers, bool isLoadingMore, int? allTotal
 });
 
 
@@ -281,14 +301,17 @@ class __$MemberDirectoryStateCopyWithImpl<$Res>
 
 /// Create a copy of MemberDirectoryState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? sectionId = null,Object? entries = null,Object? isLoading = null,Object? error = freezed,Object? searchQuery = null,Object? selectedRole = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? sectionId = null,Object? entries = null,Object? isLoading = null,Object? error = freezed,Object? searchQuery = null,Object? selectedRole = freezed,Object? hasMoreMembers = null,Object? isLoadingMore = null,Object? allTotal = freezed,}) {
   return _then(_MemberDirectoryState(
 sectionId: null == sectionId ? _self.sectionId : sectionId // ignore: cast_nullable_to_non_nullable
 as String,entries: null == entries ? _self._entries : entries // ignore: cast_nullable_to_non_nullable
 as List<MemberDirectoryEntry>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,error: freezed == error ? _self.error : error ,searchQuery: null == searchQuery ? _self.searchQuery : searchQuery // ignore: cast_nullable_to_non_nullable
 as String,selectedRole: freezed == selectedRole ? _self.selectedRole : selectedRole // ignore: cast_nullable_to_non_nullable
-as SectionRole?,
+as SectionRole?,hasMoreMembers: null == hasMoreMembers ? _self.hasMoreMembers : hasMoreMembers // ignore: cast_nullable_to_non_nullable
+as bool,isLoadingMore: null == isLoadingMore ? _self.isLoadingMore : isLoadingMore // ignore: cast_nullable_to_non_nullable
+as bool,allTotal: freezed == allTotal ? _self.allTotal : allTotal // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

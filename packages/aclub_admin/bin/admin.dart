@@ -3,20 +3,36 @@ import 'package:args/command_runner.dart';
 import 'package:aclub_admin/admin_repo.dart';
 
 void main(List<String> args) async {
-  final runner = CommandRunner<void>(
-    'admin',
-    'Administrative CLI tool for aclub database management and Cloud operations.',
-  )
-    ..addCommand(SeedCommand())
-    ..addCommand(ResetCommand())
-    ..addCommand(StatsCommand())
-    ..addCommand(ListSectionsCommand())
-    ..addCommand(ListEventsCommand());
+  final runner =
+      CommandRunner<void>(
+          'admin',
+          'Administrative CLI tool for aclub database management and Cloud operations.',
+        )
+        ..addCommand(SeedCommand())
+        ..addCommand(ResetCommand())
+        ..addCommand(StatsCommand())
+        ..addCommand(ListSectionsCommand())
+        ..addCommand(ListEventsCommand());
 
   runner.argParser
-    ..addOption('project', abbr: 'p', help: 'Target Firebase/GCP Project ID', defaultsTo: 'aclub2')
-    ..addOption('emulator', abbr: 'e', help: 'Firestore emulator host (e.g. localhost:8080)', defaultsTo: Platform.environment['FIRESTORE_EMULATOR_HOST'] ?? 'localhost:8080')
-    ..addFlag('use-emulator', help: 'Whether to connect to local emulator', defaultsTo: true);
+    ..addOption(
+      'project',
+      abbr: 'p',
+      help: 'Target Firebase/GCP Project ID',
+      defaultsTo: 'aclub2',
+    )
+    ..addOption(
+      'emulator',
+      abbr: 'e',
+      help: 'Firestore emulator host (e.g. localhost:8080)',
+      defaultsTo:
+          Platform.environment['FIRESTORE_EMULATOR_HOST'] ?? 'localhost:8080',
+    )
+    ..addFlag(
+      'use-emulator',
+      help: 'Whether to connect to local emulator',
+      defaultsTo: true,
+    );
 
   try {
     await runner.run(args);
@@ -33,7 +49,9 @@ abstract class BaseAdminCommand extends Command<void> {
     final projectId = globalResults?['project'] as String? ?? 'aclub2';
 
     if (useEmulator && emulatorHost != null && emulatorHost.isNotEmpty) {
-      stdout.writeln('🔌 Connecting to Firestore Emulator at $emulatorHost (Project: $projectId)...');
+      stdout.writeln(
+        '🔌 Connecting to Firestore Emulator at $emulatorHost (Project: $projectId)...',
+      );
       return AdminRepository(
         projectId: projectId,
         useEmulator: true,
@@ -41,10 +59,7 @@ abstract class BaseAdminCommand extends Command<void> {
       );
     } else {
       stdout.writeln('☁️ Connecting to GCP Project $projectId...');
-      return AdminRepository(
-        projectId: projectId,
-        useEmulator: false,
-      );
+      return AdminRepository(projectId: projectId, useEmulator: false);
     }
   }
 }
@@ -56,11 +71,44 @@ class SeedCommand extends BaseAdminCommand {
   final description = 'Seeds sample sections and events into Cloud Firestore.';
 
   SeedCommand() {
-    argParser.addFlag('reset', abbr: 'r', help: 'Clear existing data before seeding', defaultsTo: false);
+    argParser.addFlag(
+      'reset',
+      abbr: 'r',
+      help: 'Clear existing data before seeding',
+      defaultsTo: false,
+    );
+    argParser.addOption(
+      'users',
+      abbr: 'u',
+      help: 'Number of sample users to seed per section',
+      defaultsTo: '3',
+    );
+    argParser.addOption(
+      'events',
+      abbr: 'c',
+      help:
+          'Number of sample events to seed (spanning from today to one year out)',
+      defaultsTo: '12',
+    );
+  }
+
+  /// Parses a non-negative integer option, failing the command on bad input.
+  int _count(String key) {
+    final raw = argResults?[key] as String?;
+    final value = int.tryParse(raw ?? '');
+    if (value == null || value < 0) {
+      stderr.writeln(
+        '❌ Invalid value for --$key: "$raw" (expected a non-negative integer)',
+      );
+      exit(1);
+    }
+    return value;
   }
 
   @override
   Future<void> run() async {
+    final usersPerSection = _count('users');
+    final eventCount = _count('events');
     final repo = createRepo();
     try {
       if (argResults?['reset'] == true) {
@@ -68,10 +116,20 @@ class SeedCommand extends BaseAdminCommand {
         await repo.resetAll();
       }
 
-      stdout.writeln('🌱 Seeding database...');
-      final result = await repo.seedAll();
-      stdout.writeln('✅ Successfully seeded: ${result['sections']} sections, ${result['events']} events, '
-          '${result['users']} users, ${result['members']} section members, ${result['templates']} templates.');
+      final sections = defaultSampleSections;
+      stdout.writeln(
+        '🌱 Seeding database (${sections.length} sections, $usersPerSection users/section, '
+        '$eventCount events spanning the next year)...',
+      );
+      final result = await repo.seedAll(
+        sections: sections,
+        events: generateSampleEvents(eventCount, sections: sections),
+        users: generateSampleUsers(usersPerSection, sections: sections),
+      );
+      stdout.writeln(
+        '✅ Successfully seeded: ${result['sections']} sections, ${result['events']} events, '
+        '${result['users']} users, ${result['members']} section members, ${result['templates']} templates.',
+      );
     } finally {
       await repo.close();
     }
@@ -82,7 +140,8 @@ class ResetCommand extends BaseAdminCommand {
   @override
   final name = 'reset';
   @override
-  final description = 'Clears all sections, events, and templates (primarily for testing/emulator).';
+  final description =
+      'Clears all sections, events, and templates (primarily for testing/emulator).';
 
   @override
   Future<void> run() async {
@@ -149,7 +208,12 @@ class ListEventsCommand extends BaseAdminCommand {
   final description = 'Lists events for a given section.';
 
   ListEventsCommand() {
-    argParser.addOption('section', abbr: 's', help: 'Section ID', defaultsTo: 'national');
+    argParser.addOption(
+      'section',
+      abbr: 's',
+      help: 'Section ID',
+      defaultsTo: 'national',
+    );
   }
 
   @override
@@ -160,7 +224,9 @@ class ListEventsCommand extends BaseAdminCommand {
       final events = await repo.listEvents(sectionId);
       stdout.writeln('📅 Events for section "$sectionId" (${events.length}):');
       for (final e in events) {
-        stdout.writeln('  • [${e.id}] ${e.title} (${e.type.name}) - ${e.startDate.toIso8601String()}');
+        stdout.writeln(
+          '  • [${e.id}] ${e.title} (${e.type.name}) - ${e.startDate.toIso8601String()}',
+        );
       }
     } finally {
       await repo.close();
