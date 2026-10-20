@@ -307,3 +307,5 @@ Admin-managed markdown templates that can be inserted into event description fie
 
 * display name is mandatory. Include an error message if the profile does not set it
 * Profile tele number is not friendly. Change to a more common format like ###-###-####
+* distribution list for trip leaders with emails, contact info. PDF?
+* Send group notifications to the event participants

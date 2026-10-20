@@ -13,7 +13,8 @@ import '../state/event_details_cubit.dart';
 import '../state/event_details_state.dart';
 import '../state/user_state_cubit.dart';
 import '../widgets/add_participant_sheet.dart';
-import '../widgets/user_display.dart';
+import '../widgets/member_search_bar.dart';
+import '../widgets/user_display.dart' show UserDisplay, UserChip, resolveUserDisplay;
 
 final _log = Logger('EventDetailPage');
 
@@ -172,7 +173,17 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
     return Scaffold(
       appBar: AppBar(
         title: const Text('Event Details'),
-        actions: [if (canManage) IconButton(icon: const Icon(Icons.edit), tooltip: 'Edit Event', onPressed: openEdit)],
+        actions: [
+          if (canManage) ...[
+            IconButton(icon: const Icon(Icons.edit_outlined), tooltip: 'Edit Event', onPressed: openEdit),
+            IconButton(icon: const Icon(Icons.copy_all_outlined), tooltip: 'Copy Event', onPressed: copyEvent),
+            IconButton(
+              icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+              tooltip: 'Delete Event',
+              onPressed: deleteEvent,
+            ),
+          ],
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -232,45 +243,6 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
             _sectionHeader('Leadership'),
             _LeadershipSection(sectionId: sectionId, event: event),
 
-            if (canManage) ...[
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: openEdit,
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Edit Event'),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: copyEvent,
-                        icon: const Icon(Icons.copy_all_outlined),
-                        label: const Text('Copy Event'),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-                  onPressed: deleteEvent,
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Delete Event'),
-                ),
-              ),
-            ],
             const SizedBox(height: 24),
           ],
         ),
@@ -365,68 +337,16 @@ class const _LeadershipSection({required this.sectionId, required this.event}) e
       showModalBottomSheet<void>(
         context: context,
         showDragHandle: true,
-        builder: (sheetContext) {
-          return SafeArea(
-            child: FutureBuilder<List<SectionMember>>(
-              future: repository.getSectionMembers(sectionId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(child: Text('Error loading members: ${snapshot.error}')),
-                  );
-                }
-                final candidates = (snapshot.data ?? const <SectionMember>[])
-                    .where((m) => !leaderIds.contains(m.id))
-                    .toList();
-
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Text(
-                        'Assign Trip Leader',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    if (candidates.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(child: Text('No other section members to assign.')),
-                      )
-                    else
-                      Flexible(
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: candidates.length,
-                          itemBuilder: (context, index) {
-                            final member = candidates[index];
-                            return ListTile(
-                              leading: const Icon(Icons.person_outline),
-                              title: UserDisplay(userId: member.id, style: const TextStyle(fontSize: 14)),
-                              subtitle: Text(member.sectionRole.name),
-                              onTap: () {
-                                Navigator.of(sheetContext).pop();
-                                assignLeader(member.id);
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          );
-        },
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (sheetContext) => _AssignLeaderSheet(
+          sectionId: sectionId,
+          excludedIds: leaderIds.toSet(),
+          onPick: (uid) {
+            Navigator.of(sheetContext).pop();
+            assignLeader(uid);
+          },
+        ),
       );
     }
 
@@ -443,7 +363,7 @@ class const _LeadershipSection({required this.sectionId, required this.event}) e
                 child: Text('Created by', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               ),
               Expanded(
-                child: UserDisplay(userId: event.creatorId, style: const TextStyle(fontSize: 14)),
+                child: UserChip(userId: event.creatorId, style: const TextStyle(fontSize: 14)),
               ),
             ],
           ),
@@ -471,7 +391,7 @@ class const _LeadershipSection({required this.sectionId, required this.event}) e
                                   const Icon(Icons.emoji_people_outlined, size: 18),
                                   const SizedBox(width: 8),
                                   Expanded(
-                                    child: UserDisplay(userId: leaderId, style: const TextStyle(fontSize: 14)),
+                                    child: UserChip(userId: leaderId, style: const TextStyle(fontSize: 14)),
                                   ),
                                   if (canManage && leaderId != event.creatorId)
                                     IconButton(
@@ -859,7 +779,7 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        child: UserDisplay(userId: registration.userId, style: const TextStyle(fontSize: 14)),
+                        child: UserChip(userId: registration.userId, style: const TextStyle(fontSize: 14)),
                       ),
                       const SizedBox(width: 8),
                       Chip(
@@ -890,6 +810,136 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
                   ),
                 ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _AssignLeaderSheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Bottom-sheet picker for assigning a trip leader from the section's members.
+///
+/// Shows a [MemberSearchBar] at the top that filters the candidate list
+/// client-side. Uses plain [UserDisplay] (no popover) so the hover card
+/// doesn't interfere with tapping to assign.
+class _AssignLeaderSheet extends HookWidget {
+  const _AssignLeaderSheet({
+    required this.sectionId,
+    required this.excludedIds,
+    required this.onPick,
+  });
+
+  final String sectionId;
+
+  /// IDs of members who are already trip leaders (hidden from the list).
+  final Set<String> excludedIds;
+
+  /// Called with the selected user ID; the caller is responsible for closing
+  /// the sheet before invoking this.
+  final void Function(String userId) onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final query = useState('');
+
+    final membersFuture = useMemoized(() => repository.getSectionMembers(sectionId), [sectionId]);
+    final snapshot = useFuture(membersFuture);
+
+    // Batch-load profiles so the search filter can match on name/email.
+    final profiles = useState<Map<String, UserProfile>>({});
+    useEffect(() {
+      if (snapshot.data == null) return null;
+      final ids = snapshot.data!.map((m) => m.id).toList();
+      repository.getUserProfiles(ids).then((loaded) {
+        profiles.value = loaded;
+      });
+      return null;
+    }, [snapshot.data]);
+
+    final isLoading = snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData;
+    final error = snapshot.error;
+    final allCandidates = (snapshot.data ?? const <SectionMember>[])
+        .where((m) => !excludedIds.contains(m.id))
+        .toList();
+
+    String displayFor(SectionMember m) => resolveUserDisplay(m.id, profiles.value[m.id]);
+
+    final q = query.value.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? allCandidates
+        : allCandidates
+            .where((m) {
+              final display = displayFor(m).toLowerCase();
+              return display.contains(q) || m.id.toLowerCase().contains(q);
+            })
+            .toList();
+
+    Widget body;
+    if (isLoading) {
+      body = const Padding(
+        padding: EdgeInsets.all(32),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else if (error != null) {
+      body = Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(child: Text('Error loading members: $error')),
+      );
+    } else if (allCandidates.isEmpty) {
+      body = const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: Text('No other section members to assign.')),
+      );
+    } else if (filtered.isEmpty) {
+      body = Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(child: Text('No members match "$q".')),
+      );
+    } else {
+      body = Flexible(
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: filtered.length,
+          itemBuilder: (context, index) {
+            final member = filtered[index];
+            return ListTile(
+              leading: const Icon(Icons.person_outline),
+              // Plain text — no UserChip popover inside an action sheet.
+              title: UserDisplay(userId: member.id, style: const TextStyle(fontSize: 14)),
+              subtitle: Text(member.sectionRole.name),
+              onTap: () => onPick(member.id),
+            );
+          },
+        ),
+      );
+    }
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Text(
+                'Assign Trip Leader',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: MemberSearchBar(
+                hintText: 'Search members',
+                onChanged: (value) => query.value = value,
+              ),
+            ),
+            body,
           ],
         ),
       ),
