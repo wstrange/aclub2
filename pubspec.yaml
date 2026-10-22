@@ -24,6 +24,9 @@ dependencies:
   flutter_markdown_plus: ^1.0.12
   firebase_ui_oauth_google: ^2.1.1
   cupertino_icons: ^1.0.8
+  share_plus: ^10.0.0
+  pdf: ^3.11.0
+  printing: ^5.13.0
 
 dev_dependencies:
   bloc_signals_devtools: ^1.0.2

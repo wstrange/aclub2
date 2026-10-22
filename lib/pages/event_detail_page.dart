@@ -14,6 +14,7 @@ import '../state/event_details_state.dart';
 import '../state/user_state_cubit.dart';
 import '../widgets/add_participant_sheet.dart';
 import '../widgets/member_search_bar.dart';
+import '../widgets/roster_export.dart';
 import '../widgets/user_display.dart' show UserDisplay, UserChip, resolveUserDisplay;
 
 final _log = Logger('EventDetailPage');
@@ -175,6 +176,11 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
         title: const Text('Event Details'),
         actions: [
           if (canManage) ...[
+            IconButton(
+              icon: const Icon(Icons.groups_outlined),
+              tooltip: 'Export Roster',
+              onPressed: () => showRosterExportSheet(context, event),
+            ),
             IconButton(icon: const Icon(Icons.edit_outlined), tooltip: 'Edit Event', onPressed: openEdit),
             IconButton(icon: const Icon(Icons.copy_all_outlined), tooltip: 'Copy Event', onPressed: copyEvent),
             IconButton(
