@@ -14,14 +14,12 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 ///   onChanged: (q) => query.value = q,
 /// )
 /// ```
-class MemberSearchBar extends HookWidget {
-  const MemberSearchBar({
+class const MemberSearchBar({
     super.key,
     this.hintText = 'Search',
     this.onChanged,
     this.autofocus = false,
-  });
-
+  }) extends HookWidget {
   final String hintText;
   final ValueChanged<String>? onChanged;
 

@@ -826,13 +826,11 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
 /// Shows a [MemberSearchBar] at the top that filters the candidate list
 /// client-side. Uses plain [UserDisplay] (no popover) so the hover card
 /// doesn't interfere with tapping to assign.
-class _AssignLeaderSheet extends HookWidget {
-  const _AssignLeaderSheet({
+class const _AssignLeaderSheet({
     required this.sectionId,
     required this.excludedIds,
     required this.onPick,
-  });
-
+  }) extends HookWidget {
   final String sectionId;
 
   /// IDs of members who are already trip leaders (hidden from the list).
