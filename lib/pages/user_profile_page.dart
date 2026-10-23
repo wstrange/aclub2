@@ -8,6 +8,7 @@ import 'package:shared_models/shared_models.dart';
 
 import '../routes.dart';
 import '../state/user_state_cubit.dart';
+import '../utils/phone_formatter.dart';
 
 sealed class const UserProfileFormState();
 
@@ -105,9 +106,9 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
     final email = useTextEditingController(text: currentAuthUser?.email ?? '');
     final firstName = useTextEditingController(text: user.firstName);
     final lastName = useTextEditingController(text: user.lastName);
-    final phone = useTextEditingController(text: user.phone ?? '');
+    final phone = useTextEditingController(text: formatPhoneNumber(user.phone));
     final emergencyName = useTextEditingController(text: user.emergencyContactName);
-    final emergencyPhone = useTextEditingController(text: user.emergencyContactPhone);
+    final emergencyPhone = useTextEditingController(text: formatPhoneNumber(user.emergencyContactPhone));
     final emergencyRelation = useTextEditingController(text: user.emergencyContactRelation ?? '');
     final medicalConditions = useTextEditingController(text: user.medicalConditions ?? '');
     final certifications = useTextEditingController(text: user.certifications.join(', '));
@@ -117,11 +118,13 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
     final inAppEnabled = useState(user.notificationPreferences.inAppEnabled);
     final notifyForNewEvents = useState(user.notificationPreferences.notifyForNewEvents);
     final frequency = useState(user.notificationPreferences.frequency);
+    final submitted = useState(false);
 
     List<String> splitList(String value) =>
         value.split(',').map((item) => item.trim()).where((item) => item.isNotEmpty).toList();
 
     Future<void> submit() async {
+      submitted.value = true;
       if (!(formKey.currentState?.validate() ?? false)) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -164,6 +167,9 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
       body: SafeArea(
         child: Form(
           key: formKey,
+          autovalidateMode: submitted.value
+              ? AutovalidateMode.onUserInteraction
+              : AutovalidateMode.disabled,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -207,13 +213,27 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
               TextFormField(
                 controller: phone,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Phone'),
-                validator: phoneValidator,
-                autovalidateMode: AutovalidateMode.onUserInteraction, // Validates while typing
+                inputFormatters: const [PhoneNumberFormatter()],
+                decoration: const InputDecoration(
+                  labelText: 'Mobile phone',
+                  hintText: '403-555-0123',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+                validator: (value) => phoneValidator(value, label: 'mobile phone number'),
               ),
               _sectionTitle('Emergency contact'),
               _requiredField(controller: emergencyName, label: 'Name'),
-              _requiredField(controller: emergencyPhone, label: 'Phone', keyboardType: TextInputType.phone),
+              TextFormField(
+                controller: emergencyPhone,
+                keyboardType: TextInputType.phone,
+                inputFormatters: const [PhoneNumberFormatter()],
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  hintText: '403-555-0123',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+                validator: (value) => phoneValidator(value, label: 'emergency phone number'),
+              ),
               TextFormField(
                 controller: emergencyRelation,
                 decoration: const InputDecoration(labelText: 'Relationship'),
@@ -340,18 +360,4 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
   String _formatDate(DateTime dt) {
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
-}
-
-// RegEx for a standard 10-digit phone number (adjust pattern to your needs)
-final phoneRegex = RegExp(r'^\d{3}-?\d{3}-?\d{4}$');
-
-String? phoneValidator(String? value) {
-  if (value == null || value.trim().isEmpty) {
-    return 'Enter a phone number';
-  }
-
-  if (!phoneRegex.hasMatch(value)) {
-    return 'Please enter a valid 10-digit phone number';
-  }
-  return null;
 }
