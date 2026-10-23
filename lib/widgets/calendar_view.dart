@@ -20,11 +20,7 @@ class const CalendarView({super.key, required this.sectionId, this.userId, this.
     final selectedDay = useState<DateTime?>(DateTime(now.year, now.month, now.day));
     final filter = useState(CalendarEventFilter.all);
 
-    final calendarState = useCalendarEvents(
-      sectionId: sectionId,
-      userId: userId,
-      filter: filter.value,
-    );
+    final calendarState = useCalendarEvents(sectionId: sectionId, userId: userId, filter: filter.value);
 
     if (calendarState.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -149,6 +145,7 @@ class const CalendarView({super.key, required this.sectionId, this.userId, this.
                   isToday: isToday,
                   isSelected: isSelected,
                   events: dayEvents,
+                  now: now,
                   onTap: () {
                     selectedDay.value = normalizedCellDate;
                     if (!isThisMonth) {
@@ -222,19 +219,34 @@ class const CalendarView({super.key, required this.sectionId, this.userId, this.
                     itemCount: selectedDayEvents.length,
                     itemBuilder: (context, index) {
                       final event = selectedDayEvents[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: Icon(Icons.event, color: Theme.of(context).colorScheme.primary),
-                          title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: event.description != null && event.description!.isNotEmpty
-                              ? Text(event.description!, maxLines: 2, overflow: TextOverflow.ellipsis)
-                              : null,
-                          trailing: Chip(
-                            label: Text(event.type.name, style: const TextStyle(fontSize: 11)),
-                            padding: EdgeInsets.zero,
+                      final hasEnded = isEventPast(event, now);
+                      return Opacity(
+                        opacity: hasEnded ? 0.5 : 1.0,
+                        child: Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: Icon(
+                              Icons.event,
+                              color: hasEnded
+                                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                                  : Theme.of(context).colorScheme.primary,
+                            ),
+                            title: Text(
+                              event.title,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: hasEnded ? Theme.of(context).colorScheme.onSurfaceVariant : null,
+                              ),
+                            ),
+                            subtitle: event.description != null && event.description!.isNotEmpty
+                                ? Text(event.description!, maxLines: 2, overflow: TextOverflow.ellipsis)
+                                : null,
+                            trailing: Chip(
+                              label: Text(hasEnded ? 'Ended' : event.type.name, style: const TextStyle(fontSize: 11)),
+                              padding: EdgeInsets.zero,
+                            ),
+                            onTap: onEventTap != null ? () => onEventTap!(event) : null,
                           ),
-                          onTap: onEventTap != null ? () => onEventTap!(event) : null,
                         ),
                       );
                     },
@@ -247,14 +259,16 @@ class const CalendarView({super.key, required this.sectionId, this.userId, this.
 }
 
 class const _DayCell({
-    required this.date,
-    required this.isCurrentMonth,
-    required this.isToday,
-    required this.isSelected,
-    required this.events,
-    required this.onTap,
-  }) extends StatelessWidget {
+  required this.date,
+  required this.isCurrentMonth,
+  required this.isToday,
+  required this.isSelected,
+  required this.events,
+  required this.now,
+  required this.onTap,
+}) extends StatelessWidget {
   final DateTime date;
+  final DateTime now;
   final bool isCurrentMonth;
   final bool isToday;
   final bool isSelected;
@@ -272,6 +286,9 @@ class const _DayCell({
     } else if (isToday) {
       backgroundColor = colorScheme.primary.withValues(alpha: 0.1);
     }
+
+    // Grey out the event dots when this day's events have all already ended.
+    final dayHasEndedEvents = allEventsPast(events, now);
 
     return InkWell(
       onTap: onTap,
@@ -322,7 +339,11 @@ class const _DayCell({
                       height: 5,
                       margin: const EdgeInsets.symmetric(horizontal: 1),
                       decoration: BoxDecoration(
-                        color: isSelected ? colorScheme.primary : colorScheme.secondary,
+                        color: dayHasEndedEvents
+                            ? colorScheme.outline.withValues(alpha: 0.5)
+                            : isSelected
+                            ? colorScheme.primary
+                            : colorScheme.secondary,
                         shape: BoxShape.circle,
                       ),
                     ),

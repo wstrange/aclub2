@@ -42,6 +42,7 @@ class const MemberDirectoryEntry({required this.member, this.profile}) {
   }
 
   String? get email => profile?.email;
+  String? get photoUrl => profile?.photoUrl;
   String? get phone => profile?.phone;
   List<String> get certifications => profile?.certifications ?? const [];
 

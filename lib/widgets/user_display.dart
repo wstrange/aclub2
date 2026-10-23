@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
+import 'user_avatar.dart';
 
 /// Resolves a Firebase UID into a display name / email, using the user's
 /// stored [UserProfile] and falling back to the signed-in user's Auth
@@ -226,17 +227,10 @@ class const _UserPopoverCard({required this.userId, this.profile, required this.
         children: [
           Row(
             children: [
-              CircleAvatar(
+              UserAvatar(
+                photoUrl: profile?.photoUrl,
+                initials: initials(),
                 radius: 20,
-                backgroundColor: colorScheme.primaryContainer,
-                child: Text(
-                  initials(),
-                  style: TextStyle(
-                    color: colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
               ),
               const SizedBox(width: 10),
               Flexible(

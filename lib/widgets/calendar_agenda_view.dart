@@ -9,12 +9,7 @@ import 'calendar_common.dart';
 ///
 /// Designed for mobile screens where a full calendar grid wastes space.
 /// Reuses the same data streams and filter logic as [CalendarView].
-class const CalendarAgendaView({
-    super.key,
-    required this.sectionId,
-    this.userId,
-    this.onEventTap,
-  }) extends HookWidget {
+class const CalendarAgendaView({super.key, required this.sectionId, this.userId, this.onEventTap}) extends HookWidget {
   final String sectionId;
   final String? userId;
   final void Function(Event event)? onEventTap;
@@ -25,11 +20,7 @@ class const CalendarAgendaView({
     final displayedMonth = useState(DateTime(now.year, now.month));
     final filter = useState(CalendarEventFilter.all);
 
-    final calendarState = useCalendarEvents(
-      sectionId: sectionId,
-      userId: userId,
-      filter: filter.value,
-    );
+    final calendarState = useCalendarEvents(sectionId: sectionId, userId: userId, filter: filter.value);
 
     if (calendarState.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -104,9 +95,8 @@ class const CalendarAgendaView({
                       final monthEnd = DateTime(year, month, daysInMonth);
                       return s.compareTo(monthEnd) <= 0 && en.compareTo(monthStart) >= 0;
                     }).length} event${filteredEvents.length == 1 ? '' : 's'} across ${dayEntries.length} day${dayEntries.length == 1 ? '' : 's'}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
 
@@ -130,11 +120,7 @@ class const CalendarAgendaView({
                       ],
                     ),
                   )
-                : _AgendaList(
-                    dayEntries: dayEntries,
-                    now: now,
-                    onEventTap: onEventTap,
-                  ),
+                : _AgendaList(dayEntries: dayEntries, now: now, onEventTap: onEventTap),
           ),
         ],
       ),
@@ -149,11 +135,7 @@ class const _DayEntry({required this.date, required this.events}) {
 }
 
 /// The scrollable agenda list with date headers and event rows.
-class const _AgendaList({
-    required this.dayEntries,
-    required this.now,
-    this.onEventTap,
-  }) extends HookWidget {
+class const _AgendaList({required this.dayEntries, required this.now, this.onEventTap}) extends HookWidget {
   final List<_DayEntry> dayEntries;
   final DateTime now;
   final void Function(Event event)? onEventTap;
@@ -215,6 +197,7 @@ class const _AgendaList({
         return _EventRow(
           event: item.event!,
           dayDate: item.date!,
+          now: now,
           onTap: onEventTap != null ? () => onEventTap!(item.event!) : null,
         );
       },
@@ -224,9 +207,7 @@ class const _AgendaList({
 
 /// A tagged union: either a date header or an event row.
 class _AgendaItem {
-  _AgendaItem.header(this.date)
-      : event = null,
-        isHeader = true;
+  _AgendaItem.header(this.date) : event = null, isHeader = true;
   _AgendaItem.event(this.event, this.date) : isHeader = false;
 
   final bool isHeader;
@@ -268,10 +249,7 @@ class const _DateHeader({required this.date, required this.now}) extends Statele
               width: 8,
               height: 8,
               margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
             ),
           Expanded(
             child: Text(
@@ -290,13 +268,11 @@ class const _DateHeader({required this.date, required this.now}) extends Statele
 }
 
 /// A single event row in the agenda list.
-class const _EventRow({
-    required this.event,
-    required this.dayDate,
-    this.onTap,
-  }) extends StatelessWidget {
+class const _EventRow({required this.event, required this.dayDate, required this.now, this.onTap})
+    extends StatelessWidget {
   final Event event;
   final DateTime dayDate;
+  final DateTime now;
   final VoidCallback? onTap;
 
   @override
@@ -312,102 +288,105 @@ class const _EventRow({
     final endNorm = DateTime(event.endDate.year, event.endDate.month, event.endDate.day);
     final isMultiDay = startNorm != endNorm;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: Card(
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        color: colorScheme.surfaceContainerLow,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                // Type icon
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 18, color: colorScheme.primary),
-                ),
-                const SizedBox(width: 12),
-                // Title + time
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        event.title,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+    // Past events are greyed out — registration is closed for them.
+    final hasEnded = isEventPast(event, now);
+
+    return Opacity(
+      opacity: hasEnded ? 0.45 : 1.0,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        child: Card(
+          elevation: 0,
+          margin: EdgeInsets.zero,
+          color: colorScheme.surfaceContainerLow,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  // Type icon
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: (hasEnded ? colorScheme.surfaceContainerHighest : colorScheme.primaryContainer).withValues(
+                        alpha: 0.6,
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(Icons.access_time, size: 12, color: colorScheme.onSurfaceVariant),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              timeStr,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, size: 18, color: hasEnded ? colorScheme.onSurfaceVariant : colorScheme.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  // Title + time
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          event.title,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: hasEnded ? colorScheme.onSurfaceVariant : null,
                           ),
-                          if (isMultiDay) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: colorScheme.tertiaryContainer.withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(Icons.access_time, size: 12, color: colorScheme.onSurfaceVariant),
+                            const SizedBox(width: 4),
+                            Flexible(
                               child: Text(
-                                'multi-day',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: colorScheme.onTertiaryContainer,
-                                  fontWeight: FontWeight.w500,
+                                timeStr,
+                                style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (isMultiDay) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.tertiaryContainer.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'multi-day',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: colorScheme.onTertiaryContainer,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Event type chip
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    event.type.name,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right, size: 18, color: colorScheme.outline),
-              ],
+                  const SizedBox(width: 8),
+                  // Event type chip — shows "Ended" for past events.
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      hasEnded ? 'Ended' : event.type.name,
+                      style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right, size: 18, color: colorScheme.outline),
+                ],
+              ),
             ),
           ),
         ),
@@ -443,8 +422,8 @@ String _formatTime(DateTime dt) {
   final displayHour = hour == 0
       ? 12
       : hour > 12
-          ? hour - 12
-          : hour;
+      ? hour - 12
+      : hour;
   final minuteStr = minute == 0 ? '' : ':${minute.toString().padLeft(2, '0')}';
   return '$displayHour$minuteStr ${isPm ? 'PM' : 'AM'}';
 }

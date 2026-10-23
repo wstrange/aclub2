@@ -6,7 +6,10 @@ import 'package:shared_models/shared_models.dart';
 import '../repo.dart';
 
 /// Filter selection for calendar events: all events or only events associated with the user.
-enum CalendarEventFilter() { all, mine }
+enum CalendarEventFilter() {
+  all,
+  mine,
+}
 
 /// Full month names (January–December).
 const List<String> calendarMonthNames = [
@@ -52,15 +55,7 @@ const List<String> calendarWeekDayNames = [
 ];
 
 /// Abbreviated weekday names starting with Sunday.
-const List<String> calendarShortWeekDayNames = [
-  'Sun',
-  'Mon',
-  'Tue',
-  'Wed',
-  'Thu',
-  'Fri',
-  'Sat',
-];
+const List<String> calendarShortWeekDayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /// Checks if an [event] spans across or occurs on [day].
 bool isEventOnDay(Event event, DateTime day) {
@@ -75,13 +70,21 @@ List<Event> getEventsForDay(List<Event> events, DateTime day) {
   return events.where((e) => isEventOnDay(e, day)).toList();
 }
 
+/// Whether [event] has already ended (its end date/time is in the past).
+/// Registration is closed for past events.
+bool isEventPast(Event event, [DateTime? now]) {
+  return event.endDate.isBefore(now ?? DateTime.now());
+}
+
+/// Whether every event in [events] has already ended. An empty list is not
+/// considered past — callers should check [events].isEmpty separately.
+bool allEventsPast(List<Event> events, [DateTime? now]) {
+  return events.isNotEmpty && events.every((e) => isEventPast(e, now));
+}
+
 /// Checks whether an event is associated with [userId]
 /// (as creator, trip leader, or registered participant).
-bool isUserEvent({
-  required Event event,
-  required String? userId,
-  required Set<String> registeredEventIds,
-}) {
+bool isUserEvent({required Event event, required String? userId, required Set<String> registeredEventIds}) {
   if (userId == null) return false;
   final isCreator = event.creatorId == userId;
   final isLeader = event.tripLeaderIds.contains(userId);
@@ -100,11 +103,7 @@ List<Event> filterCalendarEvents({
     return events;
   }
   return events
-      .where((event) => isUserEvent(
-            event: event,
-            userId: userId,
-            registeredEventIds: registeredEventIds,
-          ))
+      .where((event) => isUserEvent(event: event, userId: userId, registeredEventIds: registeredEventIds))
       .toList();
 }
 
@@ -126,16 +125,12 @@ CalendarEventsState useCalendarEvents({
 }) {
   final currentUserId = userId ?? FirebaseAuth.instance.currentUser?.uid;
 
-  final eventsStream = useMemoized(
-    () => repository.streamSectionEvents(sectionId),
-    [sectionId],
-  );
+  final eventsStream = useMemoized(() => repository.streamSectionEvents(sectionId), [sectionId]);
   final eventsSnapshot = useStream(eventsStream);
 
   final registrationsStream = useMemoized(
-    () => currentUserId != null
-        ? repository.streamUserRegisteredEventIds(currentUserId)
-        : Stream.value(const <String>{}),
+    () =>
+        currentUserId != null ? repository.streamUserRegisteredEventIds(currentUserId) : Stream.value(const <String>{}),
     [currentUserId],
   );
   final registrationsSnapshot = useStream(registrationsStream);
@@ -191,10 +186,7 @@ class const CalendarErrorView({super.key, required this.error}) extends Stateles
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Text(
-          'Error loading events: $error',
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
+        child: Text('Error loading events: $error', style: TextStyle(color: Theme.of(context).colorScheme.error)),
       ),
     );
   }
@@ -202,14 +194,14 @@ class const CalendarErrorView({super.key, required this.error}) extends Stateles
 
 /// Responsive month navigation header shared between monthly calendar and agenda views.
 class const CalendarMonthHeader({
-    super.key,
-    required this.displayedMonth,
-    required this.filter,
-    required this.onFilterChanged,
-    required this.onPreviousMonth,
-    required this.onNextMonth,
-    required this.onToday,
-  }) extends StatelessWidget {
+  super.key,
+  required this.displayedMonth,
+  required this.filter,
+  required this.onFilterChanged,
+  required this.onPreviousMonth,
+  required this.onNextMonth,
+  required this.onToday,
+}) extends StatelessWidget {
   final DateTime displayedMonth;
   final CalendarEventFilter filter;
   final ValueChanged<CalendarEventFilter> onFilterChanged;

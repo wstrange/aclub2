@@ -8,6 +8,7 @@ import '../state/member_directory_cubit.dart';
 import '../state/member_directory_state.dart';
 import '../state/user_state.dart';
 import '../state/user_state_cubit.dart';
+import '../widgets/user_avatar.dart';
 
 /// Role filter options for the app-bar dropdown: label shown for each filter
 /// value (null = no role filter, i.e. all members). Managers and trip leaders
@@ -444,11 +445,13 @@ class const _MemberCard({required this.entry, required this.onTap, this.canManag
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              UserAvatar(
+                photoUrl: entry.photoUrl,
+                initials: entry.initials,
                 radius: 24,
                 backgroundColor: roleColor.withValues(alpha: 0.2),
                 foregroundColor: roleColor,
-                child: Text(entry.initials, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -590,11 +593,13 @@ class const _MemberDetailBottomSheet({required this.entry, this.canManageRoles =
             ),
             Row(
               children: [
-                CircleAvatar(
+                UserAvatar(
+                  photoUrl: entry.photoUrl,
+                  initials: entry.initials,
                   radius: 32,
                   backgroundColor: roleColor.withValues(alpha: 0.2),
                   foregroundColor: roleColor,
-                  child: Text(entry.initials, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

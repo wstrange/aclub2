@@ -13,6 +13,7 @@ import '../state/event_details_cubit.dart';
 import '../state/event_details_state.dart';
 import '../state/user_state_cubit.dart';
 import '../widgets/add_participant_sheet.dart';
+import '../widgets/calendar_common.dart';
 import '../widgets/member_search_bar.dart';
 import '../widgets/roster_export.dart';
 import '../widgets/user_display.dart' show UserDisplay, UserChip, resolveUserDisplay;
@@ -459,6 +460,10 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
     final approvedCount = registrations.where((r) => r.status == RegistrationStatus.approved).length;
     final hasSpace = approvedCount < event.maxParticipants;
 
+    // Registering is impossible once the event has passed. Managers can
+    // still manage existing registrations (e.g. recording attendance).
+    final hasEnded = isEventPast(event);
+
     Future<void> setStatus(Registration registration, RegistrationStatus status) async {
       isSaving.value = true;
       try {
@@ -560,6 +565,10 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
     }
 
     Future<void> register() async {
+      if (hasEnded) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This event has already ended.')));
+        return;
+      }
       if (currentUid == null) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sign in to register.')));
         return;
@@ -692,6 +701,7 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
 
     final bool canRegister =
         currentUid != null &&
+        !hasEnded &&
         (myRegistration == null || myRegistration.status == RegistrationStatus.withdrawn) &&
         (hasSpace || event.requiresApproval);
 
@@ -744,6 +754,22 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text('Register'),
                 ),
+              ),
+            ] else if (hasEnded &&
+                (myRegistration == null || myRegistration.status == RegistrationStatus.withdrawn)) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.event_busy, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This event has already ended. Registration is closed.',
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                ],
               ),
             ] else if (myRegistration != null && myRegistration.status != RegistrationStatus.withdrawn) ...[
               const SizedBox(height: 12),
@@ -832,11 +858,8 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
 /// Shows a [MemberSearchBar] at the top that filters the candidate list
 /// client-side. Uses plain [UserDisplay] (no popover) so the hover card
 /// doesn't interfere with tapping to assign.
-class const _AssignLeaderSheet({
-    required this.sectionId,
-    required this.excludedIds,
-    required this.onPick,
-  }) extends HookWidget {
+class const _AssignLeaderSheet({required this.sectionId, required this.excludedIds, required this.onPick})
+    extends HookWidget {
   final String sectionId;
 
   /// IDs of members who are already trip leaders (hidden from the list).
@@ -866,21 +889,17 @@ class const _AssignLeaderSheet({
 
     final isLoading = snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData;
     final error = snapshot.error;
-    final allCandidates = (snapshot.data ?? const <SectionMember>[])
-        .where((m) => !excludedIds.contains(m.id))
-        .toList();
+    final allCandidates = (snapshot.data ?? const <SectionMember>[]).where((m) => !excludedIds.contains(m.id)).toList();
 
     String displayFor(SectionMember m) => resolveUserDisplay(m.id, profiles.value[m.id]);
 
     final q = query.value.trim().toLowerCase();
     final filtered = q.isEmpty
         ? allCandidates
-        : allCandidates
-            .where((m) {
-              final display = displayFor(m).toLowerCase();
-              return display.contains(q) || m.id.toLowerCase().contains(q);
-            })
-            .toList();
+        : allCandidates.where((m) {
+            final display = displayFor(m).toLowerCase();
+            return display.contains(q) || m.id.toLowerCase().contains(q);
+          }).toList();
 
     Widget body;
     if (isLoading) {
@@ -938,10 +957,7 @@ class const _AssignLeaderSheet({
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: MemberSearchBar(
-                hintText: 'Search members',
-                onChanged: (value) => query.value = value,
-              ),
+              child: MemberSearchBar(hintText: 'Search members', onChanged: (value) => query.value = value),
             ),
             body,
           ],

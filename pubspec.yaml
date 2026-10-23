@@ -43,6 +43,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/waiver.md
+    - assets/icon/
   fonts:
     - family: SocialIcons
       fonts:

@@ -9,6 +9,7 @@ import 'package:shared_models/shared_models.dart';
 import '../routes.dart';
 import '../state/user_state_cubit.dart';
 import '../utils/phone_formatter.dart';
+import '../widgets/user_avatar.dart';
 
 sealed class const UserProfileFormState();
 
@@ -47,14 +48,17 @@ class UserProfileCubit(this.user, [this.authUser]) extends CubitSignal<UserProfi
         await currentAuthUser.reload();
         authUser = FirebaseAuth.instance.currentUser;
       }
-      // Mirror the auth email into the profile so other clients can display it.
-      final withEmail = updatedUser.copyWith(email: authUser?.email);
-      await repository.updateUserProfile(withEmail);
-      user = withEmail;
+      // Mirror the auth email and photoURL into the profile so other clients can display it.
+      final withSyncedAuth = updatedUser.copyWith(
+        email: authUser?.email,
+        photoUrl: updatedUser.photoUrl ?? authUser?.photoURL,
+      );
+      await repository.updateUserProfile(withSyncedAuth);
+      user = withSyncedAuth;
       // Merge the saved profile into app state without a network reload (see
       // UserStateCubit.applyProfile for why).
-      userStateCubit.applyProfile(withEmail);
-      emit(UserFormSuccess(withEmail));
+      userStateCubit.applyProfile(withSyncedAuth);
+      emit(UserFormSuccess(withSyncedAuth));
     } on FirebaseAuthException catch (e) {
       emit(UserFormError(e.message ?? e.code));
     } catch (e) {
@@ -128,7 +132,11 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
       if (!(formKey.currentState?.validate() ?? false)) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Fix the highlighted errors before saving.')),
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              content: Text('Fix the highlighted errors before saving.'),
+            ),
           );
         }
         return;
@@ -167,12 +175,26 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
       body: SafeArea(
         child: Form(
           key: formKey,
-          autovalidateMode: submitted.value
-              ? AutovalidateMode.onUserInteraction
-              : AutovalidateMode.disabled,
+          autovalidateMode: submitted.value ? AutovalidateMode.onUserInteraction : AutovalidateMode.disabled,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            // Generous bottom padding so the Save button isn't flush against
+            // the screen edge / system navbar, and snackbar overlays have a
+            // visible separation from the form content.
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 56),
             children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: UserAvatar(
+                    photoUrl: user.photoUrl ?? currentAuthUser?.photoURL,
+                    initials: (user.firstName.isNotEmpty && user.lastName.isNotEmpty)
+                        ? '${user.firstName[0]}${user.lastName[0]}'.toUpperCase()
+                        : (displayName.text.trim().isNotEmpty ? displayName.text.trim()[0].toUpperCase() : '?'),
+                    radius: 44,
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
+                  ),
+                ),
+              ),
               _readOnlyField('User ID', user.id),
               _readOnlyField('Created', user.createdAt.toLocal().toIso8601String()),
               _readOnlyField('Last updated', user.updatedAt.toLocal().toIso8601String()),
@@ -180,8 +202,7 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
               TextFormField(
                 controller: displayName,
                 decoration: const InputDecoration(labelText: 'Display name'),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Enter a display name' : null,
+                validator: (value) => value == null || value.trim().isEmpty ? 'Enter a display name' : null,
               ),
               TextFormField(
                 controller: email,
@@ -260,9 +281,7 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
               ListTile(
                 title: const Text('Waiver signed'),
                 subtitle: Text(
-                  user.waiverSignedDate != null
-                      ? 'Signed on ${_formatDate(user.waiverSignedDate!)}'
-                      : 'Not yet signed',
+                  user.waiverSignedDate != null ? 'Signed on ${_formatDate(user.waiverSignedDate!)}' : 'Not yet signed',
                 ),
                 trailing: Icon(
                   user.waiverSignedDate != null ? Icons.check_circle : Icons.warning_amber,
@@ -306,7 +325,13 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
                 listenWhen: (previous, current) => current is UserFormSuccess,
                 listener: (context, state) async {
                   if (state is UserFormSuccess) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved.')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        content: Text('Profile saved.'),
+                      ),
+                    );
                     final popped = await context.pop();
                     if (!popped && context.mounted) {
                       context.replaceTop(const HomeRoute());

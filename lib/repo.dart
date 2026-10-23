@@ -515,7 +515,13 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
   // converge on the same stub instead of racing a get-then-set.
   Future<void> checkProfile(User userInfo) async {
     final up = await getUserProfile(userInfo.uid);
-    if (up != null) return;
+    if (up != null) {
+      if (up.photoUrl == null && userInfo.photoURL != null) {
+        final updated = up.copyWith(photoUrl: userInfo.photoURL);
+        await updateUserProfile(updated);
+      }
+      return;
+    }
 
     _log.info("Creating stub profile for ${userInfo.email}");
 
@@ -524,6 +530,7 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
       firstName: '',
       lastName: '',
       email: userInfo.email,
+      photoUrl: userInfo.photoURL,
       phone: null,
       emergencyContactName: '',
       emergencyContactPhone: '',

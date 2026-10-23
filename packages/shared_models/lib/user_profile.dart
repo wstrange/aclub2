@@ -27,6 +27,9 @@ abstract class UserProfile with _$UserProfile {
     /// a user's email without needing Auth admin access.
     String? email,
 
+    /// Profile picture / avatar URL (e.g. from social login or user upload).
+    String? photoUrl,
+
     String? phone,
 
     // ── Emergency contact (mandatory) ─────────────────────────────────────
