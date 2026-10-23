@@ -180,6 +180,8 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
               TextFormField(
                 controller: displayName,
                 decoration: const InputDecoration(labelText: 'Display name'),
+                validator: (value) =>
+                    value == null || value.trim().isEmpty ? 'Enter a display name' : null,
               ),
               TextFormField(
                 controller: email,

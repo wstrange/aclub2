@@ -36,6 +36,8 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
+  image: ^4.12.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -45,3 +47,21 @@ flutter:
     - family: SocialIcons
       fonts:
         - asset: packages/firebase_ui_auth/fonts/SocialIcons.ttf
+
+# Launcher icon generation (see tool/generate_app_icon.dart for the art).
+# Regenerate assets with `dart run tool/generate_app_icon.dart`, then apply
+# them with `dart run flutter_launcher_icons`.
+flutter_launcher_icons:
+  # Source art: 1024×1024 rounded crimson field with the snow-capped massif.
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  macos:
+    generate: true
+  web:
+    generate: false
+  windows:
+    generate: false

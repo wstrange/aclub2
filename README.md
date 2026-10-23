@@ -288,6 +288,11 @@ Admin-managed markdown templates that can be inserted into event description fie
 | `NotificationFrequency` | `immediate`, `daily`, `weekly` |
 
 
+### Install ADB
+
+~/Library/Android/sdk/platform-tools/adb  install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+
+
 ### TODO:
 
 
@@ -299,5 +304,4 @@ Admin-managed markdown templates that can be inserted into event description fie
 • Limited-Width Calendar Display: A highly readable, mobile-friendly monthly calendar layout optimized to show multiple overlapping trips on narrow phone screens.
 • Offline Capability & GPX Handling: Basic offline caching of trip details and the ability to upload or export GPX route files for navigation.
 
-* display name is mandatory. Include an error message if the profile does not set it
 * Send group notifications to the event participants
