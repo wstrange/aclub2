@@ -10,17 +10,17 @@ import '../widgets/user_display.dart' show resolveUserDisplay;
 
 /// Data holder for a single participant row in the roster.
 class _ParticipantInfo({
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.emergencyContactName,
-    required this.emergencyContactPhone,
-    required this.emergencyContactRelation,
-    required this.medicalConditions,
-    required this.status,
-    required this.isDriver,
-    required this.needsRide,
-  }) {
+  required this.name,
+  required this.email,
+  required this.phone,
+  required this.emergencyContactName,
+  required this.emergencyContactPhone,
+  required this.emergencyContactRelation,
+  required this.medicalConditions,
+  required this.status,
+  required this.isDriver,
+  required this.needsRide,
+}) {
   final String name;
   final String? email;
   final String? phone;
@@ -35,17 +35,16 @@ class _ParticipantInfo({
 
 /// Fetches approved/attended registrations and their profiles, returning them
 /// sorted alphabetically by display name.
-Future<List<_ParticipantInfo>> _loadParticipants(
-  String sectionId,
-  String eventId,
-) async {
+Future<List<_ParticipantInfo>> _loadParticipants(String sectionId, String eventId) async {
   final registrations = await repository.getEventRegistrations(sectionId, eventId);
-  final active = registrations.where(
-    (r) =>
-        r.status == RegistrationStatus.approved ||
-        r.status == RegistrationStatus.attended ||
-        r.status == RegistrationStatus.pending,
-  ).toList();
+  final active = registrations
+      .where(
+        (r) =>
+            r.status == RegistrationStatus.approved ||
+            r.status == RegistrationStatus.attended ||
+            r.status == RegistrationStatus.pending,
+      )
+      .toList();
 
   final userIds = active.map((r) => r.userId).toList();
   final profiles = await repository.getUserProfiles(userIds);
@@ -64,8 +63,7 @@ Future<List<_ParticipantInfo>> _loadParticipants(
       isDriver: r.isDriver,
       needsRide: r.needsRide,
     );
-  }).toList()
-    ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  }).toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
   return participants;
 }
@@ -98,12 +96,9 @@ String _formatAsText(Event event, List<_ParticipantInfo> participants) {
         '(${p.emergencyContactRelation})',
       p.emergencyContactPhone,
     ].where((s) => s.isNotEmpty);
-    if (ecParts.isNotEmpty) buf.writeln('   🚨 ${ecParts.join(' ')}');
+    if (ecParts.isNotEmpty) buf.writeln('   🚨 Emergency Contact: ${ecParts.join(' ')}');
 
-    final carpoolParts = <String>[
-      if (p.isDriver == true) '🚗 Driver',
-      if (p.needsRide == true) '🙋 Needs ride',
-    ];
+    final carpoolParts = <String>[if (p.isDriver == true) '🚗 Driver', if (p.needsRide == true) '🙋 Needs ride'];
     if (carpoolParts.isNotEmpty) buf.writeln('   ${carpoolParts.join('  ')}');
 
     if (p.status == RegistrationStatus.pending) buf.writeln('   ⏳ Pending approval');
@@ -118,10 +113,7 @@ String _formatAsText(Event event, List<_ParticipantInfo> participants) {
 
 /// Builds a PDF document for the roster.
 Future<pw.Document> _buildPdf(Event event, List<_ParticipantInfo> participants) async {
-  final pdf = pw.Document(
-    title: '${event.title} – Participant Roster',
-    author: 'Alpine Club',
-  );
+  final pdf = pw.Document(title: '${event.title} – Participant Roster', author: 'Alpine Club');
 
   pdf.addPage(
     pw.MultiPage(
@@ -130,20 +122,11 @@ Future<pw.Document> _buildPdf(Event event, List<_ParticipantInfo> participants) 
       header: (context) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(
-            event.title,
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-          ),
+          pw.Text(event.title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
-          pw.Text(
-            '${_fmtDate(event.startDate)} – ${_fmtDate(event.endDate)}',
-            style: const pw.TextStyle(fontSize: 11),
-          ),
+          pw.Text('${_fmtDate(event.startDate)} – ${_fmtDate(event.endDate)}', style: const pw.TextStyle(fontSize: 11)),
           if (event.location?.description != null)
-            pw.Text(
-              'Location: ${event.location!.description}',
-              style: const pw.TextStyle(fontSize: 11),
-            ),
+            pw.Text('Location: ${event.location!.description}', style: const pw.TextStyle(fontSize: 11)),
           if (event.carpoolOption != null)
             pw.Text(
               'Carpool: ${_fmtDate(event.carpoolOption!.meetTime)} at ${event.carpoolOption!.meetPlace}',
@@ -178,15 +161,7 @@ Future<pw.Document> _buildPdf(Event event, List<_ParticipantInfo> participants) 
           cellStyle: const pw.TextStyle(fontSize: 9),
           headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
           cellPadding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-          headers: [
-            '#',
-            'Name',
-            'Phone',
-            'Email',
-            'Emergency Contact',
-            'EC Phone',
-            'Medical',
-          ],
+          headers: ['#', 'Name', 'Phone', 'Email', 'Emergency Contact', 'EC Phone', 'Medical'],
           data: [
             for (var i = 0; i < participants.length; i++)
               [
@@ -238,10 +213,7 @@ void showRosterExportSheet(BuildContext context, Event event) {
               style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
-            Text(
-              event.title,
-              style: Theme.of(sheetContext).textTheme.bodySmall,
-            ),
+            Text(event.title, style: Theme.of(sheetContext).textTheme.bodySmall),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.share_outlined),
@@ -276,22 +248,16 @@ Future<void> _exportAsText(BuildContext context, Event event) async {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     if (participants.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No approved participants to export.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No approved participants to export.')));
       return;
     }
 
     final text = _formatAsText(event, participants);
-    await SharePlus.instance.share(
-      ShareParams(text: text, subject: '${event.title} – Participant Roster'),
-    );
+    await SharePlus.instance.share(ShareParams(text: text, subject: '${event.title} – Participant Roster'));
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to export roster: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to export roster: $e')));
     }
   }
 }
@@ -304,9 +270,7 @@ Future<void> _exportAsPdf(BuildContext context, Event event) async {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     if (participants.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No approved participants to export.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No approved participants to export.')));
       return;
     }
 
@@ -317,9 +281,7 @@ Future<void> _exportAsPdf(BuildContext context, Event event) async {
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to generate PDF: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to generate PDF: $e')));
     }
   }
 }
@@ -329,11 +291,7 @@ void _showLoadingSnackBar(BuildContext context, String message) {
     SnackBar(
       content: Row(
         children: [
-          const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+          const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
           const SizedBox(width: 12),
           Text(message),
         ],
