@@ -131,8 +131,25 @@ Future<List<AppRoute>> appGuard(List<AppRoute> current, List<AppRoute> proposed)
     return proposed;
   }
 
-  // Ensure ID token round-trip completes before Firestore queries
-  await user.getIdToken();
+  // Ensure ID token round-trip completes before Firestore queries.
+  // A persisted user that the active backend no longer knows (e.g. a macOS
+  // keychain user surviving an emulator reseed or a prod/emulator switch)
+  // fails token refresh with backend auth errors. That used to crash app
+  // bootstrap on macOS — instead, sign the stale user out and show sign-in.
+  try {
+    await user.getIdToken();
+  } on FirebaseAuthException catch (e) {
+    const staleTokenCodes = {'internal-error', 'user-not-found', 'user-token-expired', 'invalid-user-token'};
+    if (!staleTokenCodes.contains(e.code)) rethrow;
+    _log.warning('Auth token refresh failed (${e.code}) for ${user.uid}; signing out and redirecting to SignInRoute');
+    userStateCubit.clear();
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (signOutError, st) {
+      _log.warning('Failed to sign out stale auth user: $signOutError\n$st');
+    }
+    return const [SignInRoute()];
+  }
 
   // If already logged in and heading to login, redirect towards HomeRoute
   if (headingToLogin) {

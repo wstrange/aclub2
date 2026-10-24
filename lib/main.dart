@@ -83,6 +83,7 @@ void main() async {
     );
   } catch (e, st) {
     _log.severe('Failed to initialize app: $e', e, st);
+    // print(st);
     _runBootstrapErrorApp(e);
   }
 }
