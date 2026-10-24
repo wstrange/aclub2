@@ -283,7 +283,9 @@ Future<void> _exportAsText(BuildContext context, Event event) async {
     }
 
     final text = _formatAsText(event, participants);
-    await Share.share(text, subject: '${event.title} – Participant Roster');
+    await SharePlus.instance.share(
+      ShareParams(text: text, subject: '${event.title} – Participant Roster'),
+    );
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();

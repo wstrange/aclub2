@@ -1,6 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_ui_auth/firebase_ui_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:kaisel/kaisel.dart';
 import 'package:logging/logging.dart';
 
@@ -71,8 +69,6 @@ final class const MembersDirectoryRoute({this.sectionId}) extends AppRoute {
 
 final class const WaiverRoute() extends AppRoute;
 
-final class const AuthProfileRoute() extends AppRoute;
-
 KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignInRoute()}) {
   return KaiselRouterConfig<AppRoute>(
     initial: initial,
@@ -89,27 +85,6 @@ KaiselRouterConfig<AppRoute> createRouterConfig({AppRoute initial = const SignIn
       TemplateListRoute() => const TemplateListPage(),
       TemplateEditRoute(:final templateId) => TemplateEditPage(templateId: templateId),
       WaiverRoute() => const WaiverPage(),
-      // todo: This doesnt really do anything...
-      AuthProfileRoute() => ProfileScreen(
-        providers: const [],
-        appBar: AppBar(
-          title: const Text('Profile'),
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.arrow_back),
-              tooltip: 'Back',
-              onPressed: () {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).pop();
-                } else {
-                  context.replaceTop(const HomeRoute());
-                }
-              },
-            ),
-          ),
-        ),
-        actions: [SignedOutAction((context) => context.replaceTop(const SignInRoute()))],
-      ),
     },
   );
 }

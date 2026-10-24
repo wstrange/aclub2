@@ -1,4 +1,5 @@
 import 'package:aclub2/widgets/user_avatar.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -7,13 +8,7 @@ void main() {
     testWidgets('renders initials when photoUrl is null', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: UserAvatar(
-              photoUrl: null,
-              initials: 'JD',
-              radius: 20,
-            ),
-          ),
+          home: Scaffold(body: UserAvatar(photoUrl: null, initials: 'JD', radius: 20)),
         ),
       );
 
@@ -25,10 +20,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: UserAvatar(
-              photoUrl: '   ',
-              initials: 'AB',
-            ),
+            body: UserAvatar(photoUrl: '   ', initials: 'AB'),
           ),
         ),
       );
@@ -44,12 +36,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: UserAvatar(
-              photoUrl: null,
-              initials: 'TL',
-              backgroundColor: bgColor,
-              foregroundColor: fgColor,
-            ),
+            body: UserAvatar(photoUrl: null, initials: 'TL', backgroundColor: bgColor, foregroundColor: fgColor),
           ),
         ),
       );
@@ -59,20 +46,17 @@ void main() {
       expect(find.text('TL'), findsOneWidget);
     });
 
-    testWidgets('creates Image.network when photoUrl is valid', (tester) async {
+    testWidgets('renders cached network image when photoUrl is valid', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: UserAvatar(
-              photoUrl: 'https://example.com/avatar.jpg',
-              initials: 'OK',
-            ),
+            body: UserAvatar(photoUrl: 'https://example.com/avatar.jpg', initials: 'OK'),
           ),
         ),
       );
 
       expect(find.byType(ClipOval), findsOneWidget);
-      expect(find.byType(Image), findsOneWidget);
+      expect(find.byType(CachedNetworkImage), findsOneWidget);
     });
   });
 }

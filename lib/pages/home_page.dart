@@ -105,14 +105,6 @@ class const HomePage({super.key}) extends HookWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.manage_accounts_outlined),
-                  title: const Text('Auth Profile'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    context.push(const AuthProfileRoute());
-                  },
-                ),
-                ListTile(
                   leading: const Icon(Icons.people_outline),
                   title: const Text('Member Directory'),
                   onTap: () {
@@ -190,9 +182,7 @@ class const _NotificationIconButton({required this.userId}) extends StatelessWid
             isLabelVisible: unreadCount > 0,
             child: const Icon(Icons.notifications_outlined),
           ),
-          tooltip: unreadCount > 0
-              ? '$unreadCount unread notification${unreadCount == 1 ? '' : 's'}'
-              : 'Notifications',
+          tooltip: unreadCount > 0 ? '$unreadCount unread notification${unreadCount == 1 ? '' : 's'}' : 'Notifications',
           onPressed: () => _showNotificationsSheet(context, userId),
         );
       },
@@ -224,10 +214,7 @@ void _showNotificationsSheet(BuildContext context, String userId) {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
                       children: [
-                        const Text(
-                          'Notifications',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
+                        const Text('Notifications', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         const Spacer(),
                         if (unreadList.isNotEmpty)
                           TextButton(
@@ -304,18 +291,12 @@ void _showNotificationsSheet(BuildContext context, String userId) {
                             },
                             child: ListTile(
                               leading: Icon(
-                                notification.isRead
-                                    ? Icons.notifications_none
-                                    : Icons.mark_email_unread_rounded,
-                                color: notification.isRead
-                                    ? Colors.grey
-                                    : Theme.of(context).colorScheme.primary,
+                                notification.isRead ? Icons.notifications_none : Icons.mark_email_unread_rounded,
+                                color: notification.isRead ? Colors.grey : Theme.of(context).colorScheme.primary,
                               ),
                               title: Text(
                                 notification.title,
-                                style: TextStyle(
-                                  fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
-                                ),
+                                style: TextStyle(fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold),
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,8 +318,7 @@ void _showNotificationsSheet(BuildContext context, String userId) {
                                 if (!notification.isRead) {
                                   repository.markNotificationAsRead(notification.id);
                                 }
-                                if (notification.relatedSectionId != null &&
-                                    notification.relatedEventId != null) {
+                                if (notification.relatedSectionId != null && notification.relatedEventId != null) {
                                   Navigator.of(sheetContext).pop();
                                   context.push(
                                     EventDetailRoute(
@@ -372,4 +352,3 @@ String _formatNotificationTime(DateTime dt) {
   final local = dt.toLocal();
   return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
 }
-

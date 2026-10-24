@@ -1,4 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import '../utils/avatar_cache.dart';
 
 /// A circular user avatar that displays a remote profile image if [photoUrl]
 /// is available, falling back to [initials] rendered on a colored background
@@ -24,14 +28,21 @@ class const UserAvatar({
     final url = photoUrl?.trim();
     if (url != null && url.isNotEmpty) {
       return ClipOval(
-        child: Image.network(
-          url,
+        child: CachedNetworkImage(
+          // Disk-backed, throttled cache: see utils/avatar_cache.dart for the
+          // rate-limit rationale (Google avatar CDN → HTTP 429 on bursts).
+          cacheManager: avatarCacheManager,
+          imageUrl: url,
           width: radius * 2,
           height: radius * 2,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _fallback(context),
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
+          // Show the initials fallback while loading, matching the old
+          // loadingBuilder behaviour.
+          placeholder: (context, _) => _fallback(context),
+          errorWidget: (context, url, error) {
+            if (kDebugMode) {
+              debugPrint('UserAvatar: image load failed (url=$url): $error');
+            }
             return _fallback(context);
           },
         ),
@@ -44,12 +55,7 @@ class const UserAvatar({
     final theme = Theme.of(context);
     final bg = backgroundColor ?? theme.colorScheme.primaryContainer;
     final fg = foregroundColor ?? theme.colorScheme.onPrimaryContainer;
-    final style = textStyle ??
-        TextStyle(
-          color: fg,
-          fontWeight: FontWeight.bold,
-          fontSize: radius * 0.75,
-        );
+    final style = textStyle ?? TextStyle(color: fg, fontWeight: FontWeight.bold, fontSize: radius * 0.75);
 
     return CircleAvatar(
       radius: radius,

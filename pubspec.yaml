@@ -6,33 +6,35 @@ environment:
   sdk: '>=3.13.0 <4.0.0'
 
 dependencies:
-  cloud_firestore: ^6.9.0
-  firebase_core: ^4.14.0
+  cloud_firestore: ^7.1.0
+  firebase_core: ^5.1.0
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
   flutter:
     sdk: flutter
-  firebase_auth: ^6.6.1
-  bloc_signals: ^1.5.0
-  bloc_signals_flutter: ^1.3.2
+  firebase_auth: ^7.0.1
+  google_sign_in: ^7.0.0
+  bloc_signals: ^1.7.0
+  bloc_signals_flutter: ^1.5.0
   flutter_hooks: ^0.21.3+1
   kaisel: ^1.1.0
-  firebase_ui_auth: ^3.1.0
   logging: ^1.3.0
   shared_models:
     path: packages/shared_models
   flutter_markdown_plus: ^1.0.12
-  firebase_ui_oauth_google: ^2.1.1
-  cupertino_icons: ^1.0.8
-  share_plus: ^10.0.0
+  cupertino_icons: ^2.0.0
+  share_plus: ^13.3.1
   pdf: ^3.11.0
   printing: ^5.13.0
+  cached_network_image: ^4.0.5
+  http: ^1.6.0
+  flutter_cache_manager: ^3.4.5
 
 dev_dependencies:
-  bloc_signals_devtools: ^1.0.2
-  build_runner: ^2.16.1
-  freezed: ^4.0.2
-  json_serializable: ^6.14.1
+  bloc_signals_devtools: ^1.0.3
+  build_runner: ^2.17.1
+  freezed: ^4.0.3
+  json_serializable: ^6.15.2
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
@@ -44,10 +46,6 @@ flutter:
   assets:
     - assets/waiver.md
     - assets/icon/
-  fonts:
-    - family: SocialIcons
-      fonts:
-        - asset: packages/firebase_ui_auth/fonts/SocialIcons.ttf
 
 # Launcher icon generation (see tool/generate_app_icon.dart for the art).
 # Regenerate assets with `dart run tool/generate_app_icon.dart`, then apply

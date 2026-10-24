@@ -1,0 +1,3 @@
+// Google sign-in — the platform-appropriate implementation is selected by
+// conditional export (see google_auth.dart).
+export 'google_auth_io.dart' if (dart.library.html) 'google_auth_web.dart';

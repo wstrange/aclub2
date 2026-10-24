@@ -195,9 +195,6 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
                   ),
                 ),
               ),
-              _readOnlyField('User ID', user.id),
-              _readOnlyField('Created', user.createdAt.toLocal().toIso8601String()),
-              _readOnlyField('Last updated', user.updatedAt.toLocal().toIso8601String()),
               _sectionTitle('Account'),
               TextFormField(
                 controller: displayName,
@@ -357,11 +354,6 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
     );
   }
 
-  Widget _readOnlyField(String label, String value) => TextFormField(
-    initialValue: value,
-    readOnly: true,
-    decoration: InputDecoration(labelText: label),
-  );
 
   Widget _sectionTitle(String title) => Padding(
     padding: const EdgeInsets.only(top: 24, bottom: 8),

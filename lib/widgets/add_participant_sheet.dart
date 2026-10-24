@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
+import 'user_avatar.dart';
 
 /// Number of member documents read per Firestore page.
 const int _pageSize = 40;
@@ -165,10 +166,17 @@ class AddParticipantSheet extends HookWidget {
           final member = filtered[index];
           final email = emailOf(member);
           final name = displayName(member);
+          // Show the member's profile photo when available; fall back to the
+          // first-letter circle, or a person icon for unnamed stubs.
+          final initial = name.isEmpty || name == member.id ? null : name[0].toUpperCase();
+          final Widget avatar;
+          if (initial == null) {
+            avatar = const CircleAvatar(child: Icon(Icons.person_outline));
+          } else {
+            avatar = UserAvatar(photoUrl: profiles.value[member.id]?.photoUrl, initials: initial, radius: 20);
+          }
           return ListTile(
-            leading: CircleAvatar(
-              child: name.isEmpty || name == member.id ? const Icon(Icons.person_outline) : Text(name[0].toUpperCase()),
-            ),
+            leading: avatar,
             title: Text(name, style: const TextStyle(fontSize: 14)),
             subtitle: Text(
               email.isEmpty ? member.sectionRole.name : '${member.sectionRole.name} · $email',
