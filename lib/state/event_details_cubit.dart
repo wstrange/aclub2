@@ -12,7 +12,9 @@ import '../repo.dart';
 /// dispose it (one per event details screen).
 class EventDetailsCubit({required this.sectionId, required this.eventId}) extends CubitSignal<EventDetailsState> {
   this
-      : super(initialState: EventDetailsState(sectionId: sectionId, eventId: eventId)) {
+    : super(
+        initialState: EventDetailsState(sectionId: sectionId, eventId: eventId),
+      ) {
     _subscribe();
   }
 
@@ -23,14 +25,18 @@ class EventDetailsCubit({required this.sectionId, required this.eventId}) extend
   late final StreamSubscription<List<Registration>> _registrationsSub;
 
   void _subscribe() {
-    _eventSub = repository.streamEvent(sectionId, eventId).listen(
-      (event) => emit(state.value.copyWith(event: event, isEventLoading: false, error: null)),
-      onError: (Object e, StackTrace st) => emit(state.value.copyWith(isEventLoading: false, error: e)),
-    );
-    _registrationsSub = repository.streamEventRegistrations(sectionId, eventId).listen(
-      (registrations) => emit(state.value.copyWith(registrations: registrations, isRegistrationsLoading: false)),
-      onError: (Object e, StackTrace st) => emit(state.value.copyWith(error: e)),
-    );
+    _eventSub = repository
+        .streamEvent(sectionId, eventId)
+        .listen(
+          (event) => emit(state.value.copyWith(event: event, isEventLoading: false, error: null)),
+          onError: (Object e, StackTrace st) => emit(state.value.copyWith(isEventLoading: false, error: e)),
+        );
+    _registrationsSub = repository
+        .streamEventRegistrations(sectionId, eventId)
+        .listen(
+          (registrations) => emit(state.value.copyWith(registrations: registrations, isRegistrationsLoading: false)),
+          onError: (Object e, StackTrace st) => emit(state.value.copyWith(error: e)),
+        );
   }
 
   @override
@@ -69,7 +75,6 @@ class EventDetailsCubit({required this.sectionId, required this.eventId}) extend
   Future<void> removeRegistration(String userId, {String? deletedByUserId}) async {
     await repository.removeRegistration(sectionId, eventId, userId, deletedByUserId: deletedByUserId);
   }
-
 
   /// Withdraws the current user from this event (sets status to withdrawn).
   Future<void> withdrawSelf(String userId, {String? withdrawnByUserId}) async {

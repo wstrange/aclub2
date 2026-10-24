@@ -28,6 +28,30 @@
 				<string>com.googleusercontent.apps.797970173318-61nopoe594icajtj7u0c3pql7ep20see</string>
 			</array>
 		</dict>
+		<dict>
+			<!-- Facebook Login OAuth callback (flutter_facebook_auth).
+			     Replace with the real Meta App ID:
+			     developers.facebook.com → your app → Settings → Basic. -->
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>facebook</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb954559893876564</string>
+			</array>
+		</dict>
+	</array>
+	<key>FacebookAppID</key>
+	<string>954559893876564</string>
+	<key>FacebookClientToken</key>
+	<string>6eeeea245ba7d544a512ca048e014247</string>
+	<key>FacebookDisplayName</key>
+	<string>AClub</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
 	</array>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>

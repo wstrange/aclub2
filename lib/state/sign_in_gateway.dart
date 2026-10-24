@@ -9,6 +9,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../repo.dart';
+import '../services/facebook_auth.dart' as facebook_sign_in_flow;
 import '../services/google_auth.dart' as google_sign_in_flow;
 
 /// Result of a successful credential sign-in / registration.
@@ -28,6 +29,9 @@ abstract class const SignInGateway() {
   /// Returns `null` when the user cancels the Google account picker / OAuth
   /// window, rather than treating that as an error.
   Future<SignInResult?> signInWithGoogle();
+
+  /// Returns `null` when the user cancels the Facebook login dialog.
+  Future<SignInResult?> signInWithFacebook();
 }
 
 /// Converts a Firebase credential into a [SignInResult], bootstrapping the
@@ -64,6 +68,12 @@ class const FirebaseSignInGateway() implements SignInGateway {
   @override
   Future<SignInResult?> signInWithGoogle() async {
     final credential = await google_sign_in_flow.signInWithGoogle();
+    return credential == null ? null : _fromCredential(credential);
+  }
+
+  @override
+  Future<SignInResult?> signInWithFacebook() async {
+    final credential = await facebook_sign_in_flow.signInWithFacebook();
     return credential == null ? null : _fromCredential(credential);
   }
 }

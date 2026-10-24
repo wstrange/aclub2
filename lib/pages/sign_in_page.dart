@@ -173,6 +173,18 @@ class const _SignInForm() extends HookWidget {
                               : const Icon(Icons.g_mobiledata, size: 22),
                           label: const Text('Continue with Google'),
                         ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          // Facebook sign-in: native dialog on Android/iOS and
+                          // a webview OAuth window on macOS; Firebase popup on
+                          // web; friendly "not configured/available" message
+                          // otherwise (see services/facebook_auth.dart).
+                          onPressed: submitting ? null : () => context.read<SignInCubit>().signInWithFacebook(),
+                          icon: submittingMode == 'facebook'
+                              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
+                          label: const Text('Continue with Facebook'),
+                        ),
                         const SizedBox(height: 24),
                         TextButton(
                           onPressed: submitting

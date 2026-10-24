@@ -16,6 +16,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_cache_manager: ^3.4.5
+  flutter_facebook_auth: ^7.2.0
   flutter_hooks: ^0.21.3+1
   flutter_markdown_plus: ^1.0.12
   freezed_annotation: ^3.1.0
@@ -29,6 +30,13 @@ dependencies:
   share_plus: ^13.3.1
   shared_models:
     path: packages/shared_models
+
+# The published facebook_auth_desktop only ships a CocoaPods .podspec for its
+# macOS plugin, and this project is Swift-Package-Manager-only. The vendored
+# copy below adds Package.swift (see packages/facebook_auth_desktop/README.md).
+dependency_overrides:
+  facebook_auth_desktop:
+    path: packages/facebook_auth_desktop
 
 dev_dependencies:
   bloc_signals_devtools: ^1.0.3

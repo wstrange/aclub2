@@ -22,6 +22,7 @@ class _FakeGateway({this._result, this._thrown}) implements SignInGateway {
   int signInCalls = 0;
   int registerCalls = 0;
   int googleCalls = 0;
+  int facebookCalls = 0;
   int resetCalls = 0;
   final List<String> resetEmails = [];
 
@@ -56,6 +57,13 @@ class _FakeGateway({this._result, this._thrown}) implements SignInGateway {
     googleCalls++;
     if (_thrown != null) throw _thrown;
     return _result; // null → user cancelled the provider flow
+  }
+
+  @override
+  Future<SignInResult?> signInWithFacebook() async {
+    facebookCalls++;
+    if (_thrown != null) throw _thrown;
+    return _result; // null → user cancelled the Facebook dialog
   }
 }
 
@@ -143,6 +151,38 @@ void main() {
 
       final state = _state(cubit);
       expect(state, isA<SignInError>().having((s) => s.message, 'message', contains('not available on this platform')));
+    });
+
+    test('Facebook sign-in success carries new-account flag', () async {
+      final gateway = _FakeGateway(result: _result(isNewAccount: false));
+      final cubit = SignInCubit(gateway: gateway);
+
+      await cubit.signInWithFacebook();
+
+      expect(gateway.facebookCalls, 1);
+      expect(_state(cubit), isA<SignInSignedIn>().having((s) => s.isNewAccount, 'isNewAccount', false));
+    });
+
+    test('cancelled Facebook sign-in returns to idle without errors', () async {
+      final gateway = _FakeGateway(); // no result, no error → treated as cancel
+      final cubit = SignInCubit(gateway: gateway);
+
+      await cubit.signInWithFacebook();
+
+      expect(gateway.facebookCalls, 1);
+      expect(_state(cubit), isA<SignInIdle>());
+    });
+
+    test('unconfigured Facebook sign-in surfaces the setup hint', () async {
+      final gateway = _FakeGateway(
+        thrown: UnsupportedError('Facebook sign-in is not configured yet. Set the Meta App ID'),
+      );
+      final cubit = SignInCubit(gateway: gateway);
+
+      await cubit.signInWithFacebook();
+
+      final state = _state(cubit);
+      expect(state, isA<SignInError>().having((s) => s.message, 'message', contains('not configured')));
     });
 
     test('password reset succeeds and reports the email', () async {

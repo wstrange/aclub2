@@ -1,0 +1,11 @@
+<resources>
+    <!-- Facebook Login (flutter_facebook_auth): Meta App Dashboard values.
+         Replace both placeholders from developers.facebook.com → your app →
+         Settings → Basic (App ID) and Settings → Advanced (Client Token).
+         Placeholder values let the SDK initialize without crashing the
+         plugin, but Facebook login fails gracefully until they are real. -->
+    <string name="facebook_app_id">954559893876564</string>
+    <!-- Real value required (Meta dashboard → Settings → Advanced → Client
+         Token); Android 11+ login fails without it. -->
+    <string name="facebook_client_token">6eeeea245ba7d544a512ca048e014247</string>
+</resources>

@@ -13,6 +13,7 @@ import 'package:logging/logging.dart';
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 
 import 'routes.dart';
+import 'services/facebook_auth_io.dart' show initializeFacebookAuth;
 import 'state/user_state_cubit.dart';
 
 final _log = Logger('main');
@@ -40,7 +41,14 @@ void main() async {
       await _connectToFirebaseEmulator();
     }
 
-    // 3. Determine the initial route by evaluating the guard pipeline
+    // 3. macOS Facebook Auth uses the webview OAuth flow which needs a
+    // one-time session bootstrap (keychain-backed). No-op until the Meta App
+    // ID is configured (kFacebookAppId in services/facebook_auth_io.dart).
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.macOS) {
+      await initializeFacebookAuth();
+    }
+
+    // 4. Determine the initial route by evaluating the guard pipeline
     final initialRoutes = await appGuard(const [], const [HomeRoute()]);
     final initialRoute = initialRoutes.last;
     routerConfig = createRouterConfig(initial: initialRoute);

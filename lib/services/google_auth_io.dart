@@ -12,8 +12,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 /// iOS/macOS OAuth client (from Google Cloud Console / GoogleService-Info.plist
 /// CLIENT_ID). The Android client id is picked up from google-services config.
 /// This is not a secret that must be protected. It is public.
-const String _iosMacClientId =
-    '797970173318-61nopoe594icajtj7u0c3pql7ep20see.apps.googleusercontent.com';
+const String _iosMacClientId = '797970173318-61nopoe594icajtj7u0c3pql7ep20see.apps.googleusercontent.com';
 
 /// [GoogleSignIn.instance.initialize] must complete exactly once per process
 /// before any other call, so the first sign-in triggers it and the rest reuse.
@@ -25,9 +24,7 @@ Future<UserCredential?> signInWithGoogle() async {
   if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
     final googleSignIn = GoogleSignIn.instance;
     if (!_googleSignInInitialized) {
-      await googleSignIn.initialize(
-        clientId: Platform.isAndroid ? null : _iosMacClientId,
-      );
+      await googleSignIn.initialize(clientId: Platform.isAndroid ? null : _iosMacClientId);
       _googleSignInInitialized = true;
     }
 

@@ -1,0 +1,37 @@
+# Vendored copy of facebook_auth_desktop 2.1.3 (macOS support for
+# flutter_facebook_auth, by darwin-morocho / meedu.app, Apache-style LICENSE
+# effective with the original package, see LICENSE).
+#
+# VENDORED CHANGES (the only difference from pub.dev 2.1.3):
+#   * Added `macos/facebook_auth_desktop/Package.swift` so the macOS native
+#     plugin resolves through Swift Package Manager. Flutter 3.44+ builds with
+#     SPM by default and *falls back to CocoaPods* when any dependency lacks a
+#     Package.swift — this project removed CocoaPods entirely, and the
+#     published package only shipped a .podspec for its macOS plugin.
+#
+# When facebook_auth_desktop publishes an SPM-enabled release (>= this
+# pin), delete this vendored copy and the `dependency_overrides` block in
+# pubspec.yaml, then depend on the published version again.
+name: facebook_auth_desktop
+description: macOS support for flutter_facebook_auth (vendored, SPM-enabled).
+version: 2.1.3
+publish_to: none
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.2"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_facebook_auth_platform_interface: ^6.1.2
+  flutter_secure_storage: ^10.3.1
+  http: ^1.2.2
+
+flutter:
+  plugin:
+    implements: flutter_facebook_auth
+    platforms:
+      macos:
+        pluginClass: FacebookAuthDesktopPlugin
+        dartPluginClass: FacebookAuthDesktopPlugin

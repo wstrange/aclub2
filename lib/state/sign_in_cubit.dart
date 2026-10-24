@@ -17,7 +17,6 @@ import 'sign_in_state.dart';
 final _log = Logger('sign_in');
 
 final _passwordSubmitting = const SignInSubmitting('password');
-final _googleSubmitting = const SignInSubmitting('google');
 
 /// Hand-rolled replacement for the firebase_ui_auth sign-in flow.
 class SignInCubit extends CubitSignal<SignInState> {
@@ -40,9 +39,19 @@ class SignInCubit extends CubitSignal<SignInState> {
   }
 
   Future<void> signInWithGoogle() async {
-    emit(_googleSubmitting);
+    await _socialFlow('google', gateway.signInWithGoogle);
+  }
+
+  Future<void> signInWithFacebook() async {
+    await _socialFlow('facebook', gateway.signInWithFacebook);
+  }
+
+  /// Shared wrapper for the OAuth provider flows (Google, Facebook): a
+  /// cancelled provider dialog is not an error — it returns to idle.
+  Future<void> _socialFlow(String mode, Future<SignInResult?> Function() action) async {
+    emit(SignInSubmitting(mode));
     try {
-      final result = await gateway.signInWithGoogle();
+      final result = await action();
       if (result == null) {
         // User cancelled the picker / closed the OAuth window.
         emit(const SignInIdle());
@@ -50,10 +59,10 @@ class SignInCubit extends CubitSignal<SignInState> {
       }
       emit(SignInSignedIn(result.isNewAccount));
     } on FirebaseAuthException catch (e, st) {
-      _log.warning('Google sign-in failed: ${e.code}\n$st');
+      _log.warning('$mode sign-in failed: ${e.code}\n$st');
       emit(SignInError(_friendlyMessage(e)));
     } catch (e, st) {
-      _log.warning('Google sign-in failed: $e\n$st');
+      _log.warning('$mode sign-in failed: $e\n$st');
       emit(SignInError(_friendlyGeneric(e)));
     }
   }

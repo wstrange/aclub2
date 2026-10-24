@@ -297,11 +297,7 @@ Admin-managed markdown templates that can be inserted into event description fie
 
 
 * Investigate more notifications. Push notifications
-* Look at how to publish the web app on firebase (or github pages?)
-* What is the replacement for the desktop oauth plugin that is deprecated.
 * Test when a user withdraws from an event - the leaders should get notified. Do we want to move the user to a "withdrawn" status???
-
-• Limited-Width Calendar Display: A highly readable, mobile-friendly monthly calendar layout optimized to show multiple overlapping trips on narrow phone screens.
 • Offline Capability & GPX Handling: Basic offline caching of trip details and the ability to upload or export GPX route files for navigation.
-
 * Send group notifications to the event participants
+* Help bubbles to show how to use features.
