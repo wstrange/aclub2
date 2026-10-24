@@ -169,17 +169,41 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
       creatorId: creatorId,
     );
 
-    final newId = await createEvent(sectionId, copy);
-    final newEvent = copy.copyWith(id: newId);
+    try {
+      final newId = await createEvent(sectionId, copy);
+      final newEvent = copy.copyWith(id: newId);
 
-    if (copyParticipantsAndLeaders) {
-      final registrations = await getEventRegistrations(sectionId, source.id);
-      for (final registration in registrations) {
-        await registerForEvent(sectionId, newId, registration);
+      if (copyParticipantsAndLeaders) {
+        final registrations = await getEventRegistrations(sectionId, source.id);
+        _log.info('duplicateEvent(${source.id}) → new event $newId, copying ${registrations.length} registrations');
+        for (final registration in registrations) {
+          try {
+            await registerForEvent(sectionId, newId, registration);
+          } catch (e, st) {
+            // Name the exact registration that failed so permission problems
+            // (e.g. rules denying a leader copying another member's
+            // registration) can be traced straight from the log.
+            _log.warning(
+              'duplicateEvent(${source.id}) → failed to copy registration '
+              '${registration.id} (userId=${registration.userId}, '
+              'status=${registration.status}) to event $newId in section $sectionId',
+              e,
+              st,
+            );
+            rethrow;
+          }
+        }
       }
-    }
 
-    return newEvent;
+      return newEvent;
+    } on FirebaseException catch (e) {
+      _log.warning(
+        'duplicateEvent(${source.id}) → ${e.code} (section $sectionId, '
+        'copyParticipantsAndLeaders=$copyParticipantsAndLeaders): ${e.message}',
+        e,
+      );
+      rethrow;
+    }
   }
 
   Stream<List<Event>> streamLeaderDrafts(String userUid) {
