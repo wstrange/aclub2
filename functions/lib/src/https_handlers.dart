@@ -381,6 +381,7 @@ Future<Response> handleRegistrationUpdatedHttp(Request request, Firebase firebas
       userId: payload.userId,
       beforeStatus: payload.beforeStatus,
       afterStatus: payload.afterStatus,
+      authId: payload.authId,
       beforeData: payload.beforeData,
       afterData: payload.afterData,
     );

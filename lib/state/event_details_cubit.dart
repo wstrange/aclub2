@@ -67,18 +67,28 @@ class EventDetailsCubit({required this.sectionId, required this.eventId}) extend
     );
   }
 
-  /// Removes [userId] from this event's registrations.
+  /// Withdraws [userId] from this event (sets status to withdrawn).
   ///
-  /// Pass [deletedByUserId] (the Firebase Auth UID of the caller) so the
-  /// repo can stamp it on the document before deletion, allowing the
-  /// onDelete Cloud Function trigger to detect self-withdrawal vs. leader removal.
-  Future<void> removeRegistration(String userId, {String? deletedByUserId}) async {
-    await repository.removeRegistration(sectionId, eventId, userId, deletedByUserId: deletedByUserId);
+  /// Pass [withdrawnByUserId] (the Firebase Auth UID of the caller) so the
+  /// Cloud Function trigger can detect self-withdrawal (withdrawnByUserId == userId)
+  /// vs. leader/admin removal (withdrawnByUserId != userId).
+  Future<void> withdrawRegistration(String userId, {String? withdrawnByUserId}) async {
+    await repository.withdrawRegistration(sectionId, eventId, userId, withdrawnByUserId: withdrawnByUserId);
+  }
+
+  /// Removes [userId] from this event's registrations by soft-withdrawing them.
+  Future<void> removeRegistration(String userId, {String? deletedByUserId, String? withdrawnByUserId}) async {
+    await repository.withdrawRegistration(
+      sectionId,
+      eventId,
+      userId,
+      withdrawnByUserId: withdrawnByUserId ?? deletedByUserId,
+    );
   }
 
   /// Withdraws the current user from this event (sets status to withdrawn).
   Future<void> withdrawSelf(String userId, {String? withdrawnByUserId}) async {
-    await repository.withdrawRegistration(sectionId, eventId, userId, withdrawnByUserId: withdrawnByUserId);
+    await withdrawRegistration(userId, withdrawnByUserId: withdrawnByUserId ?? userId);
   }
 
   /// Adds [userId] to the event's trip leader list.

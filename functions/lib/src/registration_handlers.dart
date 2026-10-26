@@ -111,6 +111,7 @@ Future<void> handleRegistrationUpdated({
   String? userId,
   String? beforeStatus,
   String? afterStatus,
+  String? authId,
   Map<String, dynamic>? beforeData,
   Map<String, dynamic>? afterData,
 }) async {
@@ -165,9 +166,21 @@ Future<void> handleRegistrationUpdated({
       sectionId: sectionId,
       eventId: eventId,
     );
+  } else if (beforeStatus != RegistrationStatus.pending.name && afterStatus == RegistrationStatus.pending.name) {
+    logger.info('User $userId pending registration for event $eventId ($eventTitle)');
+    await notifyTripLeadersOfPendingRegistration(
+      firebase: firebase,
+      sectionId: sectionId,
+      eventId: eventId,
+      eventTitle: eventTitle,
+      eventData: eventData,
+      applicantUserId: userId,
+    );
   } else if (afterStatus == RegistrationStatus.withdrawn.name) {
-    // Detect self-withdrawal - client sets withdrawnByUserId
-    final withdrawnBy = afterData?['withdrawnByUserId']?.toString();
+    // Detect self-withdrawal vs leader/admin removal via withdrawnByUserId (or fallback to deletedByUserId / authId)
+    final withdrawnBy = afterData?['withdrawnByUserId']?.toString() ??
+        afterData?['deletedByUserId']?.toString() ??
+        authId;
     final isSelfWithdrawal = withdrawnBy != null && withdrawnBy == userId;
     if (isSelfWithdrawal) {
       logger.info('User $userId withdrew from event $eventId ($eventTitle)');
@@ -179,7 +192,7 @@ Future<void> handleRegistrationUpdated({
         eventData: eventData,
         withdrawingUserId: userId,
       );
-    } else if (beforeStatus != null &&
+    } else if (beforeStatus == null ||
         (beforeStatus == RegistrationStatus.approved.name ||
             beforeStatus == RegistrationStatus.pending.name ||
             beforeStatus == RegistrationStatus.waitlisted.name)) {
@@ -230,7 +243,9 @@ Future<void> handleRegistrationDeleted({
   if (userId.isEmpty) return;
 
   // Prefer the client-stamped field; fall back to authId for HTTPS-triggered paths.
-  final effectiveDeletedBy = regData?['deletedByUserId']?.toString() ?? authId;
+  final effectiveDeletedBy = regData?['withdrawnByUserId']?.toString() ??
+      regData?['deletedByUserId']?.toString() ??
+      authId;
   final isSelfWithdrawal = effectiveDeletedBy != null && effectiveDeletedBy == userId;
 
   final eventData = await fetchEventData(firebase, sectionId, eventId);
@@ -307,6 +322,7 @@ Future<void> onRegistrationUpdated(
 
   final beforeStatus = beforeData['status']?.toString();
   final afterStatus = afterData['status']?.toString();
+  final authId = event.authId;
 
   await handleRegistrationUpdated(
     firebase: firebase,
@@ -316,6 +332,7 @@ Future<void> onRegistrationUpdated(
     userId: userId,
     beforeStatus: beforeStatus,
     afterStatus: afterStatus,
+    authId: authId,
     beforeData: beforeData,
     afterData: afterData,
   );

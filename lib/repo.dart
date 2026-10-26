@@ -175,8 +175,11 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
 
       if (copyParticipantsAndLeaders) {
         final registrations = await getEventRegistrations(sectionId, source.id);
-        _log.info('duplicateEvent(${source.id}) → new event $newId, copying ${registrations.length} registrations');
-        for (final registration in registrations) {
+        final activeRegistrations = registrations
+            .where((r) => r.status != RegistrationStatus.withdrawn && r.status != RegistrationStatus.rejected)
+            .toList();
+        _log.info('duplicateEvent(${source.id}) → new event $newId, copying ${activeRegistrations.length} registrations');
+        for (final registration in activeRegistrations) {
           try {
             await registerForEvent(sectionId, newId, registration);
           } catch (e, st) {
@@ -240,7 +243,8 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
       final eventIds = <String>{};
       for (final doc in snapshot.docs) {
         final data = doc.data();
-        if (data['status'] != RegistrationStatus.rejected.name) {
+        if (data['status'] != RegistrationStatus.rejected.name &&
+            data['status'] != RegistrationStatus.withdrawn.name) {
           final eventId = doc.reference.parent.parent?.id;
           if (eventId != null) {
             eventIds.add(eventId);
@@ -287,6 +291,11 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
         .update({'status': newStatus});
   }
 
+  /// Withdraws a registration for [userId] (soft-delete).
+  ///
+  /// Updates status to [RegistrationStatus.withdrawn] and stamps [withdrawnByUserId]
+  /// and [withdrawnAt]. If [withdrawnByUserId] matches [userId], it is treated as a
+  /// self-withdrawal; otherwise, it is treated as a leader/admin removal.
   Future<void> withdrawRegistration(
     String sectionId,
     String eventId,
@@ -302,18 +311,17 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
         .collection('registrations')
         .doc(userId)
         .update({
-          'status': 'withdrawn',
+          'status': RegistrationStatus.withdrawn.name,
           'withdrawnByUserId': withdrawnByUserId ?? userId,
           'withdrawnAt': now,
           'updatedAt': now,
         });
   }
 
-  /// Removes a registration for [userId] from [eventId] in [sectionId].
+  /// Hard-deletes a registration for [userId] from [eventId] in [sectionId].
   ///
-  /// Stamps [deletedByUserId] on the document before deleting it so the
-  /// Firestore onDelete trigger can tell whether the deletion was a
-  /// self-withdrawal (deletedByUserId == userId) or a leader removal.
+  /// NOTE: Prefer [withdrawRegistration] (soft-delete) to preserve the audit trail
+  /// and ensure reliable notification delivery without delete-update race conditions.
   Future<void> removeRegistration(String sectionId, String eventId, String userId, {String? deletedByUserId}) async {
     final ref = _firestore
         .collection('sections')
@@ -323,8 +331,8 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
         .collection('registrations')
         .doc(userId);
 
-    // Stamp who is performing the deletion so the onDelete Cloud Function
-    // trigger can distinguish a self-withdrawal from a leader removal.
+    // Stamp who is performing the deletion so any onDelete Cloud Function
+    // trigger can distinguish a self-withdrawal from a leader removal if called directly.
     if (deletedByUserId != null) {
       await ref.update({'deletedByUserId': deletedByUserId});
     }

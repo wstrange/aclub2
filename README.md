@@ -231,14 +231,16 @@ At least one of `description`, GPS (`latitude` + `longitude`), or `mapUrl` shoul
 
 | Field | Type | Required | Notes |
 |---|---|:---:|---|
-| `id` | `String` | ✓ | Firestore document ID |
+| `id` | `String` | ✓ | Firestore document ID (matches registering member's user ID) |
 | `userId` | `String` | ✓ | Registering member's user ID |
 | `guestName` | `String` | | Set when a member registers a guest (no user account required) |
-| `status` | `String` (enum) | ✓ | `pending` \| `approved` \| `waitlisted` \| `rejected` \| `attended` \| `absent` |
+| `status` | `String` (enum) | ✓ | `pending` \| `approved` \| `waitlisted` \| `rejected` \| `attended` \| `absent` \| `withdrawn` |
 | `isDriver` | `Boolean` | | Carpool: member is willing to drive |
 | `needsRide` | `Boolean` | | Carpool: member needs a ride |
-| `registeredAt` | `Timestamp` | ✓ | |
-| `updatedAt` | `Timestamp` | ✓ | Updated when status changes (e.g. attendance marked) |
+| `registeredAt` | `Timestamp` | ✓ | Initial registration timestamp |
+| `updatedAt` | `Timestamp` | ✓ | Updated when status changes (e.g. approved, withdrawn, attendance marked) |
+| `withdrawnByUserId` | `String` | | User ID who performed withdrawal (self or leader/admin) |
+| `withdrawnAt` | `Timestamp` | | Timestamp when moved to `withdrawn` |
 
 ---
 
@@ -283,12 +285,50 @@ Admin-managed markdown templates that can be inserted into event description fie
 | `EventType` | `hike`, `climb`, `alpineSki`, `skiMountaineering`, `snowshoe`, `social`, `presentation` |
 | `EventStatus` | `draft`, `published` |
 | `Difficulty` | `easy`, `moderate`, `hard` |
-| `RegistrationStatus` | `pending`, `approved`, `waitlisted`, `rejected`, `attended`, `absent` |
+| `RegistrationStatus` | `pending`, `approved`, `waitlisted`, `rejected`, `attended`, `absent`, `withdrawn` |
 | `NotificationChannel` | `push`, `email`, `inApp` |
 | `NotificationFrequency` | `immediate`, `daily`, `weekly` |
 
+---
 
-### Install ADB
+## Event Registration Withdrawal & Removal Architecture
+
+### Soft Delete (`status: withdrawn`) vs. Hard Delete (`ref.delete()`)
+
+When a participant withdraws or an administrator/trip leader removes a participant from an event, the system uses a **soft delete** pattern:
+- The registration document is **retained** in Firestore.
+- The `status` field is transitioned to `'withdrawn'`.
+- The `withdrawnByUserId` field is set to the UID of the user performing the action (the participant themselves or the leader/admin).
+- The `withdrawnAt` and `updatedAt` timestamps are updated.
+
+#### Pros & Cons
+
+| Approach | Pros | Cons |
+|---|---|---|
+| **Soft Delete (`status: withdrawn`)** *(Adopted)* | • **Audit trail & club history**: Preserves timestamps and who performed the withdrawal/removal (crucial for safety rosters, incident reviews, and tracking chronic late dropouts).<br>• **Atomic & reliable triggers**: Executes a single `update()` operation. The `onRegistrationUpdated` Cloud Function receives both `before` and `after` snapshots and can reliably inspect `withdrawnByUserId`.<br>• **No delete-update race conditions**: Avoids the hack of writing an update right before an asynchronous `delete()` call.<br>• **Clean re-registration**: Allows members who previously withdrew to re-register without ID collision issues (`set()` overwrites back to pending/approved).<br>• **Unified model**: Consistent field structure across self-withdrawal and leader removal. | • Withdrawn records remain in Firestore, requiring list/query queries to filter by active statuses (`pending`, `waitlisted`, `approved`, `attended`). *(Handled in UI and repository helpers)*. |
+| **Hard Delete (`ref.delete()`)** | • Firestore collection contains only currently registered members. | • **Lost audit trail**: No record of who was registered, when they dropped out, or who removed them.<br>• **Unreliable triggers**: Firestore `onDelete` triggers do not receive caller auth UID, requiring a pre-delete update stamp (`deletedByUserId`) that is vulnerable to race conditions or network failure.<br>• **Accidental re-triggering**: Fires both update and delete triggers sequentially. |
+
+### Notification Dispatch Rules
+
+All status transitions are processed by the `onRegistrationUpdated` Cloud Function:
+
+1. **User Self-Withdrawal (`withdrawnByUserId == userId`)**:
+   - Triggered when a participant taps "Withdraw".
+   - The document is updated with `status: 'withdrawn'` and `withdrawnByUserId: userId`.
+   - **Event Coordinators Notified**: The function sends a `registration_withdrawn` notification to all assigned `tripLeaderIds` and the event `creatorId` (excluding the withdrawing member if they happen to be a leader).
+
+2. **Trip Leader or Admin Removal (`withdrawnByUserId != userId`)**:
+   - Triggered when a leader/manager clicks the remove icon on the participant roster.
+   - The document is updated with `status: 'withdrawn'` and `withdrawnByUserId: leaderUid`.
+   - **Participant Notified**: The function sends a `registration_removed` notification to `userId` informing them: *"You have been removed from [Event Title]"*.
+
+3. **Re-registration**:
+   - If a member re-registers after previously withdrawing, `registerForEvent` resets the registration document to `approved` or `pending` (clearing `withdrawnByUserId` and `withdrawnAt`).
+   - If the event requires approval and status transitions to `pending`, coordinators are notified of the new pending request.
+
+---
+
+### How to Install apk using ADB
 
 ~/Library/Android/sdk/platform-tools/adb  install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 
@@ -297,7 +337,5 @@ Admin-managed markdown templates that can be inserted into event description fie
 
 
 * Investigate more notifications. Push notifications
-* Test when a user withdraws from an event - the leaders should get notified. Do we want to move the user to a "withdrawn" status???
 • Offline Capability & GPX Handling: Basic offline caching of trip details and the ability to upload or export GPX route files for navigation.
 * Send group notifications to the event participants
-* Help bubbles to show how to use features.

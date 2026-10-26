@@ -72,33 +72,33 @@ void main() {
     });
 
 
-    test('Self-withdrawal detected via deletedByUserId field (client-stamped)', () {
+    test('Self-withdrawal detected via withdrawnByUserId field', () {
       const userId = 'user-123';
 
-      // Self-withdrawal: client stamps deletedByUserId == userId on the doc
-      final regData = {'userId': userId, 'deletedByUserId': userId};
-      final effectiveDeletedBy = regData['deletedByUserId'];
-      final isSelfWithdrawal = effectiveDeletedBy != null && effectiveDeletedBy == userId;
+      final regData = {'userId': userId, 'withdrawnByUserId': userId};
+      final effectiveWithdrawnBy = regData['withdrawnByUserId'] ?? regData['deletedByUserId'];
+      final isSelfWithdrawal = effectiveWithdrawnBy != null && effectiveWithdrawnBy == userId;
       expect(isSelfWithdrawal, isTrue);
     });
 
-    test('Leader removal detected when deletedByUserId != userId', () {
+    test('Leader removal detected when withdrawnByUserId != userId', () {
       const userId = 'user-123';
 
-      // Leader removal: deletedByUserId is the leader's UID
-      final regData = {'userId': userId, 'deletedByUserId': 'leader-456'};
-      final effectiveDeletedBy = regData['deletedByUserId'];
-      final isSelfWithdrawal = effectiveDeletedBy != null && effectiveDeletedBy == userId;
+      final regData = {'userId': userId, 'withdrawnByUserId': 'leader-456'};
+      final effectiveWithdrawnBy = regData['withdrawnByUserId'] ?? regData['deletedByUserId'];
+      final isSelfWithdrawal = effectiveWithdrawnBy != null && effectiveWithdrawnBy == userId;
       expect(isSelfWithdrawal, isFalse);
     });
 
-    test('Falls back to authId when deletedByUserId is absent (HTTPS path)', () {
+    test('Falls back to authId when withdrawnByUserId/deletedByUserId is absent (HTTPS path)', () {
       const userId = 'user-123';
       const authId = 'user-123'; // HTTPS caller passes their UID
 
-      final regData = <String, dynamic>{'userId': userId}; // no deletedByUserId
-      final effectiveDeletedBy = regData['deletedByUserId']?.toString() ?? authId;
-      final isSelfWithdrawal = effectiveDeletedBy == userId;
+      final regData = <String, dynamic>{'userId': userId};
+      final effectiveWithdrawnBy = regData['withdrawnByUserId']?.toString() ??
+          regData['deletedByUserId']?.toString() ??
+          authId;
+      final isSelfWithdrawal = effectiveWithdrawnBy == userId;
       expect(isSelfWithdrawal, isTrue);
     });
 

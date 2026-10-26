@@ -496,7 +496,7 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
       required String confirmTitle,
       required String confirmMessage,
       required String successMessage,
-      String? deletedByUserId,
+      String? withdrawnByUserId,
     }) async {
       final cubit = context.read<EventDetailsCubit>();
       final confirmed = await showDialog<bool>(
@@ -513,7 +513,7 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
       if (confirmed != true) return;
       isSaving.value = true;
       try {
-        await cubit.removeRegistration(userId, deletedByUserId: deletedByUserId);
+        await cubit.withdrawRegistration(userId, withdrawnByUserId: withdrawnByUserId);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMessage)));
         }
@@ -532,7 +532,7 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
         confirmTitle: 'Remove registration?',
         confirmMessage: 'This removes the participant from the event.',
         successMessage: 'Registration removed.',
-        deletedByUserId: currentUid,
+        withdrawnByUserId: currentUid,
       );
     }
 
@@ -554,7 +554,7 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
       if (confirmed != true) return;
       isSaving.value = true;
       try {
-        await cubit.withdrawSelf(uid, withdrawnByUserId: uid);
+        await cubit.withdrawRegistration(uid, withdrawnByUserId: uid);
         if (context.mounted) {
           ScaffoldMessenger.of(context)
               .showSnackBar(const SnackBar(content: Text('You have withdrawn from the event.')));
@@ -673,7 +673,10 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
     }
 
     void showAddParticipantSheet() {
-      final registeredIds = registrations.map((r) => r.userId).toSet();
+      final registeredIds = registrations
+          .where((r) => r.status != RegistrationStatus.withdrawn && r.status != RegistrationStatus.rejected)
+          .map((r) => r.userId)
+          .toSet();
       showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
