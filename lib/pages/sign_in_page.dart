@@ -15,6 +15,7 @@ import 'package:kaisel/kaisel.dart';
 import '../routes.dart';
 import '../state/sign_in_cubit.dart';
 import '../state/sign_in_state.dart';
+import '../widgets/google_logo.dart';
 
 class const SignInPage({super.key}) extends HookWidget {
   @override
@@ -169,8 +170,8 @@ class const _SignInForm() extends HookWidget {
                           // Windows/Linux (see services/google_auth.dart).
                           onPressed: submitting ? null : () => context.read<SignInCubit>().signInWithGoogle(),
                           icon: submittingMode == 'google'
-                              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.g_mobiledata, size: 22),
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const GoogleLogo(),
                           label: const Text('Continue with Google'),
                         ),
                         const SizedBox(height: 12),

@@ -30,6 +30,7 @@ dependencies:
   share_plus: ^13.3.1
   shared_models:
     path: packages/shared_models
+  url_launcher: ^6.3.3
 
 # The published facebook_auth_desktop only ships a CocoaPods .podspec for its
 # macOS plugin, and this project is Swift-Package-Manager-only. The vendored

@@ -34,7 +34,10 @@ class EventDetailsCubit({required this.sectionId, required this.eventId}) extend
     _registrationsSub = repository
         .streamEventRegistrations(sectionId, eventId)
         .listen(
-          (registrations) => emit(state.value.copyWith(registrations: registrations, isRegistrationsLoading: false)),
+          (registrations) {
+            final sorted = [...registrations]..sort((a, b) => a.registeredAt.compareTo(b.registeredAt));
+            emit(state.value.copyWith(registrations: sorted, isRegistrationsLoading: false));
+          },
           onError: (Object e, StackTrace st) => emit(state.value.copyWith(error: e)),
         );
   }

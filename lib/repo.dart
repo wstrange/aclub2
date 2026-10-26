@@ -230,7 +230,9 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
         .collection('registrations')
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) => Registration.fromJson({...doc.data(), 'id': doc.id})).toList();
+          final list = snapshot.docs.map((doc) => Registration.fromJson({...doc.data(), 'id': doc.id})).toList();
+          list.sort((a, b) => a.registeredAt.compareTo(b.registeredAt));
+          return list;
         });
   }
 
@@ -266,7 +268,9 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
     _log.fine(
       'getEventRegistrations for section $sectionId, event $eventId found ${snapshot.docs.length} registrations',
     );
-    return snapshot.docs.map((doc) => Registration.fromJson({...doc.data(), 'id': doc.id})).toList();
+    final list = snapshot.docs.map((doc) => Registration.fromJson({...doc.data(), 'id': doc.id})).toList();
+    list.sort((a, b) => a.registeredAt.compareTo(b.registeredAt));
+    return list;
   }
 
   Future<void> registerForEvent(String sectionId, String eventId, Registration registration) async {

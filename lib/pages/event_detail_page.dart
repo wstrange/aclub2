@@ -15,6 +15,7 @@ import '../state/user_state_cubit.dart';
 import '../utils/snackbars.dart';
 import '../widgets/add_participant_sheet.dart';
 import '../widgets/calendar_common.dart';
+import '../widgets/external_link.dart';
 import '../widgets/member_search_bar.dart';
 import '../widgets/roster_export.dart';
 import '../widgets/user_display.dart' show UserDisplay, UserChip, resolveUserDisplay;
@@ -168,12 +169,24 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
       }
     }
 
+    String formatTime(DateTime dt) {
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return '$hour:$minute';
+    }
+
     String formatDate(DateTime dt) {
       const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       final weekday = weekdays[dt.weekday - 1];
-      final hour = dt.hour.toString().padLeft(2, '0');
-      final minute = dt.minute.toString().padLeft(2, '0');
-      return '$weekday ${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} $hour:$minute';
+      return '$weekday ${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${formatTime(dt)}';
+    }
+
+    // Start and end on one line: a same-day event only repeats the time at the
+    // end ("Tue 2026-10-27 09:00 – 17:00").
+    String formatDateRange(DateTime start, DateTime end) {
+      final sameDay = start.year == end.year && start.month == end.month && start.day == end.day;
+      final endText = sameDay ? formatTime(end) : formatDate(end);
+      return '${formatDate(start)} – $endText';
     }
 
     return Scaffold(
@@ -229,27 +242,18 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
             ],
             _RegistrationSection(event: event),
             _sectionHeader('Schedule'),
-            _detailRow('Start', formatDate(event.startDate)),
-            _detailRow('End', formatDate(event.endDate)),
+            _detailValue(formatDateRange(event.startDate, event.endDate)),
 
             if (event.location != null) ...[
               _sectionHeader('Location'),
-              _detailRow('Description', event.location!.description ?? ''),
-              if (event.location!.mapUrl != null && event.location!.mapUrl!.isNotEmpty)
-                _detailRow('Map', event.location!.mapUrl ?? ''),
+              _detailRow('Description', event.location!.description ?? '', url: event.location!.mapUrl),
             ],
 
             if (event.carpoolOption != null) ...[
               _sectionHeader('Carpooling'),
               _detailRow('Meet Time', formatDate(event.carpoolOption!.meetTime)),
-              _detailRow('Meet Place', event.carpoolOption!.meetPlace),
-              if (event.carpoolOption!.mapUrl != null && event.carpoolOption!.mapUrl!.isNotEmpty)
-                _detailRow('Map', event.carpoolOption!.mapUrl ?? ''),
+              _detailRow('Meet Place', event.carpoolOption!.meetPlace, url: event.carpoolOption!.mapUrl),
             ],
-
-            _sectionHeader('Capacity & Registration'),
-            _detailRow('Participants', '${event.minParticipants} - ${event.maxParticipants}'),
-            _detailRow('Approval Required', event.requiresApproval ? 'Yes' : 'No'),
 
             _sectionHeader('Leadership'),
             _LeadershipSection(sectionId: sectionId, event: event),
@@ -268,7 +272,8 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
     );
   }
 
-  Widget _detailRow(String label, String value) {
+  Widget _detailRow(String label, String value, {String? url}) {
+    final linkUrl = url?.trim() ?? '';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -278,9 +283,27 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
             width: 120,
             child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+          Expanded(
+            child: linkUrl.isEmpty
+                ? Text(value, style: const TextStyle(fontSize: 14))
+                : ExternalLink(
+                    // Fall back to a generic label when the leader left the
+                    // description blank but supplied a map link.
+                    text: value.trim().isEmpty ? 'Open map' : value,
+                    url: linkUrl,
+                  ),
+          ),
         ],
       ),
+    );
+  }
+
+  /// A detail line that has no label column and spans the full width, so long
+  /// values (like a start–end range) stay on one line on narrow screens.
+  Widget _detailValue(String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Text(value, style: const TextStyle(fontSize: 14)),
     );
   }
 }
@@ -695,11 +718,21 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
       );
     }
 
+    final waitlist = eventDetails.waitlist;
+    final pending = eventDetails.pendingRegistrations;
+    final approved = eventDetails.approvedRegistrations;
+
+    final myWaitlistIndex = currentUid != null && myRegistration?.status == RegistrationStatus.waitlisted
+        ? waitlist.indexWhere((r) => r.userId == currentUid)
+        : -1;
+    final myWaitlistPosition = myWaitlistIndex >= 0 ? myWaitlistIndex + 1 : null;
+
     final String statusLabel = switch (myRegistration?.status) {
       null => 'Not registered',
       RegistrationStatus.approved => 'Approved',
       RegistrationStatus.pending => 'Pending approval',
-      RegistrationStatus.waitlisted => 'On waitlist',
+      RegistrationStatus.waitlisted =>
+        myWaitlistPosition != null ? 'On waitlist (#$myWaitlistPosition of ${waitlist.length})' : 'On waitlist',
       RegistrationStatus.rejected => 'Rejected',
       RegistrationStatus.attended => 'Attended',
       RegistrationStatus.absent => 'Absent',
@@ -713,14 +746,78 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
         (hasSpace || event.requiresApproval);
 
     // Registrations a leader/manager can act on: pending, waitlisted, approved.
-    final manageable = registrations
-        .where(
-          (r) =>
-              r.status == RegistrationStatus.pending ||
-              r.status == RegistrationStatus.waitlisted ||
-              r.status == RegistrationStatus.approved,
-        )
-        .toList();
+    final manageable = [...approved, ...pending, ...waitlist];
+
+    String formatRegisteredAt(DateTime dt) {
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} $hour:$minute';
+    }
+
+    Widget buildRegistrationRow(Registration registration, {int? waitlistPosition}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            if (waitlistPosition != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '#$waitlistPosition',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  UserChip(userId: registration.userId, style: const TextStyle(fontSize: 14)),
+                  Text(
+                    'Registered ${formatRegisteredAt(registration.registeredAt)}',
+                    style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Chip(
+              label: Text(registration.status.name, style: const TextStyle(fontSize: 11)),
+              padding: EdgeInsets.zero,
+            ),
+            const SizedBox(width: 8),
+            if (registration.status == RegistrationStatus.approved)
+              TextButton(
+                onPressed: isSaving.value
+                    ? null
+                    : () => setStatus(registration, RegistrationStatus.waitlisted),
+                child: const Text('To waitlist'),
+              )
+            else
+              TextButton(
+                onPressed: isSaving.value ? null : () => approve(registration),
+                child: const Text('Approve'),
+              ),
+            const SizedBox(width: 4),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Remove',
+              onPressed: isSaving.value ? null : () => remove(registration),
+              icon: const Icon(Icons.delete_outline, size: 18),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -812,42 +909,39 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
             ],
             if (canManage && manageable.isNotEmpty) ...[
               const SizedBox(height: 8),
-              for (final registration in manageable)
+              if (approved.isNotEmpty) ...[
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: UserChip(userId: registration.userId, style: const TextStyle(fontSize: 14)),
-                      ),
-                      const SizedBox(width: 8),
-                      Chip(
-                        label: Text(registration.status.name, style: const TextStyle(fontSize: 11)),
-                        padding: EdgeInsets.zero,
-                      ),
-                      const SizedBox(width: 8),
-                      if (registration.status == RegistrationStatus.approved)
-                        TextButton(
-                          onPressed: isSaving.value
-                              ? null
-                              : () => setStatus(registration, RegistrationStatus.waitlisted),
-                          child: const Text('To waitlist'),
-                        )
-                      else
-                        TextButton(
-                          onPressed: isSaving.value ? null : () => approve(registration),
-                          child: const Text('Approve'),
-                        ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        tooltip: 'Remove',
-                        onPressed: isSaving.value ? null : () => remove(registration),
-                        icon: const Icon(Icons.delete_outline, size: 18),
-                      ),
-                    ],
+                  padding: const EdgeInsets.only(top: 8, bottom: 4),
+                  child: Text(
+                    'Approved participants (${approved.length})',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
+                for (final registration in approved)
+                  buildRegistrationRow(registration),
+              ],
+              if (pending.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 4),
+                  child: Text(
+                    'Pending approval (${pending.length})',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                for (final registration in pending)
+                  buildRegistrationRow(registration),
+              ],
+              if (waitlist.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 4),
+                  child: Text(
+                    'Waitlist (${waitlist.length})',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                for (var i = 0; i < waitlist.length; i++)
+                  buildRegistrationRow(waitlist[i], waitlistPosition: i + 1),
+              ],
             ],
           ],
         ),
