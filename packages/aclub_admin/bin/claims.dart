@@ -15,7 +15,7 @@ Future<void> main() async {
   final uid = 'RVbO0QLNlmPLmUhiKD0ShlXJ66C2';
 
   // Use the auth instance to set claims...
-  await auth.setCustomUserClaims(uid, customUserClaims: {'admin': true});
+  await auth.setCustomUserClaims(uid, customUserClaims: {'role': 'admin'});
 
   await adminApp.close();
 }

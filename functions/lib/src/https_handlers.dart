@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:firebase_functions/firebase_functions.dart';
 import 'package:firebase_functions/logger.dart' as logger;
 import 'event_handlers.dart';
@@ -72,6 +73,100 @@ class NotificationPayload {
 final _documentPathRegex = RegExp(
   r'sections/([^/]+)/events/([^/]+)(?:/registrations/([^/]+))?',
 );
+
+/// Environment variable that, when set, requires non-CloudEvent callers
+/// (manual replay / webhooks) to present a shared secret. Eventarc does not
+/// support custom headers, so this is only for callers you control.
+const _webhookSecretEnv = 'NOTIFICATION_WEBHOOK_SECRET';
+
+/// Lightweight, defence-in-depth verification for the notification endpoints.
+///
+/// The real security boundary is Cloud Run IAM: the service must not grant
+/// `roles/run.invoker` to `allUsers`, and Eventarc attaches a Google-signed
+/// OIDC token that Cloud Run validates before the request reaches this code.
+/// This check only rejects requests that clearly did not come from the
+/// expected event pipeline:
+///
+///  * non-`POST` requests (the `GET` readiness probe is still allowed);
+///  * requests without a bearer token when running on Cloud Run;
+///  * CloudEvents whose `ce-source`/`ce-type` are not Firestore document
+///    events;
+///  * on Cloud Run, non-CloudEvent callers unless they present a matching
+///    `x-notification-secret` (`NOTIFICATION_WEBHOOK_SECRET`);
+///  * elsewhere, non-CloudEvent callers when a webhook secret is configured
+///    and does not match.
+///
+/// Returns a [Response] to send when the request should be rejected, or `null`
+/// when it may proceed.
+///
+/// TODO(security): migrate these endpoints to native Firestore triggers
+/// (`onDocumentCreated`/`onDocumentUpdated`/`onDocumentDeleted`) when the Dart
+/// `firebase_functions` package supports deploying them in production. That
+/// removes the public HTTP surface entirely. Until then, keep the Cloud Run
+/// invoker restricted to the Eventarc service account and do not grant it to
+/// `allUsers`.
+Response? verifyNotificationRequest(
+  Request request, {
+  bool? isCloudRun,
+  String? webhookSecret,
+}) {
+  final method = request.method.toUpperCase();
+  if (method == 'GET') return null; // readiness probe
+  if (method != 'POST') {
+    return _jsonError('Method not allowed', statusCode: 405);
+  }
+
+  // `K_SERVICE` is set by Cloud Run for every running revision. Ignore it in
+  // the emulator so local/manual calls do not need a bearer token.
+  final isEmulator = Platform.environment['FUNCTIONS_EMULATOR'] == 'true';
+  final onCloudRun = isCloudRun ?? (Platform.environment.containsKey('K_SERVICE') && !isEmulator);
+  if (onCloudRun) {
+    final auth = request.headers['authorization'] ?? '';
+    if (!auth.startsWith('Bearer ')) {
+      return _jsonError('Missing or invalid Authorization header', statusCode: 401);
+    }
+  }
+
+  final isCloudEvent = request.headers.containsKey('ce-specversion') ||
+      (request.headers['content-type'] ?? '').startsWith('application/cloudevents');
+
+  if (isCloudEvent) {
+    final source = request.headers['ce-source'];
+    if (source != null && !source.startsWith('//firestore.googleapis.com/projects/')) {
+      return _jsonError('Unexpected CloudEvent source', statusCode: 403);
+    }
+    final type = request.headers['ce-type'];
+    if (type != null && !type.startsWith('google.cloud.firestore.document.v1.')) {
+      return _jsonError('Unexpected CloudEvent type', statusCode: 403);
+    }
+    return null;
+  }
+
+  // Direct JSON (manual replay / webhook) is only allowed when the caller
+  // proves it knows the shared secret. On Cloud Run this is mandatory so a
+  // stray HTTP call cannot masquerade as an event.
+  final secret = webhookSecret ?? Platform.environment[_webhookSecretEnv];
+  final hasSecret = secret != null && secret.isNotEmpty;
+  final provided = request.headers['x-notification-secret'] ?? '';
+  if (hasSecret && _constantTimeEquals(provided, secret)) return null;
+  if (onCloudRun) {
+    return _jsonError('Expected a CloudEvent or a valid webhook secret', statusCode: 403);
+  }
+  if (hasSecret) {
+    return _jsonError('Unauthorized', statusCode: 401);
+  }
+
+  return null;
+}
+
+bool _constantTimeEquals(String a, String b) {
+  if (a.length != b.length) return false;
+  var diff = 0;
+  for (var i = 0; i < a.length; i++) {
+    diff |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+  }
+  return diff == 0;
+}
 
 /// Extracts payload fields from an HTTP [Request].
 ///
@@ -236,7 +331,15 @@ Future<Response> handleEventCreatedHttp(Request request, Firebase firebase) asyn
     return _jsonOk({'endpoint': 'eventCreatedHttp', 'status': 'ready'});
   }
 
-  final payload = await parseNotificationRequest(request);
+  final rejected = verifyNotificationRequest(request);
+  if (rejected != null) return rejected;
+
+  return _processEventCreated(await parseNotificationRequest(request), firebase);
+}
+
+/// Core event-created processing, shared by the dedicated endpoint and the
+/// unified dispatcher. The payload is parsed once by the caller.
+Future<Response> _processEventCreated(NotificationPayload payload, Firebase firebase) async {
   final sectionId = payload.sectionId;
   final eventId = payload.eventId;
 
@@ -273,7 +376,15 @@ Future<Response> handleEventUpdatedHttp(Request request, Firebase firebase) asyn
     return _jsonOk({'endpoint': 'eventUpdatedHttp', 'status': 'ready'});
   }
 
-  final payload = await parseNotificationRequest(request);
+  final rejected = verifyNotificationRequest(request);
+  if (rejected != null) return rejected;
+
+  return _processEventUpdated(await parseNotificationRequest(request), firebase);
+}
+
+/// Core event-updated processing, shared by the dedicated endpoint and the
+/// unified dispatcher. The payload is parsed once by the caller.
+Future<Response> _processEventUpdated(NotificationPayload payload, Firebase firebase) async {
   final sectionId = payload.sectionId;
   final eventId = payload.eventId;
 
@@ -312,7 +423,15 @@ Future<Response> handleRegistrationCreatedHttp(Request request, Firebase firebas
     return _jsonOk({'endpoint': 'registrationCreatedHttp', 'status': 'ready'});
   }
 
-  final payload = await parseNotificationRequest(request);
+  final rejected = verifyNotificationRequest(request);
+  if (rejected != null) return rejected;
+
+  return _processRegistrationCreated(await parseNotificationRequest(request), firebase);
+}
+
+/// Core registration-created processing, shared by the dedicated endpoint and
+/// the unified dispatcher. The payload is parsed once by the caller.
+Future<Response> _processRegistrationCreated(NotificationPayload payload, Firebase firebase) async {
   final sectionId = payload.sectionId;
   final eventId = payload.eventId;
   final registrationId = payload.registrationId;
@@ -358,7 +477,15 @@ Future<Response> handleRegistrationUpdatedHttp(Request request, Firebase firebas
     return _jsonOk({'endpoint': 'registrationUpdatedHttp', 'status': 'ready'});
   }
 
-  final payload = await parseNotificationRequest(request);
+  final rejected = verifyNotificationRequest(request);
+  if (rejected != null) return rejected;
+
+  return _processRegistrationUpdated(await parseNotificationRequest(request), firebase);
+}
+
+/// Core registration-updated processing, shared by the dedicated endpoint and
+/// the unified dispatcher. The payload is parsed once by the caller.
+Future<Response> _processRegistrationUpdated(NotificationPayload payload, Firebase firebase) async {
   final sectionId = payload.sectionId;
   final eventId = payload.eventId;
   final registrationId = payload.registrationId;
@@ -406,7 +533,15 @@ Future<Response> handleRegistrationDeletedHttp(Request request, Firebase firebas
     return _jsonOk({'endpoint': 'registrationDeletedHttp', 'status': 'ready'});
   }
 
-  final payload = await parseNotificationRequest(request);
+  final rejected = verifyNotificationRequest(request);
+  if (rejected != null) return rejected;
+
+  return _processRegistrationDeleted(await parseNotificationRequest(request), firebase);
+}
+
+/// Core registration-deleted processing, shared by the dedicated endpoint and
+/// the unified dispatcher. The payload is parsed once by the caller.
+Future<Response> _processRegistrationDeleted(NotificationPayload payload, Firebase firebase) async {
   final sectionId = payload.sectionId;
   final eventId = payload.eventId;
   final registrationId = payload.registrationId;
@@ -453,6 +588,9 @@ Future<Response> handleNotificationTriggerHttp(Request request, Firebase firebas
     return _jsonOk({'endpoint': 'notificationTriggerHttp', 'status': 'ready'});
   }
 
+  final rejected = verifyNotificationRequest(request);
+  if (rejected != null) return rejected;
+
   final payload = await parseNotificationRequest(request);
   final eventType = payload.eventType?.toLowerCase() ?? '';
   final hasRegistration = payload.registrationId != null && payload.registrationId!.isNotEmpty;
@@ -460,35 +598,35 @@ Future<Response> handleNotificationTriggerHttp(Request request, Firebase firebas
   // 1. Explicit event type matching
   if (eventType.contains('created') || eventType == 'event_created') {
     if (hasRegistration || eventType.contains('registration')) {
-      return handleRegistrationCreatedHttp(request, firebase);
+      return _processRegistrationCreated(payload, firebase);
     }
-    return handleEventCreatedHttp(request, firebase);
+    return _processEventCreated(payload, firebase);
   }
 
   if (eventType.contains('updated') || eventType == 'event_updated') {
     if (hasRegistration || eventType.contains('registration')) {
-      return handleRegistrationUpdatedHttp(request, firebase);
+      return _processRegistrationUpdated(payload, firebase);
     }
-    return handleEventUpdatedHttp(request, firebase);
+    return _processEventUpdated(payload, firebase);
   }
 
   if (eventType.contains('deleted') || eventType == 'registration_deleted') {
-    return handleRegistrationDeletedHttp(request, firebase);
+    return _processRegistrationDeleted(payload, firebase);
   }
 
   // 2. Infer from presence of IDs and parameters
   if (hasRegistration) {
     if (payload.beforeStatus != null && payload.afterStatus != null) {
-      return handleRegistrationUpdatedHttp(request, firebase);
+      return _processRegistrationUpdated(payload, firebase);
     }
-    return handleRegistrationCreatedHttp(request, firebase);
+    return _processRegistrationCreated(payload, firebase);
   }
 
   if (payload.eventId != null && payload.eventId!.isNotEmpty) {
     if (payload.beforeStatus != null && payload.afterStatus != null) {
-      return handleEventUpdatedHttp(request, firebase);
+      return _processEventUpdated(payload, firebase);
     }
-    return handleEventCreatedHttp(request, firebase);
+    return _processEventCreated(payload, firebase);
   }
 
   return _jsonError(

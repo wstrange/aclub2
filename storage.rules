@@ -1,9 +1,11 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Firebase Storage is not used by this app. Deny everything by default.
+    // If a feature starts using Storage, add narrowly scoped rules with
+    // authentication, ownership, size, and content-type checks.
     match /{allPaths=**} {
-      allow read, write: if true; // ⚠️ Warning: Open for local testing. Restrict before deploying!
+      allow read, write: if false;
     }
   }
 }
-

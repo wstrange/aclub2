@@ -30,13 +30,24 @@ service cloud.firestore {
         getMemberData(sectionId).sectionRole in ['tripLeader', 'sectionManager', 'sectionAdmin', 'owner'];
     }
 
-    // Helper: Check if user is a system-wide global administrator
+    // Helper: Check if user is a system-wide global administrator.
+    // Admin status lives only in Firebase Auth custom claims (set via the
+    // Admin SDK), never in the user document, which the user can write.
     function isGlobalAdmin() {
-      return isSignedIn() && (
-        request.auth.token.admin == true ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
-      );
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    // Whether an event requires leader approval before a registration is
+    // confirmed. Missing field defaults to false (matches the Event model).
+    function eventRequiresApproval(sectionId, eventId) {
+      return get(/databases/$(database)/documents/sections/$(sectionId)/events/$(eventId)).data.requiresApproval == true;
+    }
+
+    // The status a self-registration may start in for this event.
+    function isAllowedInitialStatus(sectionId, eventId, status) {
+      return eventRequiresApproval(sectionId, eventId)
+        ? status in ['pending', 'waitlisted']
+        : status == 'approved';
     }
 
 
@@ -92,9 +103,56 @@ service cloud.firestore {
           allow list: if isSectionMember(sectionId);
           // Single-document reads are restricted to own registration or leader/admin.
           allow get: if isSectionMember(sectionId) && (resource.data.userId == request.auth.uid || isTripLeader(sectionId));
-          // Users can create/update their own registration; leaders can manage any
-          allow create: if isSectionMember(sectionId) && (request.resource.data.userId == request.auth.uid || isTripLeader(sectionId));
-          allow update, delete: if isSectionMember(sectionId) && (resource.data.userId == request.auth.uid || isTripLeader(sectionId));
+
+          // Registrations use the member's UID as the document ID, so enforcing
+          // registrationId == userId gives at most one registration per member
+          // per event. Leaders may register someone else; members may only
+          // register themselves.
+          allow create: if isSectionMember(sectionId) && (
+            (isTripLeader(sectionId)
+              && request.resource.data.userId == registrationId
+              && request.resource.data.id == registrationId)
+            || (request.resource.data.userId == request.auth.uid
+              && registrationId == request.auth.uid
+              && request.resource.data.id == registrationId
+              && isAllowedInitialStatus(sectionId, eventId, request.resource.data.status))
+          );
+
+          // Members may:
+          //  * edit non-status fields (carpool/guest) without changing status,
+          //  * withdraw an active registration,
+          //  * re-register after withdrawing.
+          // They may never set approved/attended/absent/rejected themselves.
+          // Leaders may manage any registration in their section.
+          //
+          // Capacity (maxParticipants) cannot be enforced in rules (no count
+          // aggregation); the client/UI enforces it. See docs/review.md C3.
+          allow update: if isSectionMember(sectionId) && (
+            isTripLeader(sectionId)
+            || (resource.data.userId == request.auth.uid
+              && request.resource.data.userId == resource.data.userId
+              && request.resource.data.id == resource.data.id
+              && (
+                // Non-status edits only.
+                (request.resource.data.status == resource.data.status
+                  && request.resource.data.registeredAt == resource.data.registeredAt
+                  && request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['guestName', 'isDriver', 'needsRide', 'updatedAt']))
+                // Self-withdrawal of an active registration.
+                || (request.resource.data.status == 'withdrawn'
+                  && resource.data.status in ['pending', 'waitlisted', 'approved']
+                  && request.resource.data.registeredAt == resource.data.registeredAt
+                  && request.resource.data.withdrawnByUserId == request.auth.uid)
+                // Re-register after a previous withdrawal.
+                || (resource.data.status == 'withdrawn'
+                  && isAllowedInitialStatus(sectionId, eventId, request.resource.data.status))
+              ))
+          );
+
+          // Members withdraw (soft delete) instead of deleting, so the audit
+          // trail (withdrawnByUserId/withdrawnAt) is preserved. Hard deletes
+          // are leader-only.
+          allow delete: if isSectionMember(sectionId) && isTripLeader(sectionId);
         }
       }
     }

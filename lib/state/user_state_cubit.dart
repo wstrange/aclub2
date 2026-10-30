@@ -63,7 +63,7 @@ class UserStateCubit() extends CubitSignal<UserState?> {
     }
 
     final tokenResult = await authUser.getIdTokenResult(force);
-    final isAdmin = tokenResult.claims?['role'] == 'admin' || tokenResult.claims?['admin'] == true;
+    final isAdmin = tokenResult.claims?['role'] == 'admin';
 
     _log.info('UserState loaded: user=${authUser.email}, currentSection=${currentSection.name}, isAdmin=$isAdmin');
     emit(

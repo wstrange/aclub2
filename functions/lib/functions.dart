@@ -30,6 +30,17 @@ void registerFunctions(Firebase firebase) {
   firebase.https.onRequest(name: 'helloWorld', helloWorld);
 
   // ── HTTPS endpoints for production & Eventarc ───────────────────────────────
+  //
+  // TODO(security): migrate these to native Firestore triggers once the Dart
+  // `firebase_functions` package supports deploying them in production. The
+  // emulator already registers the equivalent `onDocumentCreated`/
+  // `onDocumentUpdated`/`onDocumentDeleted` handlers below; production can
+  // reuse them once supported. Until then:
+  //  * Cloud Run IAM is the real gate — never grant `roles/run.invoker` to
+  //    `allUsers`; only the Eventarc trigger service account should have it.
+  //  * `verifyNotificationRequest` in `https_handlers.dart` performs a
+  //    lightweight defence-in-depth check (bearer token on Cloud Run,
+  //    CloudEvent source/type allowlist, optional webhook secret).
   firebase.https.onRequest(
     name: 'eventCreatedHttp',
     (request) => handleEventCreatedHttp(request, firebase),

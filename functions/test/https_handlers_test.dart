@@ -115,4 +115,108 @@ void main() {
       expect(payload.sectionId, isNull);
     });
   });
+
+  group('verifyNotificationRequest', () {
+    test('allows the GET readiness probe', () {
+      final req = Request('GET', Uri.parse('https://example.com/eventCreatedHttp'));
+      expect(verifyNotificationRequest(req), isNull);
+    });
+
+    test('rejects non-POST methods', () {
+      final req = Request('PUT', Uri.parse('https://example.com/eventCreatedHttp'), body: '{}');
+      expect(verifyNotificationRequest(req)?.statusCode, equals(405));
+    });
+
+    test('requires a bearer token when running on Cloud Run', () {
+      final anonymous = Request('POST', Uri.parse('https://example.com/eventCreatedHttp'), body: '{}');
+      expect(verifyNotificationRequest(anonymous, isCloudRun: true)?.statusCode, equals(401));
+
+      final authorized = Request(
+        'POST',
+        Uri.parse('https://example.com/eventCreatedHttp'),
+        headers: {
+          'authorization': 'Bearer oidc-token',
+          'ce-specversion': '1.0',
+          'ce-source': '//firestore.googleapis.com/projects/p/databases/(default)',
+          'ce-type': 'google.cloud.firestore.document.v1.created',
+        },
+        body: '{}',
+      );
+      expect(verifyNotificationRequest(authorized, isCloudRun: true), isNull);
+    });
+
+    test('rejects direct JSON calls on Cloud Run without a webhook secret', () {
+      final req = Request(
+        'POST',
+        Uri.parse('https://example.com/eventCreatedHttp'),
+        headers: {'authorization': 'Bearer oidc-token'},
+        body: '{}',
+      );
+      expect(verifyNotificationRequest(req, isCloudRun: true)?.statusCode, equals(403));
+
+      final withSecret = Request(
+        'POST',
+        Uri.parse('https://example.com/eventCreatedHttp'),
+        headers: {'authorization': 'Bearer oidc-token', 'x-notification-secret': 's3cret'},
+        body: '{}',
+      );
+      expect(
+        verifyNotificationRequest(withSecret, isCloudRun: true, webhookSecret: 's3cret'),
+        isNull,
+      );
+    });
+
+    test('rejects CloudEvents that did not originate from Firestore', () {
+      final badSource = Request(
+        'POST',
+        Uri.parse('https://example.com/eventCreatedHttp'),
+        headers: {
+          'ce-specversion': '1.0',
+          'ce-source': '//pubsub.googleapis.com/projects/p/topics/t',
+          'ce-type': 'google.cloud.firestore.document.v1.created',
+        },
+        body: '{}',
+      );
+      expect(verifyNotificationRequest(badSource)?.statusCode, equals(403));
+
+      final badType = Request(
+        'POST',
+        Uri.parse('https://example.com/eventCreatedHttp'),
+        headers: {
+          'ce-specversion': '1.0',
+          'ce-source': '//firestore.googleapis.com/projects/p/databases/(default)',
+          'ce-type': 'google.cloud.pubsub.topic.v1.messagePublished',
+        },
+        body: '{}',
+      );
+      expect(verifyNotificationRequest(badType)?.statusCode, equals(403));
+    });
+
+    test('accepts a Firestore document CloudEvent', () {
+      final req = Request(
+        'POST',
+        Uri.parse('https://example.com/eventCreatedHttp'),
+        headers: {
+          'ce-specversion': '1.0',
+          'ce-source': '//firestore.googleapis.com/projects/p/databases/(default)',
+          'ce-type': 'google.cloud.firestore.document.v1.created',
+        },
+        body: '{}',
+      );
+      expect(verifyNotificationRequest(req), isNull);
+    });
+
+    test('enforces the optional webhook secret for non-CloudEvent callers', () {
+      final missing = Request('POST', Uri.parse('https://example.com/eventCreatedHttp'), body: '{}');
+      expect(verifyNotificationRequest(missing, webhookSecret: 's3cret')?.statusCode, equals(401));
+
+      final valid = Request(
+        'POST',
+        Uri.parse('https://example.com/eventCreatedHttp'),
+        headers: {'x-notification-secret': 's3cret'},
+        body: '{}',
+      );
+      expect(verifyNotificationRequest(valid, webhookSecret: 's3cret'), isNull);
+    });
+  });
 }
