@@ -223,7 +223,7 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
                   ),
                 ),
                 const SizedBox(width: 12),
-                Chip(label: Text(event.status.name)),
+                if (event.status == EventStatus.draft) const DraftBadge() else const Chip(label: Text('Live')),
               ],
             ),
             const SizedBox(height: 8),
@@ -747,6 +747,26 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
 
     // Registrations a leader/manager can act on: pending, waitlisted, approved.
     final manageable = [...approved, ...pending, ...waitlist];
+    final participantIds = registrations.map((registration) => registration.userId).toSet().toList();
+    final participantProfiles = useState<Map<String, UserProfile>>({});
+    final areParticipantProfilesLoaded = useState(false);
+    useEffect(() {
+      if (participantIds.isEmpty) {
+        areParticipantProfilesLoaded.value = true;
+        return null;
+      }
+      var disposed = false;
+      areParticipantProfilesLoaded.value = false;
+      repository.getUserProfiles(participantIds).then((profiles) {
+        if (!disposed) {
+          participantProfiles.value = {...participantProfiles.value, ...profiles};
+          areParticipantProfilesLoaded.value = true;
+        }
+      }).catchError((_) {
+        if (!disposed) areParticipantProfilesLoaded.value = true;
+      });
+      return () => disposed = true;
+    }, [participantIds.join(',')]);
 
     String formatRegisteredAt(DateTime dt) {
       final hour = dt.hour.toString().padLeft(2, '0');
@@ -781,7 +801,15 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  UserChip(userId: registration.userId, style: const TextStyle(fontSize: 14)),
+                  if (!areParticipantProfilesLoaded.value)
+                    const Text('…', style: TextStyle(fontSize: 14))
+                  else
+                    UserChip(
+                      userId: registration.userId,
+                      profile: participantProfiles.value[registration.userId],
+                      profileResolved: true,
+                      style: const TextStyle(fontSize: 14),
+                    ),
                   Text(
                     'Registered ${formatRegisteredAt(registration.registeredAt)}',
                     style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -1033,7 +1061,7 @@ class const _AssignLeaderSheet({required this.sectionId, required this.excludedI
             return ListTile(
               leading: const Icon(Icons.person_outline),
               // Plain text — no UserChip popover inside an action sheet.
-              title: UserDisplay(userId: member.id, style: const TextStyle(fontSize: 14)),
+              title: Text(displayFor(member), style: const TextStyle(fontSize: 14)),
               subtitle: Text(member.sectionRole.name),
               onTap: () => onPick(member.id),
             );

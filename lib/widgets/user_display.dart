@@ -30,13 +30,17 @@ String resolveUserDisplay(String uid, UserProfile? profile) {
 }
 
 /// Resolves a user ID and renders the user's display name / email as text.
-class const UserDisplay({super.key, required this.userId, this.style}) extends HookWidget {
+class const UserDisplay({super.key, required this.userId, this.profile, this.style}) extends HookWidget {
   final String userId;
+  final UserProfile? profile;
   final TextStyle? style;
 
   @override
   Widget build(BuildContext context) {
-    final profileFuture = useMemoized(() => repository.getUserProfile(userId), [userId]);
+    final profileFuture = useMemoized(
+      () => this.profile == null ? repository.getUserProfile(userId) : Future.value(this.profile),
+      [userId, this.profile],
+    );
     final snapshot = useFuture(profileFuture);
 
     final profile = snapshot.hasData ? snapshot.data : null;
@@ -63,15 +67,26 @@ class const UserDisplay({super.key, required this.userId, this.style}) extends H
 /// The popover is anchored to the widget using a [MenuAnchor] / overlay so it
 /// works correctly inside scrollable lists. On mobile the popover opens on tap;
 /// on desktop/web it also opens on hover.
-class const UserChip({super.key, required this.userId, this.style}) extends HookWidget {
+class const UserChip({super.key, required this.userId, this.profile, this.profileResolved = false, this.style})
+    extends HookWidget {
   final String userId;
+
+  /// An already loaded profile, used by list views to avoid per-row reads.
+  final UserProfile? profile;
+
+  /// Whether [profile] is the completed result of a batch lookup, including
+  /// the case where no profile document exists.
+  final bool profileResolved;
 
   /// Optional [TextStyle] applied to the name label (same API as [UserDisplay]).
   final TextStyle? style;
 
   @override
   Widget build(BuildContext context) {
-    final profileFuture = useMemoized(() => repository.getUserProfile(userId), [userId]);
+    final profileFuture = useMemoized(
+      () => profileResolved ? Future.value(this.profile) : repository.getUserProfile(userId),
+      [userId, this.profile, profileResolved],
+    );
     final snapshot = useFuture(profileFuture);
 
     // Distinguish between "still loading" and "loaded but no document found".

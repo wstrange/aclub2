@@ -56,7 +56,7 @@ The claim shape is `{ "role": "admin" }` everywhere. The client derives `UserSta
 
 **Follow-up (not blocking):** `/users/{userId}` still permits the owner to write every profile field. No field there grants privileges any more, but field-level `hasOnly(...)` restrictions would still be worth adding to protect server-managed fields (e.g. `defaultSectionId`, notification preferences) and to prevent profile-shape drift. A regression test asserting that setting `isAdmin: true` on a user document does **not** grant admin access belongs in the rule suite.
 
-### C2. Any user can make themselves a section manager (`firestore.rules:64-72`)
+### C2. Any user can make themselves a section manager (`firestore.rules:64-72`) - **Resolved**
 
 ```rules
 match /members/{userId} {

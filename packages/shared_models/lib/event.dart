@@ -80,7 +80,7 @@ abstract class Event with _$Event {
 ///   duration, and a carpool meet time (if any, shifted by the same amount).
 /// * [creatorId] becomes the owner; trip leaders are carried over only when
 ///   [copyParticipantsAndLeaders] is true (otherwise the copy is owned by
-///   [creatorId] alone).
+///   [creatorId] alone), and every copy starts as a draft.
 extension EventCopy on Event {
   Event copyForDuplicate({
     required DateTime now,
@@ -101,6 +101,7 @@ extension EventCopy on Event {
     return copyWith(
       id: '',
       title: 'COPY: $title',
+      status: EventStatus.draft,
       startDate: newStart,
       endDate: newEnd,
       creatorId: creatorId,

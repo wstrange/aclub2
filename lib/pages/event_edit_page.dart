@@ -47,7 +47,7 @@ class EventEditPage extends StatelessWidget {
         title: '',
         type: EventType.hike,
         difficulty: Difficulty.moderate,
-        status: EventStatus.published,
+        status: EventStatus.draft,
         startDate: DateTime(now.year, now.month, now.day, 9, 0).add(const Duration(days: 1)),
         endDate: DateTime(now.year, now.month, now.day, 17, 0).add(const Duration(days: 1)),
         maxParticipants: 10,
@@ -216,7 +216,13 @@ class const _EventEditForm({required this.sectionId, required this.initialEvent,
           await repository.createEvent(sectionId, newEvent);
 
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event created successfully.')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  status.value == EventStatus.draft ? 'Event created as a draft.' : 'Event created and is live.',
+                ),
+              ),
+            );
             context.pop(true);
           }
         } else {
@@ -239,7 +245,13 @@ class const _EventEditForm({required this.sectionId, required this.initialEvent,
           await repository.updateEvent(sectionId, updatedEvent);
 
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event updated successfully.')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  status.value == EventStatus.draft ? 'Event saved as a draft.' : 'Event saved and is live.',
+                ),
+              ),
+            );
             context.pop(true);
           }
         }

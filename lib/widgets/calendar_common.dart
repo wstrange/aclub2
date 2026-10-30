@@ -125,7 +125,13 @@ CalendarEventsState useCalendarEvents({
 }) {
   final currentUserId = userId ?? FirebaseAuth.instance.currentUser?.uid;
 
-  final eventsStream = useMemoized(() => repository.streamSectionEvents(sectionId), [sectionId]);
+  final eventsStream = useMemoized(
+    () => repository.streamSectionEvents(
+      sectionId,
+      includeDraftsForUserId: filter == CalendarEventFilter.mine ? currentUserId : null,
+    ),
+    [sectionId, filter, currentUserId],
+  );
   final eventsSnapshot = useStream(eventsStream);
 
   final registrationsStream = useMemoized(
@@ -187,6 +193,34 @@ class const CalendarErrorView({super.key, required this.error}) extends Stateles
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Text('Error loading events: $error', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      ),
+    );
+  }
+}
+
+/// A high-contrast status badge for events that are not yet visible to all
+/// section members.
+class const DraftBadge({super.key}) extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colors.errorContainer,
+        border: Border.all(color: colors.error, width: 1.25),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.edit_note, size: 15, color: colors.onErrorContainer),
+          const SizedBox(width: 4),
+          Text(
+            'Draft',
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: colors.onErrorContainer),
+          ),
+        ],
       ),
     );
   }

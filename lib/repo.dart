@@ -20,6 +20,11 @@ class MembersPage({required this.members, this.nextCursor}) {
   bool get hasMore => nextCursor != null;
 }
 
+class _CachedUserProfile({required this.profile, required this.cachedAt}) {
+  final UserProfile? profile;
+  final DateTime cachedAt;
+}
+
 class AlpineRepository({FirebaseFirestore? firestore}) {
   final FirebaseFirestore? _customFirestore = firestore;
   FirebaseFirestore get _firestore => _customFirestore ?? FirebaseFirestore.instance;
@@ -108,8 +113,26 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
         });
   }
 
-  Stream<List<Event>> streamSectionEvents(String sectionId) {
-    return _firestore.collection('sections').doc(sectionId).collection('events').snapshots().map((snapshot) {
+  /// Streams published section events, optionally including drafts created or
+  /// led by [includeDraftsForUserId].
+  Stream<List<Event>> streamSectionEvents(String sectionId, {String? includeDraftsForUserId}) {
+    final events = _firestore.collection('sections').doc(sectionId).collection('events');
+    final query = includeDraftsForUserId == null
+        ? events.where('status', isEqualTo: 'published')
+        : events.where(
+            Filter.or(
+              Filter('status', isEqualTo: 'published'),
+              Filter.and(
+                Filter('status', isEqualTo: 'draft'),
+                Filter.or(
+                  Filter('creatorId', isEqualTo: includeDraftsForUserId),
+                  Filter('tripLeaderIds', arrayContains: includeDraftsForUserId),
+                ),
+              ),
+            ),
+          );
+
+    return query.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) => Event.fromJson({...doc.data(), 'id': doc.id})).toList();
     });
   }
@@ -373,8 +396,32 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
     await _firestore.collection('templates').doc(template.id).delete();
   }
 
-  // todo: this looks dodgy agy
-  UserProfile? _cachedProfile;
+  static const _profileCacheTtl = Duration(minutes: 10);
+  static const _profileCacheMaxEntries = 100;
+  final _profileCache = <String, _CachedUserProfile>{};
+  final _profileLoads = <String, Future<UserProfile?>>{};
+
+  _CachedUserProfile? _cachedProfileFor(String uid) {
+    final cached = _profileCache[uid];
+    if (cached == null) return null;
+    if (DateTime.now().difference(cached.cachedAt) > _profileCacheTtl) {
+      _profileCache.remove(uid);
+      return null;
+    }
+
+    // Refresh the insertion order so the map behaves as an LRU cache.
+    _profileCache.remove(uid);
+    _profileCache[uid] = cached;
+    return cached;
+  }
+
+  void _cacheProfile(String uid, UserProfile? profile) {
+    _profileCache.remove(uid);
+    _profileCache[uid] = _CachedUserProfile(profile: profile, cachedAt: DateTime.now());
+    while (_profileCache.length > _profileCacheMaxEntries) {
+      _profileCache.remove(_profileCache.keys.first);
+    }
+  }
 
   /// User profile
   ///
@@ -384,12 +431,12 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
 
   Future<void> createUserProfile(UserProfile u) async {
     await _firestore.collection('users').doc(u.id).set(u.toJson());
-    _cachedProfile = u;
+    _cacheProfile(u.id, u);
   }
 
   Future<void> updateUserProfile(UserProfile u) async {
     await _firestore.collection('users').doc(u.id).set(u.toJson());
-    _cachedProfile = u;
+    _cacheProfile(u.id, u);
   }
 
   /// Atomically registers an FCM token for the given [uid].
@@ -414,8 +461,9 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
   Future<void> updateWaiverSignedDate(String uid) async {
     final now = DateTime.now();
     await _firestore.collection('users').doc(uid).update({'waiverSignedDate': now});
-    if (_cachedProfile?.id == uid) {
-      _cachedProfile = _cachedProfile!.copyWith(waiverSignedDate: now);
+    final cached = _cachedProfileFor(uid);
+    if (cached?.profile != null) {
+      _cacheProfile(uid, cached!.profile!.copyWith(waiverSignedDate: now));
     }
     _log.info('Waiver signed for $uid at $now');
   }
@@ -449,20 +497,28 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
   }
 
   Future<UserProfile?> getUserProfile(String uid, {bool reload = false}) async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUid != uid) {
-      _cachedProfile = null;
+    if (!reload) {
+      final cached = _cachedProfileFor(uid);
+      if (cached != null) return cached.profile;
     }
-    if (!reload && _cachedProfile != null && _cachedProfile!.id == uid) {
-      return _cachedProfile;
-    }
-    final doc = await _firestore.collection('users').doc(uid).get();
-    _cachedProfile = doc.exists ? UserProfile.fromJson({...doc.data()!, 'id': doc.id}) : null;
-    return _cachedProfile;
+
+    final inFlight = _profileLoads[uid];
+    if (inFlight != null) return inFlight;
+
+    final load = _firestore.collection('users').doc(uid).get().then((doc) {
+      final profile = doc.exists ? UserProfile.fromJson({...doc.data()!, 'id': doc.id}) : null;
+      _cacheProfile(uid, profile);
+      return profile;
+    });
+    _profileLoads[uid] = load;
+    return load.whenComplete(() {
+      if (identical(_profileLoads[uid], load)) _profileLoads.remove(uid);
+    });
   }
 
   void clearProfileCache() {
-    _cachedProfile = null;
+    _profileCache.clear();
+    _profileLoads.clear();
   }
 
   /// Batch loads UserProfiles for the given [uids].
@@ -471,13 +527,30 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
     if (uniqueIds.isEmpty) return {};
 
     final result = <String, UserProfile>{};
+    final missingIds = <String>[];
+    for (final uid in uniqueIds) {
+      final cached = _cachedProfileFor(uid);
+      if (cached == null) {
+        missingIds.add(uid);
+      } else if (cached.profile != null) {
+        result[uid] = cached.profile!;
+      }
+    }
+
     // Chunk requests into max 30 documents per query (Firestore whereIn limit)
-    for (var i = 0; i < uniqueIds.length; i += 30) {
-      final chunk = uniqueIds.sublist(i, i + 30 > uniqueIds.length ? uniqueIds.length : i + 30);
+    for (var i = 0; i < missingIds.length; i += 30) {
+      final chunk = missingIds.sublist(i, i + 30 > missingIds.length ? missingIds.length : i + 30);
       try {
         final snap = await _firestore.collection('users').where(FieldPath.documentId, whereIn: chunk).get();
+        final loadedIds = <String>{};
         for (final doc in snap.docs) {
-          result[doc.id] = UserProfile.fromJson({...doc.data(), 'id': doc.id});
+          final profile = UserProfile.fromJson({...doc.data(), 'id': doc.id});
+          loadedIds.add(doc.id);
+          result[doc.id] = profile;
+          _cacheProfile(doc.id, profile);
+        }
+        for (final uid in chunk) {
+          if (!loadedIds.contains(uid)) _cacheProfile(uid, null);
         }
       } catch (e) {
         _log.warning('Failed to batch load user profiles for chunk, falling back to point reads: $e');

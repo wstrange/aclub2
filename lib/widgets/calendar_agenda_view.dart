@@ -371,6 +371,7 @@ class const _EventRow({required this.event, required this.dayDate, required this
                     ),
                   ),
                   const SizedBox(width: 8),
+                  if (event.status == EventStatus.draft) ...[const DraftBadge(), const SizedBox(width: 4)],
                   // Event type chip — shows "Ended" for past events.
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

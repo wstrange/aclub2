@@ -231,12 +231,24 @@ class const CalendarView({super.key, required this.sectionId, this.userId, this.
                                   ? Theme.of(context).colorScheme.onSurfaceVariant
                                   : Theme.of(context).colorScheme.primary,
                             ),
-                            title: Text(
-                              event.title,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: hasEnded ? Theme.of(context).colorScheme.onSurfaceVariant : null,
-                              ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    event.title,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: hasEnded ? Theme.of(context).colorScheme.onSurfaceVariant : null,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (event.status == EventStatus.draft) ...[
+                                  const SizedBox(width: 8),
+                                  const DraftBadge(),
+                                ],
+                              ],
                             ),
                             subtitle: event.description != null && event.description!.isNotEmpty
                                 ? Text(event.description!, maxLines: 2, overflow: TextOverflow.ellipsis)

@@ -119,6 +119,7 @@ void main() {
         expect(copy.id, isEmpty);
         expect(copy.title, equals('COPY: Original Hike'));
         expect(copy.creatorId, equals('user-2'));
+        expect(copy.status, equals(EventStatus.draft));
         // 8:00 today already passed by now (10:30) -> advance to tomorrow 8:00-16:00.
         expect(copy.startDate, equals(DateTime(2026, 9, 16, 8, 0)));
         expect(copy.endDate, equals(DateTime(2026, 9, 16, 16, 0)));
