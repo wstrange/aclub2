@@ -78,8 +78,9 @@ service cloud.firestore {
         // isSectionMember() here would be circular (it does an exists()/get()
         // on this same subcollection) and fails on the first rules evaluation.
         allow read: if isSignedIn();
-        // Only section admins can write roles, or users removing themselves, or global admins
-        allow write: if isSectionAdmin(sectionId) || isUser(userId) || isGlobalAdmin();
+        allow create, update, delete: if isSectionAdmin(sectionId) || isGlobalAdmin();
+        // A user may only remove their own membership.
+        allow delete: if isUser(userId);
       }
 
       // NOTE (emulator-only): the canRead rules below call isSectionMember()/

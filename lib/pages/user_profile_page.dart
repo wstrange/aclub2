@@ -117,7 +117,6 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
     final emergencyRelation = useTextEditingController(text: user.emergencyContactRelation ?? '');
     final medicalConditions = useTextEditingController(text: user.medicalConditions ?? '');
     final certifications = useTextEditingController(text: user.certifications.join(', '));
-    final completedProfile = useState(user.complatedProfile);
     final pushEnabled = useState(user.notificationPreferences.pushEnabled);
     final emailEnabled = useState(user.notificationPreferences.emailEnabled);
     final inAppEnabled = useState(user.notificationPreferences.inAppEnabled);
@@ -143,7 +142,6 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
         return;
       }
 
-      completedProfile.value = true;
       final updatedUser = user.copyWith(
         firstName: firstName.text.trim(),
         lastName: lastName.text.trim(),
@@ -270,12 +268,7 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
                 decoration: const InputDecoration(labelText: 'Certifications (comma-separated)'),
               ),
 
-              _sectionTitle('Status (Remove latet)'),
-              SwitchListTile(
-                value: completedProfile.value,
-                onChanged: (value) => completedProfile.value = value,
-                title: const Text('Profile completed'),
-              ),
+              _sectionTitle('Status'),
               ListTile(
                 title: const Text('Waiver signed'),
                 subtitle: Text(

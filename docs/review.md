@@ -359,9 +359,9 @@ The flow calls `verifyBeforeUpdateEmail` (which only sends a verification link),
 
 **Fix:** do not persist the email until verification completes (use the `onAuthStateChanged`/reload path), and surface "verification email sent" instead of silently succeeding.
 
-### M5. Debug UI in production (`lib/pages/user_profile_page.dart:273`)
+### M5. ~~Debug UI in production~~ — **Resolved**
 
-The profile section is titled `Status (Remove latet)` — a leftover debug heading. Remove it or gate behind `kDebugMode`; shipping debug controls is confusing and can leave accounts in odd states.
+The profile form previously exposed a `Status (Remove latet)` section with a user-toggleable **Profile completed** switch (`lib/pages/user_profile_page.dart`). Both the heading and the toggle have been removed; the section is now titled `Status` and only shows the read-only waiver state. Profile completion is still set to `true` automatically when the form is saved.
 
 ### M6. `MembersDirectoryPage` crashes for a global admin with no sections (`lib/pages/members_directory_page.dart:64-73`)
 
