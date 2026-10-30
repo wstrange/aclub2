@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
+import '../services/fcm_service.dart';
 import 'models.dart';
 
 final _log = Logger('UserStateCubit');
@@ -71,6 +74,16 @@ class UserStateCubit() extends CubitSignal<UserState?> {
         currentSection: currentSection,
         memberships: memberships,
         isAdmin: isAdmin,
+      ),
+    );
+
+    // Sync FCM device token and section event topic subscriptions
+    unawaited(fcmService.syncDeviceToken(authUser.uid));
+    unawaited(
+      fcmService.syncTopicSubscriptions(
+        memberSectionIds: memberSectionIds.toList(),
+        pushEnabled: profile.notificationPreferences.pushEnabled,
+        notifyForNewEvents: profile.notificationPreferences.notifyForNewEvents,
       ),
     );
   }
@@ -142,6 +155,14 @@ class UserStateCubit() extends CubitSignal<UserState?> {
     if (current != null) {
       emit(current.copyWith(userProfile: profile));
       _log.fine('Applied updated profile for ${current.user.uid}');
+
+      unawaited(
+        fcmService.syncTopicSubscriptions(
+          memberSectionIds: current.userSections.map((s) => s.id).toList(),
+          pushEnabled: profile.notificationPreferences.pushEnabled,
+          notifyForNewEvents: profile.notificationPreferences.notifyForNewEvents,
+        ),
+      );
     }
   }
 

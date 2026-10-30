@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:args/command_runner.dart';
+
 import 'package:aclub_admin/admin_repo.dart';
+import 'package:args/command_runner.dart';
 
 void main(List<String> args) async {
   final runner =
@@ -12,7 +14,8 @@ void main(List<String> args) async {
         ..addCommand(ResetCommand())
         ..addCommand(StatsCommand())
         ..addCommand(ListSectionsCommand())
-        ..addCommand(ListEventsCommand());
+        ..addCommand(ListEventsCommand())
+        ..addCommand(TemplatesCommand());
 
   runner.argParser
     ..addOption(
@@ -32,6 +35,11 @@ void main(List<String> args) async {
       'use-emulator',
       help: 'Whether to connect to local emulator',
       defaultsTo: true,
+    )
+    ..addFlag(
+      'prod',
+      help: 'Target the production GCP project (overrides --use-emulator)',
+      negatable: false,
     );
 
   try {
@@ -44,7 +52,9 @@ void main(List<String> args) async {
 
 abstract class BaseAdminCommand extends Command<void> {
   AdminRepository createRepo() {
-    final useEmulator = globalResults?['use-emulator'] as bool? ?? true;
+    final prod = globalResults?['prod'] as bool? ?? false;
+    final useEmulator =
+        !prod && (globalResults?['use-emulator'] as bool? ?? true);
     final emulatorHost = globalResults?['emulator'] as String?;
     final projectId = globalResults?['project'] as String? ?? 'aclub2';
 
@@ -68,7 +78,8 @@ class SeedCommand extends BaseAdminCommand {
   @override
   final name = 'seed';
   @override
-  final description = 'Seeds sample sections and events into Cloud Firestore.';
+  final description =
+      'Seeds sample sections and events, plus templates from content/templates.';
 
   SeedCommand() {
     argParser.addFlag(
@@ -90,6 +101,11 @@ class SeedCommand extends BaseAdminCommand {
           'Number of sample events to seed (spanning from today to one year out)',
       defaultsTo: '12',
     );
+    argParser.addOption(
+      'templates-dir',
+      help:
+          'Directory of template markdown files (defaults to content/templates)',
+    );
   }
 
   /// Parses a non-negative integer option, failing the command on bad input.
@@ -109,6 +125,20 @@ class SeedCommand extends BaseAdminCommand {
   Future<void> run() async {
     final usersPerSection = _count('users');
     final eventCount = _count('events');
+
+    final templatesDir = resolveTemplatesDirectory(
+      argResults?['templates-dir'] as String?,
+    );
+    final templateSources = loadTemplateFiles(templatesDir);
+    final now = DateTime.now();
+    final templates = [
+      for (final source in templateSources)
+        source.toTemplate(createdBy: 'admin', createdAt: now, updatedAt: now),
+    ];
+    stdout.writeln(
+      '📄 Loaded ${templates.length} template(s) from ${templatesDir.path}',
+    );
+
     final repo = createRepo();
     try {
       if (argResults?['reset'] == true) {
@@ -125,6 +155,7 @@ class SeedCommand extends BaseAdminCommand {
         sections: sections,
         events: generateSampleEvents(eventCount, sections: sections),
         users: generateSampleUsers(usersPerSection, sections: sections),
+        templates: templates,
       );
       stdout.writeln(
         '✅ Successfully seeded: ${result['sections']} sections, ${result['events']} events, '
@@ -232,4 +263,288 @@ class ListEventsCommand extends BaseAdminCommand {
       await repo.close();
     }
   }
+}
+
+/// `templates` command group: list, import, export, delete.
+class TemplatesCommand extends Command<void> {
+  @override
+  final name = 'templates';
+  @override
+  final description =
+      'Manages markdown templates stored in /templates (content/templates in git).';
+
+  TemplatesCommand() {
+    addSubcommand(TemplatesListCommand());
+    addSubcommand(TemplatesImportCommand());
+    addSubcommand(TemplatesExportCommand());
+    addSubcommand(TemplatesDeleteCommand());
+  }
+}
+
+class TemplatesListCommand extends BaseAdminCommand {
+  @override
+  final name = 'list';
+  @override
+  final description = 'Lists templates in Firestore.';
+
+  TemplatesListCommand() {
+    argParser
+      ..addOption('language', abbr: 'l', help: 'Only list this language (en/fr)')
+      ..addFlag(
+        'json',
+        help: 'Print machine-readable JSON',
+        negatable: false,
+      );
+  }
+
+  @override
+  Future<void> run() async {
+    final language = argResults?['language'] as String?;
+    final repo = createRepo();
+    try {
+      final templates =
+          (await repo.listTemplates())
+              .where((t) => language == null || t.language == language)
+              .toList()
+            ..sort((a, b) => a.id.compareTo(b.id));
+
+      if (argResults?['json'] == true) {
+        stdout.writeln(
+          const JsonEncoder.withIndent('  ').convert([
+            for (final t in templates)
+              {
+                'id': t.id,
+                'language': t.language,
+                'title': t.title,
+                'createdBy': t.createdBy,
+                'createdAt': t.createdAt.toIso8601String(),
+                'updatedAt': t.updatedAt.toIso8601String(),
+                'characters': t.markdownText.length,
+              },
+          ]),
+        );
+        return;
+      }
+
+      stdout.writeln('📄 Templates (${templates.length}):');
+      for (final t in templates) {
+        stdout.writeln(
+          '  • [${t.id}] (${t.language}) ${t.title} — updated ${t.updatedAt.toIso8601String()}',
+        );
+      }
+    } finally {
+      await repo.close();
+    }
+  }
+}
+
+class TemplatesImportCommand extends BaseAdminCommand {
+  @override
+  final name = 'import';
+  @override
+  final description =
+      'Creates/updates templates from markdown files with YAML front matter.';
+
+  TemplatesImportCommand() {
+    argParser
+      ..addOption(
+        'if-exists',
+        allowed: ['update', 'skip', 'fail'],
+        defaultsTo: 'update',
+        help: 'What to do when a template ID already exists in Firestore',
+      )
+      ..addOption(
+        'as',
+        help: 'User ID recorded as createdBy on newly created templates',
+        defaultsTo: 'cli',
+      )
+      ..addFlag(
+        'dry-run',
+        help: 'Show the changes without writing anything',
+        negatable: false,
+      )
+      ..addFlag(
+        'prune',
+        help: 'Delete templates that have no matching markdown file',
+        negatable: false,
+      )
+      ..addFlag(
+        'yes',
+        abbr: 'y',
+        help: 'Required with --prune to confirm deletions',
+        negatable: false,
+      );
+  }
+
+  @override
+  Future<void> run() async {
+    final args = argResults!;
+    final prune = args['prune'] == true;
+    if (prune && args['yes'] != true) {
+      stderr.writeln('❌ --prune deletes templates; re-run with --yes to confirm.');
+      exit(1);
+    }
+
+    final directory = resolveTemplatesDirectory(
+      args.rest.isEmpty ? null : args.rest.first,
+    );
+    final sources = loadTemplateFiles(directory);
+    final mode = TemplateImportMode.values.byName(args['if-exists'] as String);
+    final dryRun = args['dry-run'] == true;
+    final authorId = args['as'] as String? ?? 'cli';
+
+    stdout.writeln('📂 ${sources.length} template file(s) in ${directory.path}');
+
+    final repo = createRepo();
+    try {
+      final plan = planTemplateImport(
+        sources: sources,
+        existing: await repo.listTemplates(),
+        authorId: authorId,
+        now: DateTime.now(),
+        mode: mode,
+      );
+
+      for (final change in plan.changes) {
+        final verb = change.action == TemplateChangeAction.create
+            ? '＋ create'
+            : '✎ update';
+        stdout.writeln(
+          '  $verb [${change.template.id}] ${change.template.title} (${change.template.language})',
+        );
+      }
+      for (final template in plan.unchanged) {
+        stdout.writeln('  = unchanged [${template.id}]');
+      }
+      for (final template in plan.skipped) {
+        stdout.writeln('  → skipped [${template.id}] (already exists)');
+      }
+      if (prune) {
+        for (final id in plan.staleIds) {
+          stdout.writeln('  － delete [$id]');
+        }
+      }
+
+      if (dryRun) {
+        stdout.writeln('🔍 Dry run: nothing written.');
+        return;
+      }
+
+      for (final change in plan.changes) {
+        await repo.saveTemplate(change.template);
+      }
+      if (prune) {
+        for (final id in plan.staleIds) {
+          await repo.deleteTemplate(id);
+        }
+      }
+
+      stdout.writeln(
+        '✅ Import complete: ${plan.createdCount} created, ${plan.updatedCount} updated, '
+        '${plan.unchanged.length} unchanged, ${plan.skipped.length} skipped'
+        '${prune ? ', ${plan.staleIds.length} deleted' : ''}.',
+      );
+    } finally {
+      await repo.close();
+    }
+  }
+}
+
+class TemplatesExportCommand extends BaseAdminCommand {
+  @override
+  final name = 'export';
+  @override
+  final description =
+      'Writes templates from Firestore to markdown files (content/templates layout).';
+
+  TemplatesExportCommand() {
+    argParser.addOption(
+      'language',
+      abbr: 'l',
+      help: 'Only export this language (en/fr)',
+    );
+  }
+
+  @override
+  Future<void> run() async {
+    final args = argResults!;
+    final directory = args.rest.isEmpty
+        ? resolveTemplatesDirectory()
+        : Directory(args.rest.first);
+    final language = args['language'] as String?;
+
+    final repo = createRepo();
+    try {
+      final templates =
+          (await repo.listTemplates())
+              .where((t) => language == null || t.language == language)
+              .toList()
+            ..sort((a, b) => a.id.compareTo(b.id));
+
+      if (templates.isEmpty) {
+        stdout.writeln('No templates to export.');
+        return;
+      }
+
+      for (final template in templates) {
+        final fileName = _safeFileName(template.id);
+        final file = File(
+          [
+            directory.path,
+            template.language,
+            '$fileName.md',
+          ].join(Platform.pathSeparator),
+        );
+        file.parent.createSync(recursive: true);
+        file.writeAsStringSync(templateToMarkdown(template));
+        stdout.writeln('  → ${file.path}');
+      }
+      stdout.writeln('✅ Exported ${templates.length} template(s) to ${directory.path}');
+    } finally {
+      await repo.close();
+    }
+  }
+}
+
+class TemplatesDeleteCommand extends BaseAdminCommand {
+  @override
+  final name = 'delete';
+  @override
+  final description = 'Deletes a single template by ID.';
+
+  TemplatesDeleteCommand() {
+    argParser.addFlag(
+      'yes',
+      abbr: 'y',
+      help: 'Confirm the deletion',
+      negatable: false,
+    );
+  }
+
+  @override
+  Future<void> run() async {
+    final args = argResults!;
+    if (args.rest.isEmpty) {
+      stderr.writeln('❌ Usage: admin templates delete <id> --yes');
+      exit(1);
+    }
+    final id = args.rest.first;
+    if (args['yes'] != true) {
+      stderr.writeln('❌ Refusing to delete "$id" without --yes.');
+      exit(1);
+    }
+
+    final repo = createRepo();
+    try {
+      await repo.deleteTemplate(id);
+      stdout.writeln('🗑️ Deleted template [$id].');
+    } finally {
+      await repo.close();
+    }
+  }
+}
+
+/// Keeps exported file names filesystem-safe even for legacy auto-IDs.
+String _safeFileName(String id) {
+  return id.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '-');
 }

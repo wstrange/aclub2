@@ -339,3 +339,4 @@ All status transitions are processed by the `onRegistrationUpdated` Cloud Functi
 * Investigate more notifications. Push notifications
 • Offline Capability & GPX Handling: Basic offline caching of trip details and the ability to upload or export GPX route files for navigation.
 * Send group notifications to the event participants
+* Explore the use of topics for FCM

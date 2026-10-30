@@ -14,6 +14,7 @@ import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 
 import 'routes.dart';
 import 'services/facebook_auth_io.dart' show initializeFacebookAuth;
+import 'services/fcm_service.dart';
 import 'state/user_state_cubit.dart';
 
 final _log = Logger('main');
@@ -53,10 +54,18 @@ void main() async {
     final initialRoute = initialRoutes.last;
     routerConfig = createRouterConfig(initial: initialRoute);
 
-    // 4. React to auth state changes (e.g. sign out) across the app lifecycle
+    // 5. Initialize FCM notification service
+    await fcmService.initialize();
+
+    // 6. React to auth state changes (e.g. sign out) across the app lifecycle
     FirebaseAuth.instance.authStateChanges().listen((user) async {
       try {
         if (user == null) {
+          final previousUid = userStateCubit.state.value?.user.uid;
+          final previousSections = userStateCubit.state.value?.userSections.map((s) => s.id).toList() ?? const [];
+          if (previousUid != null) {
+            unawaited(fcmService.handleSignOut(previousUid, memberSectionIds: previousSections));
+          }
           userStateCubit.clear();
           unawaited(routerConfig.router.reevaluate());
         }

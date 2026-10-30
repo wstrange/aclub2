@@ -1,3 +1,4 @@
+import 'package:aclub_functions/functions.dart';
 import 'package:shared_models/shared_models.dart';
 import 'package:test/test.dart';
 
@@ -153,6 +154,19 @@ void main() {
       const eventId = 'event-xyz';
       const link = '/events/$eventId';
       expect(link, equals('/events/event-xyz'));
+    });
+
+    test('FCM section topic generation and sanitization', () {
+      // Standard lowercase slug
+      expect(sectionEventsTopic('calgary'), equals('section_calgary_events'));
+
+      // Topic with spaces or special characters
+      expect(sectionEventsTopic('Rocky Mountain Section!'), equals('section_Rocky_Mountain_Section__events'));
+
+      // Verifies conforming to FCM topic regex: [a-zA-Z0-9-_.~%]{1,900}
+      final validTopicRegex = RegExp(r'^[a-zA-Z0-9-_.~%]{1,900}$');
+      expect(validTopicRegex.hasMatch(sectionEventsTopic('calgary')), isTrue);
+      expect(validTopicRegex.hasMatch(sectionEventsTopic('vancouver/island 2026')), isTrue);
     });
   });
 }

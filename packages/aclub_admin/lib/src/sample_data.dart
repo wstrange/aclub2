@@ -415,43 +415,5 @@ List<Event> generateSampleEvents(int count, {List<Section>? sections}) {
   });
 }
 
-List<Template> get defaultSampleTemplates {
-  final now = DateTime.now();
-  return [
-    Template(
-      id: 'template-1',
-      language: 'en',
-      title: 'Trip Warm-Up: What to Bring',
-      markdownText: '''
-# What to Bring
-
-A short reminder sent ahead of any club trip:
-
-- **Layers**: base layer, insulating mid-layer, waterproof shell
-- **Footwear**: sturdy, broken-in hiking or mountaineering boots
-- **Pack**: daypack with rain cover
-- **Food & water**: 2 L minimum, plus snacks
-- **Safety**: headlamp, first-aid kit, whistle
-- **Optional**: trekking poles, gaiters
-
-_Check the weather and trail conditions before you leave._''',
-      createdBy: 'admin',
-      createdAt: now,
-      updatedAt: now,
-    ),
-    Template(
-      id: 'template-2',
-      language: 'en',
-      title: 'Cancellation Policy',
-      markdownText: '''
-# Cancellation Policy
-
-- Cancellations more than **48 hours** before the start are fully refunded.
-- Cancellations within **48 hours** may be refunded if a replacement is found.
-- No-shows forfeit the trip fee.''',
-      createdBy: 'admin',
-      createdAt: now,
-      updatedAt: now,
-    ),
-  ];
-}
+/// The template content that ships with the app lives in `content/templates`
+/// (see `lib/src/template_source.dart`); it is no longer hardcoded here.

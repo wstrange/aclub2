@@ -392,6 +392,22 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
     _cachedProfile = u;
   }
 
+  /// Atomically registers an FCM token for the given [uid].
+  Future<void> addFcmToken(String uid, String token) async {
+    _log.fine('Adding FCM token for $uid');
+    await _firestore.collection('users').doc(uid).update({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+    });
+  }
+
+  /// Atomically unregisters an FCM token for the given [uid].
+  Future<void> removeFcmToken(String uid, String token) async {
+    _log.fine('Removing FCM token for $uid');
+    await _firestore.collection('users').doc(uid).update({
+      'fcmTokens': FieldValue.arrayRemove([token]),
+    });
+  }
+
   /// Records the current date/time as the user's waiver signing date.
   /// Uses a targeted `update` call so only `waiverSignedDate` is written,
   /// leaving all other profile fields unchanged.

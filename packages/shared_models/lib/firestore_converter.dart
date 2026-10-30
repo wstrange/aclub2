@@ -19,6 +19,19 @@ class TimestampConverter implements JsonConverter<DateTime, Object> {
       if (d.toDate != null) return d.toDate() as DateTime;
     } catch (_) {}
     try {
+      // `dart_firebase_admin`'s Timestamp exposes seconds/nanoseconds only
+      // (no `toDate()`), unlike `cloud_firestore`'s.
+      dynamic d = json;
+      final seconds = d.seconds;
+      final nanoseconds = d.nanoseconds;
+      if (seconds is int && nanoseconds is int) {
+        return DateTime.fromMicrosecondsSinceEpoch(
+          seconds * 1000000 + nanoseconds ~/ 1000,
+          isUtc: true,
+        );
+      }
+    } catch (_) {}
+    try {
       dynamic d = json;
       if (d.millisecondsSinceEpoch != null) {
         return DateTime.fromMillisecondsSinceEpoch(d.millisecondsSinceEpoch as int);
@@ -50,6 +63,19 @@ class TimestampConverter implements JsonConverter<DateTime, Object> {
       try {
         dynamic d = value;
         if (d.toDate != null) return d.toDate() as DateTime;
+      } catch (_) {}
+      try {
+        // `dart_firebase_admin`'s Timestamp exposes seconds/nanoseconds only
+        // (no `toDate()`), unlike `cloud_firestore`'s.
+        dynamic d = value;
+        final seconds = d.seconds;
+        final nanoseconds = d.nanoseconds;
+        if (seconds is int && nanoseconds is int) {
+          return DateTime.fromMicrosecondsSinceEpoch(
+            seconds * 1000000 + nanoseconds ~/ 1000,
+            isUtc: true,
+          );
+        }
       } catch (_) {}
       try {
         dynamic d = value;

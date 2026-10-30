@@ -5,6 +5,15 @@ import 'package:firebase_functions/firebase_functions.dart';
 import 'package:shared_models/shared_models.dart';
 import 'package:firebase_functions/logger.dart' as logger;
 
+/// Sanitizes a string to conform to FCM topic naming rules:
+/// `[a-zA-Z0-9-_.~%]{1,900}`.
+String sanitizeTopicName(String input) =>
+    input.replaceAll(RegExp(r'[^a-zA-Z0-9-_.~%]'), '_');
+
+/// Builds the generic event topic name for a given section.
+String sectionEventsTopic(String sectionId) =>
+    'section_${sanitizeTopicName(sectionId)}_events';
+
 /// Sends a notification to a single user via in-app and FCM push channels,
 /// respecting the user's [NotificationPreferences].
 Future<void> sendNotificationToUser({
@@ -90,9 +99,24 @@ Future<void> notifySectionMembersOfEvent({
   final data = <String, String>{'type': type, 'sectionId': sectionId, 'eventId': eventId, 'link': link};
 
   try {
-    final pushTokens = <String>[];
-    final inAppRecipients = <String>[];
+    // FCM Push via Topic (O(1) broadcast for all subscribed section members)
+    final topic = sectionEventsTopic(sectionId);
+    if (Platform.environment['FUNCTIONS_EMULATOR'] == 'true') {
+      logger.info(
+        '[emulator] FCM topic push: topic="$topic", title="$title", eventId=$eventId.',
+      );
+    } else {
+      final messaging = firebase.adminApp.messaging();
+      final topicMessage = admin_messaging.TopicMessage(
+        topic: topic,
+        notification: admin_messaging.Notification(title: title, body: message),
+        data: data,
+      );
+      final messageId = await messaging.send(topicMessage);
+      logger.info('FCM topic push sent to $topic: messageId=$messageId.');
+    }
 
+    final inAppRecipients = <String>[];
     final membersQuery = await firestore.collection('sections/$sectionId/members').get();
     for (final member in membersQuery.docs) {
       final profileDoc = await firestore.doc('users/${member.id}').get();
@@ -111,29 +135,6 @@ Future<void> notifySectionMembersOfEvent({
 
       if (prefs.inAppEnabled) {
         inAppRecipients.add(member.id);
-      }
-      if (prefs.pushEnabled && profile.fcmTokens.isNotEmpty) {
-        pushTokens.addAll(profile.fcmTokens);
-      }
-    }
-
-    // FCM Push
-    if (pushTokens.isNotEmpty) {
-      if (Platform.environment['FUNCTIONS_EMULATOR'] == 'true') {
-        logger.info(
-          '[emulator] FCM push skipped (no FCM emulator). '
-          'Would send to ${pushTokens.length} device token(s).',
-        );
-      } else {
-        final messaging = firebase.adminApp.messaging();
-        final response = await messaging.sendEachForMulticast(
-          admin_messaging.MulticastMessage(
-            tokens: pushTokens,
-            notification: admin_messaging.Notification(title: title, body: message),
-            data: data,
-          ),
-        );
-        logger.info('FCM push sent: success=${response.successCount}, failure=${response.failureCount}.');
       }
     }
 

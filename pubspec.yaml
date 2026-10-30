@@ -13,6 +13,7 @@ dependencies:
   cupertino_icons: ^2.0.0
   firebase_auth: ^7.0.1
   firebase_core: ^5.1.0
+  firebase_messaging: ^17.0.1
   flutter:
     sdk: flutter
   flutter_cache_manager: ^3.4.5

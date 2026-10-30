@@ -100,23 +100,43 @@ class AdminRepository {
 
   // ── Templates ────────────────────────────────────────────────────────────
 
-  Future<void> createTemplate(Template template) async {
+  Future<List<Template>> listTemplates() async {
+    final snapshot = await firestore.collection('templates').get();
+    return snapshot.docs.map((doc) => Template.fromJson({...doc.data(), 'id': doc.id})).toList();
+  }
+
+  Future<Template?> getTemplate(String id) async {
+    final doc = await firestore.collection('templates').doc(id).get();
+    final data = doc.data();
+    if (data == null) return null;
+    return Template.fromJson({...data, 'id': doc.id});
+  }
+
+  /// Creates or replaces the template document with [template]'s ID.
+  Future<void> saveTemplate(Template template) async {
     await firestore.collection('templates').doc(template.id).set(template.toJson());
+  }
+
+  Future<void> createTemplate(Template template) => saveTemplate(template);
+
+  Future<void> deleteTemplate(String id) async {
+    await firestore.collection('templates').doc(id).delete();
   }
 
   // ── Batch Operations & Seeding ───────────────────────────────────────────
 
-  /// Seeds all default sections, sample events, sample users, and templates.
+  /// Seeds all default sections, sample events, sample users, and the
+  /// [templates] loaded from `content/templates`.
   Future<Map<String, int>> seedAll({
     List<Section>? sections,
     List<Event>? events,
     List<SampleUser>? users,
-    List<Template>? templates,
+    required List<Template> templates,
   }) async {
     final seedSections = sections ?? defaultSampleSections;
     final seedEvents = events ?? defaultSampleEvents;
     final seedUsers = users ?? defaultSampleUsers;
-    final seedTemplates = templates ?? defaultSampleTemplates;
+    final seedTemplates = templates;
 
     int sectionCount = 0;
     for (final s in seedSections) {

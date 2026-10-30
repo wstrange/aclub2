@@ -7,6 +7,7 @@ import 'package:kaisel/kaisel.dart';
 import 'package:shared_models/shared_models.dart';
 
 import '../routes.dart';
+import '../services/fcm_service.dart';
 import '../state/user_state_cubit.dart';
 import '../utils/phone_formatter.dart';
 import '../widgets/user_avatar.dart';
@@ -288,7 +289,12 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
               _sectionTitle('Notification preferences'),
               SwitchListTile(
                 value: pushEnabled.value,
-                onChanged: (value) => pushEnabled.value = value,
+                onChanged: (value) async {
+                  pushEnabled.value = value;
+                  if (value) {
+                    await fcmService.requestPermission();
+                  }
+                },
                 title: const Text('Push notifications'),
               ),
               SwitchListTile(
