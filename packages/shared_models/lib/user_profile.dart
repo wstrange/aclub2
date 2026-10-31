@@ -11,8 +11,8 @@ part 'user_profile.g.dart';
 /// preference data beyond what Firebase Auth provides in the `User` class.
 ///
 /// Note: a user's role within a specific section (i.e. section manager) is
-/// NOT stored here. It is tracked via [Section.managerIds] on the relevant
-/// section documents.
+/// NOT stored here. It is tracked by `SectionMember.sectionRole` in the
+/// `sections/{sectionId}/members/{userId}` subcollection.
 ///
 @freezed
 abstract class UserProfile with _$UserProfile {

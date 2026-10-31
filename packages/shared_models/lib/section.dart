@@ -6,8 +6,9 @@ part 'section.g.dart';
 /// Firestore path: `/sections/{sectionId}`
 ///
 /// Represents an alpine club section. A section can host multiple events and
-/// have multiple members. Section managers are users listed in [managerIds];
-/// their elevated permissions apply only within this section.
+/// have multiple members. Section managers are members whose
+/// `SectionMember.sectionRole` is `sectionManager`; their elevated permissions
+/// apply only within this section.
 @freezed
 abstract class Section with _$Section {
   const factory Section({

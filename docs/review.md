@@ -280,9 +280,9 @@ notification.
 
 **Fix:** restrict reads to self, global admins, and members who share a section (or expose a reduced public profile and keep sensitive fields in a `private` subcollection readable only by leaders/admins). A shared-section check needs a membership lookup; a cheaper design is a `publicProfiles` projection plus a leader-only `profiles/{uid}/private`.
 
-### H2. Draft events are visible to all section members (`firestore.rules:84-87`, `lib/repo.dart:111-115`) **Resolved**
+### H2. Draft events are visible to all section members (`firestore.rules:84-87`, `lib/repo.dart:111-115`) **Resolved in the UI; rule-level limitation remains**
 
-The README (`README.md:29,37,194`) says events start as `draft` and drafts are visible only to the creator and trip leaders, and must not appear in the event list. In practice:
+The intended model (`docs/data-model.md`, `docs/security.md`) is that events start as `draft` and drafts are visible only to the creator and trip leaders, and must not appear in the event list. Previously:
 
 - `streamSectionEvents` streams the entire `events` collection with no status filter.
 - The rules allow `read` for any section member and do not check `status`.
@@ -299,9 +299,11 @@ allow list: if isSectionMember(sectionId); // then constrain the query client-si
 
 Firestore rules cannot filter list results, so the query must carry the constraint. Add `where('status', isEqualTo: 'published')` to the member-facing stream and a separate `streamSectionDrafts` gated on leadership.
 
+**Resolution:** `streamSectionEvents` now queries `status == 'published'` by default and, when a user ID is supplied, ORs in drafts where the user is the creator or in `tripLeaderIds`. The calendar therefore no longer shows other members' drafts. The rule itself is still section-scoped, so a member can read a draft document directly if they know its ID; this is documented as a known limitation in `docs/security.md` rather than as intended visibility.
+
 ### H3. Any trip leader can edit or delete any event in the section (`firestore.rules:87`)
 
-`allow write: if isTripLeader(sectionId)` is section-wide. The model supports per-event leaders (`tripLeaderIds`), and the README describes event managers. A trip leader can therefore modify or delete events they do not lead.
+`allow write: if isTripLeader(sectionId)` is section-wide. The model supports per-event leaders (`tripLeaderIds`), and the intended model has event managers. A trip leader can therefore modify or delete events they do not lead.
 
 **Fix:** for `update`/`delete`, require leadership *of that event*:
 
@@ -427,21 +429,38 @@ Removed `streamPublicEvents` and `streamLeaderDrafts` from `lib/repo.dart`; both
 
 ---
 
-## 5. Documentation drift
+## 5. Documentation drift — **Resolved**
 
-The README is a design document as much as a usage guide, and it has diverged from the implementation. These are not cosmetic: they mislead contributors about the security model.
+The README previously mixed aspirational design with the implemented schema,
+and its role/schema tables contradicted `shared_models`. It has been rewritten
+as a concise entry point and the implementation details moved into focused
+documents:
 
-| README claim | Reality |
+| Document | Contents |
 | --- | --- |
-| `managerIds` on `/sections/{id}` (`README.md:120,166`) | Per-user `sections/{id}/members/{uid}.sectionRole` (`packages/shared_models/lib/section_member.dart:22`). |
-| `UserRole` = `admin \| tripLeader \| member \| guest` (`README.md:284`) | `enum UserRole { admin, member }` (`packages/shared_models/lib/enums.dart:9`); section roles are separate (`SectionRole { sectionManager, tripLeader, member }`). |
-| Events have `visibility` and `tripLeaders` (`README.md:29`) | Events are stored under `sections/{id}/events`, use `tripLeaderIds`, and have no `visibility` field. |
-| New events default to `draft` (`README.md:37,194`) | `EventEditPage` creates `EventStatus.published` (`lib/pages/event_edit_page.dart:50`). |
-| Drafts visible only to creator + trip leaders | All section members can read them (H2). |
-| Section membership managed by an external system | Members self-join via rules as a plain `member`; privileged roles require a section/global admin (C2). |
-| Profile fields | `UserProfile`/`Section` doc comments still describe removed/renamed fields. |
+| `README.md` | Overview, quick start, project layout, documentation index |
+| `docs/data-model.md` | Firestore collections, fields, enums, relationships |
+| `docs/security.md` | Auth, admin claims, roles, rules matrix, known limitations |
+| `docs/event-registration.md` | Registration lifecycle, withdrawal, notifications |
+| `docs/notifications.md` | Channels, triggers, FCM topics, endpoint security |
+| `docs/development.md` | Setup, emulators, tests, builds, deployment |
+| `docs/review.md` | This review |
 
-**Recommendation:** update the README schema and role tables to match `shared_models`, and add a CI check (or a short doc test) that keeps the enum lists in sync. Where the README describes intended behaviour that is not implemented (draft visibility, external-only membership), either implement it or mark it explicitly as "planned".
+The drift items are corrected:
+
+- section managers are `SectionMember.sectionRole` values, not `managerIds`;
+- `UserRole` is `admin | member`, with per-section `SectionRole`;
+- events use `tripLeaderIds` and have no `visibility` field;
+- new events default to `draft` (already true in the code);
+- drafts are filtered from the default event list but readable by all section
+  members (H2 — documented as a limitation, not as intended visibility);
+- membership is self-service as a plain member, with admin-only role changes
+  (C2);
+- `UserProfile`/`Section` doc comments now point at the members subcollection.
+
+**Follow-up:** add a CI check or doc test that keeps the enum tables in sync
+with `packages/shared_models/lib/enums.dart`. The docs now state that the code
+is authoritative, but nothing enforces it.
 
 ---
 
@@ -478,7 +497,7 @@ The README is a design document as much as a usage guide, and it has diverged fr
 - Clean layering: UI → cubits → `repo.dart` → Firebase, with models isolated in `packages/shared_models`.
 - Consistent primary-constructor style; analyzer clean with no ignores needed.
 - Emulator support, seed data, and the admin package show good developer ergonomics.
-- The withdrawal design (soft delete with `withdrawnByUserId`, documented trade-offs in `README.md:308-309`) is well thought through.
+- The withdrawal design (soft delete with `withdrawnByUserId`, documented trade-offs in `docs/event-registration.md`) is well thought through.
 - `avatar_cache.dart`/`user_avatar.dart` are sensibly bounded.
 - Error paths in the repo layer generally log and rethrow rather than swallowing, which makes debugging feasible.
 

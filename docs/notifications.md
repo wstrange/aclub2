@@ -1,195 +1,186 @@
-# FCM Notifications Implementation Plan
+# Notifications
 
-## Executive Summary
-This document outlines the architectural design and execution roadmap for adding **Firebase Cloud Messaging (FCM)** notifications to **aclub2**.
+This document describes the notification system as implemented. The earlier
+FCM design plan has been folded into this file; the unimplemented parts are
+listed under [Future work](#future-work).
 
-To efficiently broadcast new event announcements to community members (e.g., all Calgary members) without reading thousands of user documents, we adopt **FCM Topic-based messaging**. Direct user notifications (such as registration requests, approval, or withdrawal alerts) will continue to use targeted device tokens. The topic architecture is deliberately designed to allow seamless future extension into granular event sub-types (e.g., ski, hike, climbing).
+## Channels
 
----
+| Channel | Status | Implementation |
+|---|---|---|
+| In-app | Implemented | A `/notifications/{id}` Firestore document per recipient, shown in the app's notification sheet |
+| Push (FCM) | Implemented | Direct multicast to `users/{uid}.fcmTokens` for personal alerts; topic broadcast for new events |
+| Email | **Not implemented** | `emailEnabled` exists in preferences and `NotificationChannel.email` exists in the enum, but no email is sent |
 
-## 1. System Architecture & Notification Strategy
+`NotificationPreferences.frequency` (`immediate`/`daily`/`weekly`) is also
+reserved; all notifications are currently delivered immediately. The profile
+page still shows the email and frequency controls, but they are persisted
+without affecting delivery.
 
-### Dual Messaging Model
-| Notification Category | Delivery Mechanism | Trigger | Target Audience | Firestore Reads |
-| :--- | :--- | :--- | :--- | :--- |
-| **New Event Announcements** | **FCM Topic (`TopicMessage`)** | Event created or transitioned from `draft` to `published` | All subscribed members of that section | **O(1)** (zero member reads) |
-| **Direct Activity Alerts** (e.g. withdrawal, pending signup) | **FCM Direct Multicast (`MulticastMessage`)** | Member registers or cancels registration | Specific leaders or the applicant | **O(1)** (only the relevant user doc) |
-| **In-App Notification Feed** | **Firestore `/notifications` doc** | Same triggers | User inbox in app bar | Written per-recipient or queried |
+## Delivery rules
 
-```mermaid
-flowchart TD
-    subgraph Trigger ["Event Lifecycle"]
-        E1["New Event Created / Published"] --> F["Cloud Function: onNewEventCreated / onEventUpdated"]
-    end
+`sendNotificationToUser` (`functions/lib/src/notification_dispatcher.dart`)
+loads the recipient's profile and:
 
-    subgraph Backend ["functions/lib/src/notification_dispatcher.dart"]
-        F --> T["Publish to Topic: section_{sectionId}_events"]
-        F --> IA["In-App Notifications Feed (Async)"]
-    end
+1. writes an in-app notification when `inAppEnabled` is true;
+2. sends an FCM multicast when `pushEnabled` is true and `fcmTokens` is not
+   empty.
 
-    subgraph FCM ["Firebase Cloud Messaging Gateway"]
-        T --> FCG["FCM Topic Engine"]
-    end
+A malformed or missing profile is skipped rather than failing the whole
+dispatch.
 
-    subgraph Clients ["Client Devices"]
-        FCG --> D1["Calgary Member (Device 1)"]
-        FCG --> D2["Calgary Member (Device 2)"]
-        FCG --> DN["Calgary Member (Device N)"]
-    end
-```
+`notifySectionMembersOfEvent` handles new-event announcements:
 
----
+- publishes one FCM topic message to `section_{sectionId}_events`;
+- writes in-app notifications for every section member whose
+  `notifyForNewEvents` and `inAppEnabled` are true.
 
-## 2. FCM Topic Design & Extensibility
+## Triggers
 
-### 2.1 Generic Topic Naming Convention (Phase 1)
-FCM topic names must match `[a-zA-Z0-9-_.~%]{1,900}`.
-- **Section Topic Pattern**: `section_{sanitizedSectionId}_events`
-  - Example: For Calgary section (`sectionId = 'calgary'`), topic name is `section_calgary_events`.
-  - Example: If section ID contains special characters or spaces, a sanitization helper normalizes it:
-    ```dart
-    String sanitizeTopicName(String input) =>
-        input.replaceAll(RegExp(r'[^a-zA-Z0-9-_.~%]'), '_');
-    ```
+Production and the emulator use different trigger mechanisms because the Dart
+`firebase_functions` package cannot yet deploy native Firestore triggers.
 
-### 2.2 Future Sub-Type Extensibility (Phase 2+)
-When extending to event sub-types (e.g., ski, climbing, social):
-- **Option A (Sub-topic per type)**: `section_{sectionId}_events_{type}` (e.g. `section_calgary_events_ski`). Users subscribe only to the sports they care about.
-- **Option B (FCM Topic Conditions)**: Send with conditional expression:
-  `"'section_calgary_events' in topics && ('type_ski' in topics || 'type_all' in topics)"`.
-- **Backward Compatibility**: By establishing `section_{sectionId}_events` as the baseline default today, existing subscribers continue receiving all events until they opt into specific sub-type filters.
+### Production (HTTPS endpoints)
 
----
+| Endpoint | Purpose |
+|---|---|
+| `helloWorld` | Health check |
+| `eventCreatedHttp` | New event created |
+| `eventUpdatedHttp` | Event updated (including draft → published) |
+| `registrationCreatedHttp` | Registration created |
+| `registrationUpdatedHttp` | Registration updated |
+| `registrationDeletedHttp` | Registration hard-deleted |
+| `notificationTriggerHttp` | Unified dispatcher for Eventarc/webhooks |
 
-## 3. Cloud Functions Implementation (`functions/`)
+Each endpoint accepts Eventarc CloudEvents, and direct JSON when authenticated
+(see [Security](#security)). `GET` is allowed as a readiness probe.
 
-### 3.1 Topic Publisher in `notification_dispatcher.dart`
-Refactor `notifySectionMembersOfEvent` to eliminate the loop querying every section member's profile for push tokens:
+### Emulator (native Firestore triggers)
+
+When `FUNCTIONS_EMULATOR=true`, `registerFunctions` also registers:
+
+- `onDocumentCreated` / `onDocumentUpdated` on
+  `sections/{sectionId}/events/{eventId}`;
+- `onDocumentCreatedWithAuthContext`, `onDocumentUpdatedWithAuthContext`, and
+  `onDocumentDeletedWithAuthContext` on
+  `sections/{sectionId}/events/{eventId}/registrations/{registrationId}`.
+
+The handlers are shared with the HTTPS endpoints, so behaviour is identical.
+
+> `TODO(security)` in `functions/lib/functions.dart` tracks migrating production
+> to these native triggers once the package supports deployment. That removes
+> the public HTTP surface entirely.
+
+## Notification types
+
+| Type | Trigger | Recipient |
+|---|---|---|
+| `new_event` | Event created as published | Section topic + opted-in members |
+| `event_published` | Draft event published | Section topic + opted-in members |
+| `registration_pending` | Registration created/updated to `pending` | Event trip leaders + creator |
+| `registration_added` | Leader registers another member as `approved` | Added member |
+| `registration_approved` | Registration approved | Member |
+| `registration_waitlisted` | Registration created as or moved to `waitlisted` | Member |
+| `registration_rejected` | Registration rejected | Member |
+| `registration_withdrawn` | Member withdraws | Event trip leaders + creator |
+| `registration_removed` | Leader removes a member | Removed member |
+
+The exact transition table lives in `docs/event-registration.md`.
+
+## FCM topics
+
+Topic names are shared between the client and the backend through
+`packages/shared_models/lib/fcm_topics.dart`:
 
 ```dart
-/// Notifies all interested members of [sectionId] via FCM topic.
-Future<void> notifySectionMembersOfEvent({
-  required Firebase firebase,
-  required String sectionId,
-  required String eventId,
-  required String title,
-  required String message,
-  required String type,
-}) async {
-  final cleanSection = sanitizeTopicName(sectionId);
-  final topic = 'section_${cleanSection}_events';
-  final link = '/events/$eventId';
-  final data = <String, String>{
-    'type': type,
-    'sectionId': sectionId,
-    'eventId': eventId,
-    'link': link,
-  };
+String sanitizeTopicName(String input) =>
+    input.replaceAll(RegExp(r'[^a-zA-Z0-9-_.~%]'), '_');
 
-  if (Platform.environment['FUNCTIONS_EMULATOR'] == 'true') {
-    logger.info('[emulator] FCM topic push: topic="$topic", title="$title", eventId=$eventId');
-  } else {
-    final messaging = firebase.adminApp.messaging();
-    final topicMessage = admin_messaging.TopicMessage(
-      topic: topic,
-      notification: admin_messaging.Notification(
-        title: title,
-        body: message,
-      ),
-      data: data,
-    );
-    final messageId = await messaging.send(topicMessage);
-    logger.info('FCM topic message sent: id=$messageId, topic=$topic');
-  }
-}
+String sectionEventsTopic(String sectionId) =>
+    'section_${sanitizeTopicName(sectionId)}_events';
 ```
 
-### 3.2 In-App Notifications Decoupling
-For the in-app notification bell, separate it from the push delivery. In-app notifications can be populated asynchronously or generated when members view the section board, preventing Cloud Function execution timeouts when sections grow to thousands of members.
+Sharing the helpers prevents the publisher and subscriber from drifting.
 
----
+The client (`FcmService.syncTopicSubscriptions`) subscribes to every section the
+user belongs to when **both** `pushEnabled` and `notifyForNewEvents` are true,
+and unsubscribes otherwise. FCM Web does not support client-side topic
+subscriptions, so topics are skipped on web (`isTopicSupported`).
 
-## 4. Flutter App Implementation (`lib/`)
+### Why topics for announcements?
 
-### 4.1 Dependency Addition
-Add `firebase_messaging` to `pubspec.yaml`:
-```yaml
-dependencies:
-  firebase_messaging: ^15.2.0
+A topic broadcast is O(1) regardless of section size, instead of reading every
+member profile to collect device tokens. Personal alerts (approval, removal)
+still use direct multicast because they target one user.
+
+## Device tokens
+
+`FcmService` (`lib/services/fcm_service.dart`):
+
+- requests notification permission;
+- registers the device and stores the token in `users/{uid}.fcmTokens`;
+- listens for token refresh via `onRegistered`;
+- removes the token from the previous user's profile and unsubscribes from
+  topics on sign-out;
+- handles foreground messages, background taps, and cold-start navigation to
+  `EventDetailRoute`.
+
+`getToken()` is deprecated in `firebase_messaging` 17 but is used deliberately
+in `syncDeviceToken`/`handleSignOut` because `onRegistered` is not a pull API
+and sign-out must be able to remove the exact token.
+
+## Deep links
+
+Push payloads carry `sectionId`, `eventId`, and `link`. Tapping a notification
+navigates to the event detail page. In-app notification `link` values use the
+same `/events/{eventId}` shape.
+
+## Security
+
+The real boundary is **Cloud Run IAM**:
+
+- never grant `roles/run.invoker` to `allUsers`;
+- only the Eventarc trigger service account should be able to invoke the
+  services.
+
+`verifyNotificationRequest` adds defence in depth:
+
+- rejects non-`POST` methods (except the `GET` readiness probe);
+- on Cloud Run, requires an `Authorization: Bearer …` header (Eventarc attaches
+  a Google-signed OIDC token that Cloud Run validates);
+- for CloudEvents, allowlists the `ce-source`
+  (`//firestore.googleapis.com/projects/…`) and `ce-type`
+  (`google.cloud.firestore.document.v1.…`);
+- for direct JSON, requires the `x-notification-secret` header to match
+  `NOTIFICATION_WEBHOOK_SECRET`; on Cloud Run this is mandatory, so a stray
+  HTTP call cannot masquerade as an event.
+
+Unit tests for these checks live in
+`functions/test/https_handlers_test.dart`.
+
+## Local development
+
+The emulator has no FCM service, so push delivery is logged instead of sent:
+
+```
+[emulator] FCM push skipped (no FCM emulator). Would send to N device token(s)…
+[emulator] FCM topic push: topic="section_calgary_events", …
 ```
 
-### 4.2 Native Platform Configuration
-- **Android**:
-  - Add `POST_NOTIFICATIONS` permission in `AndroidManifest.xml` (Android 13+):
-    ```xml
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    ```
-  - Create default `NotificationChannel` with high importance in `MainActivity` or initialization service.
-- **iOS / macOS**:
-  - Add `Push Notifications` and `Background Modes` (`Remote notifications`) capabilities in Xcode project.
-  - Request user notification authorization with alerts, badges, and sounds.
+In-app notifications are still written to Firestore and appear in the app.
 
-### 4.3 Notification Service Architecture (`lib/services/fcm_service.dart`)
-Create a dedicated `FcmService` responsible for:
+## Future work
 
-1. **Permission Request**:
-   - `FirebaseMessaging.instance.requestPermission()`
-2. **Device Token Management**:
-   - Retrieve `FirebaseMessaging.instance.getToken()`.
-   - Update `UserProfile.fcmTokens` in Firestore (`users/{uid}`).
-   - Listen to `FirebaseMessaging.instance.onTokenRefresh` to keep Firestore synchronized.
-   - Remove token on user sign-out (`UserStateCubit.clear()`).
-3. **Topic Subscription Sync**:
-   - Maintain synchronization between user preferences and FCM topics:
-     ```dart
-     Future<void> syncTopicSubscriptions({
-       required List<String> memberSectionIds,
-       required bool pushEnabled,
-       required bool notifyForNewEvents,
-     }) async {
-       for (final sectionId in memberSectionIds) {
-         final topic = 'section_${sanitizeTopicName(sectionId)}_events';
-         if (pushEnabled && notifyForNewEvents) {
-           await FirebaseMessaging.instance.subscribeToTopic(topic);
-         } else {
-           await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
-         }
-       }
-     }
-     ```
-4. **Foreground, Background, & Terminated Handlers**:
-   - **Foreground**: `FirebaseMessaging.onMessage` — Display local in-app banner or update notification counter badge.
-   - **Background handler**: Top-level function with `@pragma('vm:entry-point')`.
-   - **Deep Linking**:
-     - Handle app open from notification via `FirebaseMessaging.onMessageOpenedApp` and `FirebaseMessaging.instance.getInitialMessage()`.
-     - Extract `sectionId` and `eventId` from message data payload and navigate directly using:
-       ```dart
-       appRouter.navigate(EventDetailRoute(sectionId: sectionId, eventId: eventId));
-       ```
-
-### 4.4 Hooking into App Lifecycle & State Management
-- Connect topic sync to `UserStateCubit`:
-  - When `UserState` loads (`ensureLoaded`), invoke `fcmService.syncTopicSubscriptions(...)`.
-  - When notification preferences change in `UserProfilePage` (`pushEnabled` or `notifyForNewEvents`), invoke topic sync.
-  - When user signs out, unsubscribe or purge tokens.
-
----
-
-## 5. Execution Steps & Phasing
-
-| Step | Scope | Description | Verification |
-| :--- | :--- | :--- | :--- |
-| **1** | **Backend / Functions** | Update `notification_dispatcher.dart` to use `TopicMessage` for event broadcast; add topic sanitization helper; add emulator logging. | Run functions unit tests & test in Firebase emulator. |
-| **2** | **App Dependencies & Native Config** | Add `firebase_messaging` to `pubspec.yaml`, configure Android manifests, notification channel, and iOS entitlements. | App builds cleanly on Android & iOS. |
-| **3** | **FCM Client Service** | Create `FcmService` with token registration, permission handling, and deep-link routing. | Verify token stored in Firestore user document. |
-| **4** | **Topic Subscription Logic** | Wire topic subscription into `UserStateCubit` and `UserProfilePage` preference toggles. | Test subscribing/unsubscribing when toggling "Notify me of new events". |
-| **5** | **Testing & Validation** | Create/publish a new test event; verify message delivery via topic to subscribed devices; test notification tap navigation. | End-to-end event publish -> device push -> tap opens event. |
-
----
-
-## 6. Future Extension (Sub-Types)
-When ready to introduce activity-based filtering (e.g. Ski, Hike, Climb):
-1. Add `activityTypes` to `NotificationPreferences`.
-2. Introduce sub-topics: `section_${sectionId}_type_${activityType}`.
-3. Update `handleNewEventCreated` to publish either to specific activity topics or publish with an FCM condition.
-
+1. **Email delivery** — use `emailEnabled` and a transactional email provider.
+2. **Frequency batching** — honour `NotificationFrequency` with a scheduled
+   digest instead of immediate delivery.
+3. **Native Firestore triggers in production** — removes the public HTTPS
+   surface and the forged-body risk. Blocked on `firebase_functions` support.
+4. **Idempotency** — Eventarc is at-least-once; dedupe on `ce-id` or an
+   event-id field before enabling retries.
+5. **Activity sub-topics** — e.g. `section_{id}_events_{type}` or FCM
+   conditions so members can follow only the activities they care about.
+   `section_{id}_events` remains the backward-compatible default.
+6. **Derive payloads from stored documents** — the handlers currently trust
+   some caller-supplied fields; production triggers should re-read the
+   event/registration and derive status, title, and recipients from Firestore.

@@ -13,7 +13,12 @@ part 'event.g.dart';
 ///
 /// Events are always owned by a section and can span multiple days.
 /// New events are created as [EventStatus.draft] and must be explicitly
-/// published before they appear in public listings.
+/// published before they appear in the default event list.
+///
+/// Drafts are hidden from the member-facing query, but the Firestore rules are
+/// section-scoped: any section member can read a draft document if they know
+/// its ID. Treat draft privacy as a UI convention, not a security boundary
+/// (tracked as H2 in `docs/review.md`).
 @freezed
 abstract class Event with _$Event {
   const factory Event({
@@ -30,9 +35,10 @@ abstract class Event with _$Event {
 
     required EventType type,
 
-    /// Events start as [EventStatus.draft]. Only published events appear in
-    /// public listings; draft events are visible only to the creator and trip
-    /// leaders.
+    /// Events start as [EventStatus.draft]. The default listing shows only
+    /// published events; the creator and listed trip leaders also see their
+    /// drafts. The rules are section-scoped, so draft privacy is a UI
+    /// convention (see the class doc comment).
     @Default(EventStatus.draft) EventStatus status,
 
     // ── Schedule ──────────────────────────────────────────────────────────

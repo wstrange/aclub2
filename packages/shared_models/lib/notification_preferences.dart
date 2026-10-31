@@ -5,7 +5,7 @@ import 'enums.dart';
 part 'notification_preferences.freezed.dart';
 part 'notification_preferences.g.dart';
 
-/// Embedded object stored inside a [UserModel] document.
+/// Embedded object stored inside a [UserProfile] document.
 /// Controls which channels and how frequently a member receives notifications.
 @freezed
 abstract class NotificationPreferences with _$NotificationPreferences {

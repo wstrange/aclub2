@@ -1,342 +1,116 @@
 # aclub2
 
-Alpine Club Demo Project using Firebase
-
-
-## Project Overview
-
-This is a multi-tenant application to manage users who belong to one more alpine clubs. The application consists of three main components:
-
-* Registration and Membership Management
-* Event Scheduling and Management
-* Communication and Notifications
-
-## Entity Relationships (informal)
-
-* The term Users is often used interchangeably with Members. Use the term Members in the user interface.
-* Members belong to Sections
-* Sections have Events
-* Members can belong to more than one Section. After logging in they choose the section they want to view.
-* Members can register for Events and receive Notifications for events and their registration status
-
-
-### Events
-
-* Events have attributes such as title, description, type,  start date, end date, start time, end time, location, and associated Section. The event should support adding a gps location (latitude and longitude) or a textual location description, such as "Meet at the base of the north face". Alternatively the event can have a http link to a map location.
-* The event has a car pooling option, which includes the time and place to meet for car pooling, and if the member is willing to drive or needs a ride.
-* Events can span multiple days. They have a start time and end time.
-* Events have a minimum and maximum number of participants.
-* Events can be marked as public or draft. Public events are visible to all Users, while draft events are only visible to the creator and trip leaders.
-* Events can be created, updated, and deleted by authorized Members.
-* Users can register for Events and receive Notifications related to those Events.* Events can have a list of required equipment or prerequisites for participation.
-* Events have a waitlist feature when the maximum number of participants is reached.
-* Events have a difficulty rating (e.g., easy, moderate, hard) to help Users choose appropriate activities.
-* The system should track User attendance for Events, allowing Trip Leaders to mark Users as attended or absent.
-* Events are of a specific type (e.g., hike, climb, alpine ski, ski mountaineering, snowshoe, social, presentation).
-* Some events may allow direct registration. Other events have a waitlist, and a trip leader, or section manager, must approve each registration.
-* When created an event should initially be in draft. The event manager should be able to publish an event. Show the draft/publish on the event edit screen.   Draft events should not show up on the event list. Only when the user selects "my events" and they an event manager for the event should they
-
-## Templates
-
-* Rather than create different event attributes such as required equipment, risks, etc, the sytem will support markdown templates.
-* An admin can create templates. A template has a languate (en or fr) and markdown text
-* When an event is created or edited, the editor can select a template to insert into the event description field, or any other field that accepts markdown.
-
-### Members
-
-* Member Info is in addition to the User information that comes from authentication.
-* Members can have profile pictures and personal information (e.g., emergency contact details, medical conditions).
-* Emergency contact details are mandatory fields.
-* Members have certifications and skills associated with their profiles (e.g., first aid certification, climbing experience, AST 2, etc.). This information can be text.
-* Members can belong to multiple Sections.
-* Members can register for Events and receive Notifications.
-
-### Sections
-
-* Sections have attributes such as name, description, location, and contact information.
-* Sections can host multiple Events.
-* Sections can have multiple Section Managers assigned to them.
-* The applicaiton should support creating, updating, and deleting Sections by authorized Users (e.g., Admins).
-* Section membersship is managed by an external system. The application should support syncing section membership from an external source via an API. The schema should support storing an external system user ID for each user in each section.
-
-
-### Notifications
-
-* Notifications have attributes such as title, message, timestamp, application link,and recipient User.
-* Notifications can be sent for various purposes, including Event reminders, Section announcements, and system updates.
-* Notifications can be marked as read or unread by Users.
-* Notifications can be sent via multiple channels including push notifications, email and in-app notifications.
-* Users can customize their notification preferences (e.g., frequency, channels).
-
-
-## Role Based Access Control (RBAC)
-
-* Admins: Full access to all features and data.
-* Section Managers: Can manage Users and Events within their Sections. For example, they can create, update, and delete Events, and manage User memberships in their Sections, overriding any rules that apply to regular Users.
-* Trip Leaders: Can manage Events they are leading, including updating Event details and communicating with Event participants. A trip leader can delete an event that they have created.
-* Members: Can view and register for Events, and receive Notifications. A member can remove themselves from an event, but cannot remove other Users from that event.
-* Guests: Limited access to view public Events and Sections. Guests cannot register for Events or receive Notifications. However, a member can add a guest to an event they are attending. The schema should support this use case.
-* Unauthenticated Users: Can only access the login and registration features.
-
-
-## Notifications
-
-THe application supports sending notifications:
-* Event based notifications are sent for events the user is registered for, or for events they have expressed interest in (waitlisted).  THe user can also register to be notified of new events added to the calandar.
-* In app notifications can be saved in firestore.
-* THe user can view and manage in app notification. They can view and delete notifications.
-* Notifications types are in-app, push notifications and email.  Users can opt into or out of each notification type.
-* Notification triggers should be created on the backend using a Dart cloud function that triggers on Firestore writes
-
-
-
-## Implementation Details
-
-Uses the following Flutter packages
-
-* Routing using kaisel router
-* State management using signals and BlocSignals
-* Models are defined using Freezed
-* Firebase is used for authentication
-* Firestore is the database
-
----
-
-## Firestore Schema
-
-### Collection Hierarchy
-
-```
-/users/{userId}
-/sections/{sectionId}
-/sections/{sectionId}/members/{userId}
-/sections/{sectionId}/events/{eventId}
-/sections/{sectionId}/events/{eventId}/registrations/{registrationId}
-/notifications/{notificationId}
-/templates/{templateId}
-```
-
-> **Note on document IDs:** `userId` always matches the Firebase Auth UID.
-> Section managers are **not** a global role — they are tracked per section via the `managerIds` field on each `/sections/{sectionId}` document.
-
----
-
-### `/users/{userId}`
-
-Stores member profile data beyond what Firebase Auth provides.
-
-| Field | Type | Required | Notes |
-|---|---|:---:|---|
-| `id` | `String` | ✓ | Firebase Auth UID (same as document ID) |
-| `displayName` | `String` | ✓ | |
-| `email` | `String` | ✓ | |
-| `photoUrl` | `String` | | Profile picture URL |
-| `phone` | `String` | | |
-| `emergencyContactName` | `String` | ✓ | Mandatory |
-| `emergencyContactPhone` | `String` | ✓ | Mandatory |
-| `emergencyContactRelation` | `String` | | e.g. "Spouse", "Parent" |
-| `medicalConditions` | `String` | | |
-| `certifications` | `String[]` | | e.g. `["First Aid", "AST 2"]` |
-| `role` | `String` (enum) | ✓ | `admin` \| `tripLeader` \| `member` \| `guest` |
-| `notificationPreferences` | `Map` (embedded) | ✓ | See below |
-| `createdAt` | `Timestamp` | ✓ | |
-| `updatedAt` | `Timestamp` | ✓ | |
-
-**Embedded: `notificationPreferences`**
-
-| Field | Type | Default | Notes |
-|---|---|---|---|
-| `pushEnabled` | `Boolean` | `true` | |
-| `emailEnabled` | `Boolean` | `true` | |
-| `inAppEnabled` | `Boolean` | `true` | |
-| `frequency` | `String` (enum) | `immediate` | `immediate` \| `daily` \| `weekly` |
-
----
-
-### `/sections/{sectionId}`
-
-| Field | Type | Required | Notes |
-|---|---|:---:|---|
-| `id` | `String` | ✓ | Firestore document ID |
-| `name` | `String` | ✓ | |
-| `description` | `String` | | |
-| `location` | `String` | | Region or city, e.g. "Vancouver, BC" |
-| `contactEmail` | `String` | | |
-| `contactPhone` | `String` | | |
-| `managerIds` | `String[]` | | User IDs with manager rights for this section only |
-| `createdAt` | `Timestamp` | ✓ | |
-| `updatedAt` | `Timestamp` | ✓ | |
-
----
-
-### `/sections/{sectionId}/members/{userId}`
-
-Join record linking a user to a section. Supports external system membership sync.
-
-| Field | Type | Required | Notes |
-|---|---|:---:|---|
-| `userId` | `String` | ✓ | Same as document ID |
-| `sectionId` | `String` | ✓ | Parent section ID |
-| `externalSystemId` | `String` | | ID from external membership system |
-| `joinedAt` | `Timestamp` | ✓ | |
-
----
-
-### `/sections/{sectionId}/events/{eventId}`
-
-| Field | Type | Required | Notes |
-|---|---|:---:|---|
-| `id` | `String` | ✓ | Firestore document ID |
-| `sectionId` | `String` | ✓ | Denormalised for queries |
-| `title` | `String` | ✓ | |
-| `description` | `String` | | Markdown. Templates can be inserted here. |
-| `type` | `String` (enum) | ✓ | `hike` \| `climb` \| `alpineSki` \| `skiMountaineering` \| `snowshoe` \| `social` \| `presentation` |
-| `status` | `String` (enum) | ✓ | `draft` \| `published`. New events default to `draft`. |
-| `startDate` | `Timestamp` | ✓ | Events can span multiple days |
-| `endDate` | `Timestamp` | ✓ | |
-| `location` | `Map` (embedded) | | See below |
-| `carpoolOption` | `Map` (embedded) | | See below; `null` if carpooling not offered |
-| `minParticipants` | `Number` | ✓ | Default `0` |
-| `maxParticipants` | `Number` | ✓ | When reached, new registrations go to waitlist |
-| `difficulty` | `String` (enum) | ✓ | `easy` \| `moderate` \| `hard` |
-| `requiresApproval` | `Boolean` | ✓ | `false` = direct registration; `true` = leader/manager approval required |
-| `requiredEquipment` | `String[]` | | Free text or markdown items |
-| `prerequisites` | `String[]` | | Free text or markdown items |
-| `creatorId` | `String` | ✓ | User ID of creator |
-| `tripLeaderIds` | `String[]` | | User IDs of trip leaders |
-| `createdAt` | `Timestamp` | ✓ | |
-| `updatedAt` | `Timestamp` | ✓ | |
-
-**Embedded: `location`**
-
-| Field | Type | Notes |
-|---|---|---|
-| `description` | `String` | e.g. "Meet at the base of the north face" |
-| `latitude` | `Number` | GPS decimal degrees |
-| `longitude` | `Number` | GPS decimal degrees |
-| `mapUrl` | `String` | HTTP link to map (e.g. Google Maps, CalTopo) |
-
-At least one of `description`, GPS (`latitude` + `longitude`), or `mapUrl` should be set.
-
-**Embedded: `carpoolOption`**
-
-| Field | Type | Notes |
-|---|---|---|
-| `meetTime` | `Timestamp` | Date and time to meet for carpooling |
-| `meetPlace` | `String` | e.g. "Park & Ride on Hwy 1" |
-
----
-
-### `/sections/{sectionId}/events/{eventId}/registrations/{registrationId}`
-
-| Field | Type | Required | Notes |
-|---|---|:---:|---|
-| `id` | `String` | ✓ | Firestore document ID (matches registering member's user ID) |
-| `userId` | `String` | ✓ | Registering member's user ID |
-| `guestName` | `String` | | Set when a member registers a guest (no user account required) |
-| `status` | `String` (enum) | ✓ | `pending` \| `approved` \| `waitlisted` \| `rejected` \| `attended` \| `absent` \| `withdrawn` |
-| `isDriver` | `Boolean` | | Carpool: member is willing to drive |
-| `needsRide` | `Boolean` | | Carpool: member needs a ride |
-| `registeredAt` | `Timestamp` | ✓ | Initial registration timestamp |
-| `updatedAt` | `Timestamp` | ✓ | Updated when status changes (e.g. approved, withdrawn, attendance marked) |
-| `withdrawnByUserId` | `String` | | User ID who performed withdrawal (self or leader/admin) |
-| `withdrawnAt` | `Timestamp` | | Timestamp when moved to `withdrawn` |
-
----
-
-### `/notifications/{notificationId}`
-
-| Field | Type | Required | Notes |
-|---|---|:---:|---|
-| `id` | `String` | ✓ | Firestore document ID |
-| `recipientId` | `String` | ✓ | User ID of the recipient |
-| `title` | `String` | ✓ | |
-| `message` | `String` | ✓ | |
-| `link` | `String` | | Deep-link or in-app route, e.g. `/events/abc123` |
-| `channels` | `String[]` (enum) | | `push` \| `email` \| `inApp` |
-| `isRead` | `Boolean` | ✓ | Default `false` |
-| `relatedEventId` | `String` | | Optional reference to a related event |
-| `relatedSectionId` | `String` | | Optional reference to a related section |
-| `createdAt` | `Timestamp` | ✓ | |
-
----
-
-### `/templates/{templateId}`
-
-Admin-managed markdown templates that can be inserted into event description fields.
-
-| Field | Type | Required | Notes |
-|---|---|:---:|---|
-| `id` | `String` | ✓ | Firestore document ID |
-| `language` | `String` | ✓ | ISO code: `en` or `fr` |
-| `title` | `String` | ✓ | Admin-visible name for the template |
-| `markdownText` | `String` | ✓ | The full markdown body |
-| `createdBy` | `String` | ✓ | User ID of the admin who created it |
-| `createdAt` | `Timestamp` | ✓ | |
-| `updatedAt` | `Timestamp` | ✓ | |
-
----
-
-### Enums Reference
-
-| Enum | Values |
+A multi-tenant alpine club application built with Flutter and Firebase.
+Members belong to one or more sections, sections host events, and members
+register for those events and receive notifications.
+
+## What it does
+
+- **Membership** — Firebase Auth accounts (email/password, Google, Facebook)
+  with a profile containing emergency contacts, certifications, and
+  notification preferences. Members join sections and choose the section they
+  are currently viewing.
+- **Sections** — each section has its own members, events, and managers.
+  Roles are per-section: `sectionManager`, `tripLeader`, and `member`.
+- **Events** — draft/published events with schedules, locations, carpooling,
+  capacity, difficulty, and approval-required registration. Trip leaders and
+  section managers can create, edit, duplicate, and delete events.
+- **Registrations** — direct or approval-based signup, waitlists, attendance
+  tracking, and soft-delete withdrawal that preserves an audit trail.
+- **Notifications** — in-app notification feed plus FCM push: section-wide
+  topic broadcasts for new events and targeted alerts for registration changes.
+- **Templates** — admin-managed markdown snippets that can be inserted into
+  event descriptions.
+- **Waiver** — annual liability waiver acceptance enforced by the router guard.
+
+## Tech stack
+
+| Layer | Choice |
 |---|---|
-| `UserRole` | `admin`, `tripLeader`, `member`, `guest` |
-| `EventType` | `hike`, `climb`, `alpineSki`, `skiMountaineering`, `snowshoe`, `social`, `presentation` |
-| `EventStatus` | `draft`, `published` |
-| `Difficulty` | `easy`, `moderate`, `hard` |
-| `RegistrationStatus` | `pending`, `approved`, `waitlisted`, `rejected`, `attended`, `absent`, `withdrawn` |
-| `NotificationChannel` | `push`, `email`, `inApp` |
-| `NotificationFrequency` | `immediate`, `daily`, `weekly` |
+| UI | Flutter (web, Android, iOS, macOS) |
+| Routing | [`kaisel`](https://pub.dev/packages/kaisel) |
+| State | `bloc_signals` |
+| Models | `freezed` + `json_serializable` in `packages/shared_models` |
+| Auth / data | Firebase Auth, Cloud Firestore |
+| Push | Firebase Cloud Messaging |
+| Backend | Dart Cloud Functions (`functions/`) |
+| Admin tooling | Dart CLI in `packages/aclub_admin` |
 
----
+## Quick start
 
-## Event Registration Withdrawal & Removal Architecture
+```bash
+flutter pub get
+(cd functions && dart pub get)
+./em                              # start Firebase emulators (Auth, Firestore, Functions)
+flutter run -d chrome             # debug builds connect to the emulators
+```
 
-### Soft Delete (`status: withdrawn`) vs. Hard Delete (`ref.delete()`)
+Seed sample data:
 
-When a participant withdraws or an administrator/trip leader removes a participant from an event, the system uses a **soft delete** pattern:
-- The registration document is **retained** in Firestore.
-- The `status` field is transitioned to `'withdrawn'`.
-- The `withdrawnByUserId` field is set to the UID of the user performing the action (the participant themselves or the leader/admin).
-- The `withdrawnAt` and `updatedAt` timestamps are updated.
+```bash
+(cd packages/aclub_admin && dart run bin/admin.dart seed)
+```
 
-#### Pros & Cons
+Run the checks:
 
-| Approach | Pros | Cons |
-|---|---|---|
-| **Soft Delete (`status: withdrawn`)** *(Adopted)* | • **Audit trail & club history**: Preserves timestamps and who performed the withdrawal/removal (crucial for safety rosters, incident reviews, and tracking chronic late dropouts).<br>• **Atomic & reliable triggers**: Executes a single `update()` operation. The `onRegistrationUpdated` Cloud Function receives both `before` and `after` snapshots and can reliably inspect `withdrawnByUserId`.<br>• **No delete-update race conditions**: Avoids the hack of writing an update right before an asynchronous `delete()` call.<br>• **Clean re-registration**: Allows members who previously withdrew to re-register without ID collision issues (`set()` overwrites back to pending/approved).<br>• **Unified model**: Consistent field structure across self-withdrawal and leader removal. | • Withdrawn records remain in Firestore, requiring list/query queries to filter by active statuses (`pending`, `waitlisted`, `approved`, `attended`). *(Handled in UI and repository helpers)*. |
-| **Hard Delete (`ref.delete()`)** | • Firestore collection contains only currently registered members. | • **Lost audit trail**: No record of who was registered, when they dropped out, or who removed them.<br>• **Unreliable triggers**: Firestore `onDelete` triggers do not receive caller auth UID, requiring a pre-delete update stamp (`deletedByUserId`) that is vulnerable to race conditions or network failure.<br>• **Accidental re-triggering**: Fires both update and delete triggers sequentially. |
+```bash
+flutter analyze && flutter test
+firebase emulators:exec --only firestore,auth \
+  "bash test/rules/firestore_rules_test.sh"
+```
 
-### Notification Dispatch Rules
+See [docs/development.md](docs/development.md) for prerequisites, Android port
+forwarding, deployment, and troubleshooting.
 
-All status transitions are processed by the `onRegistrationUpdated` Cloud Function:
+## Documentation
 
-1. **User Self-Withdrawal (`withdrawnByUserId == userId`)**:
-   - Triggered when a participant taps "Withdraw".
-   - The document is updated with `status: 'withdrawn'` and `withdrawnByUserId: userId`.
-   - **Event Coordinators Notified**: The function sends a `registration_withdrawn` notification to all assigned `tripLeaderIds` and the event `creatorId` (excluding the withdrawing member if they happen to be a leader).
+| Document | Contents |
+|---|---|
+| [docs/data-model.md](docs/data-model.md) | Firestore collections, fields, enums, and relationships |
+| [docs/security.md](docs/security.md) | Authentication, admin claims, roles, rules matrix, known limitations |
+| [docs/event-registration.md](docs/event-registration.md) | Registration states, withdrawal, re-registration, notifications |
+| [docs/notifications.md](docs/notifications.md) | Channels, triggers, FCM topics, device tokens, endpoint security |
+| [docs/development.md](docs/development.md) | Setup, emulators, tests, builds, deployment, admin CLI |
+| [docs/facebook-login-setup.md](docs/facebook-login-setup.md) | Facebook sign-in configuration |
+| [docs/review.md](docs/review.md) | Security/code review findings and remediation status |
 
-2. **Trip Leader or Admin Removal (`withdrawnByUserId != userId`)**:
-   - Triggered when a leader/manager clicks the remove icon on the participant roster.
-   - The document is updated with `status: 'withdrawn'` and `withdrawnByUserId: leaderUid`.
-   - **Participant Notified**: The function sends a `registration_removed` notification to `userId` informing them: *"You have been removed from [Event Title]"*.
+## Project layout
 
-3. **Re-registration**:
-   - If a member re-registers after previously withdrawing, `registerForEvent` resets the registration document to `approved` or `pending` (clearing `withdrawnByUserId` and `withdrawnAt`).
-   - If the event requires approval and status transitions to `pending`, coordinators are notified of the new pending request.
+```
+lib/                         Flutter app (pages, cubits, repo, services)
+packages/shared_models/      Models and enums shared by app and functions
+packages/aclub_admin/        Admin CLI: seed data, templates, claims
+packages/facebook_auth_desktop/  Vendored macOS Facebook auth plugin
+functions/                   Cloud Functions and their tests
+test/                        App tests
+test/rules/                  Emulator security-rules tests
+docs/                        Documentation
+firestore.rules              Firestore security rules
+storage.rules                Storage rules (deny all; Storage is unused)
+```
 
----
+## Roles at a glance
 
-### How to Install apk using ADB
+- **Global admin** — a Firebase Auth custom claim `{ "role": "admin" }`. Never
+  stored on the user document.
+- **Section manager** — `sectionRole: sectionManager` in a section's `members`
+  subcollection; manages that section's membership and events.
+- **Trip leader** — `sectionRole: tripLeader`; manages events and
+  registrations in that section.
+- **Member** — `sectionRole: member`; registers for events and manages their own
+  registration.
 
-~/Library/Android/sdk/platform-tools/adb  install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+See [docs/security.md](docs/security.md) for the full rules.
 
+## Status and known limitations
 
-### TODO:
+The application is functional and the analyzer and test suite are clean. The
+remaining security work is tracked in [docs/review.md](docs/review.md); the
+most relevant limitations are:
 
-
-* Investigate more notifications. Push notifications
-• Offline Capability & GPX Handling: Basic offline caching of trip details and the ability to upload or export GPX route files for navigation.
-* Send group notifications to the event participants
-* Explore the use of topics for FCM
+- notification HTTPS endpoints still require a Cloud Run IAM lockdown;
+- profile PII is readable by all signed-in users;
+- draft events are readable by all section members (the UI hides them);
+- event write rules are section-scoped, not event-scoped;
+- email notifications and preference batching are not implemented;
+- event capacity is enforced in the UI, not in security rules.
