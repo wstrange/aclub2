@@ -55,40 +55,117 @@ class const MembersDirectoryPage({super.key, this.initialSectionId}) extends Sta
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        final isGlobalAdmin = userState.isAdmin;
-
-        if (isGlobalAdmin) {
-          return FutureBuilder<List<Section>>(
-            future: repository.getSections(),
-            builder: (context, snapshot) {
-              final sections = (snapshot.data != null && snapshot.data!.isNotEmpty)
-                  ? snapshot.data!
-                  : userState.userSections;
-
-              final targetSectionId = initialSectionId != null && sections.any((s) => s.id == initialSectionId)
-                  ? initialSectionId!
-                  : (sections.any((s) => s.id == userState.currentSection.id)
-                        ? userState.currentSection.id
-                        : sections.first.id);
-
-              return BlocSignalProvider<MemberDirectoryCubit>(
-                create: (_) => MemberDirectoryCubit(sectionId: targetSectionId),
-                child: _MembersDirectoryView(userSections: sections, isGlobalAdmin: true),
-              );
-            },
+        if (userState.isAdmin) {
+          return _GlobalAdminDirectory(
+            initialSectionId: initialSectionId,
+            currentSectionId: userState.currentSection.id,
+            fallbackSections: userState.userSections,
           );
         }
 
         final userSections = userState.userSections;
+        if (userSections.isEmpty) {
+          return const _NoSectionsView();
+        }
+
         final targetSectionId = initialSectionId != null && userSections.any((s) => s.id == initialSectionId)
             ? initialSectionId!
             : userState.currentSection.id;
 
         return BlocSignalProvider<MemberDirectoryCubit>(
+          key: ValueKey('member-directory-$targetSectionId'),
           create: (_) => MemberDirectoryCubit(sectionId: targetSectionId),
           child: _MembersDirectoryView(userSections: userSections, isGlobalAdmin: false),
         );
       },
+    );
+  }
+}
+
+/// Global-admin variant of the directory: loads every section once, then lets
+/// the directory switch between them.
+///
+/// The section list is cached in [initState] so rebuilding the page does not
+/// re-issue the Firestore query, and the provider is keyed by section so
+/// switching sections creates a fresh cubit rather than reusing stale data.
+class const _GlobalAdminDirectory({
+  required this.initialSectionId,
+  required this.currentSectionId,
+  required this.fallbackSections,
+}) extends StatefulWidget {
+  final String? initialSectionId;
+  final String currentSectionId;
+  final List<Section> fallbackSections;
+
+  @override
+  State<_GlobalAdminDirectory> createState() => _GlobalAdminDirectoryState();
+}
+
+class _GlobalAdminDirectoryState() extends State<_GlobalAdminDirectory> {
+  late Future<List<Section>> _sectionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _sectionsFuture = repository.getSections();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Section>>(
+      future: _sectionsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done && snapshot.data == null) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        final sections = (snapshot.data != null && snapshot.data!.isNotEmpty)
+            ? snapshot.data!
+            : widget.fallbackSections;
+        if (sections.isEmpty) {
+          return const _NoSectionsView();
+        }
+
+        final targetSectionId = widget.initialSectionId != null && sections.any((s) => s.id == widget.initialSectionId)
+            ? widget.initialSectionId!
+            : (sections.any((s) => s.id == widget.currentSectionId) ? widget.currentSectionId : sections.first.id);
+
+        return BlocSignalProvider<MemberDirectoryCubit>(
+          key: ValueKey('member-directory-$targetSectionId'),
+          create: (_) => MemberDirectoryCubit(sectionId: targetSectionId),
+          child: _MembersDirectoryView(userSections: sections, isGlobalAdmin: true),
+        );
+      },
+    );
+  }
+}
+
+/// Shown when the user has no sections (or a global admin has no sections at
+/// all) instead of dereferencing `sections.first`.
+class const _NoSectionsView() extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Members')),
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.group_off_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('No sections available', style: TextStyle(fontWeight: FontWeight.w600)),
+              SizedBox(height: 8),
+              Text(
+                'You are not a member of any section yet.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

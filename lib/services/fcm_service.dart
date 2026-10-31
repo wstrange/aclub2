@@ -4,20 +4,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
+import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
 import '../routes.dart';
 
 final _log = Logger('FcmService');
-
-/// Sanitizes a string to conform to FCM topic naming rules:
-/// `[a-zA-Z0-9-_.~%]{1,900}`.
-String sanitizeTopicName(String input) =>
-    input.replaceAll(RegExp(r'[^a-zA-Z0-9-_.~%]'), '_');
-
-/// Builds the generic event topic name for a given section.
-String sectionEventsTopic(String sectionId) =>
-    'section_${sanitizeTopicName(sectionId)}_events';
 
 /// Top-level background message handler invoked when the app receives a message
 /// while in the background or terminated.
@@ -124,6 +116,17 @@ class FcmService() {
 
     try {
       await FirebaseMessaging.instance.register();
+      // `register()` does not return the token, and `onRegistered` may not
+      // fire before the user signs out. Read it explicitly so sign-out can
+      // always remove the exact token from the previous user's profile.
+      // getToken() is deprecated in favour of onRegistered, but there is no
+      // non-deprecated way to read the current value on demand.
+      // ignore: deprecated_member_use
+      final token = _currentToken ?? await FirebaseMessaging.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        _currentToken = token;
+        await repository.addFcmToken(uid, token);
+      }
       _log.info('Requested FCM registration for user $uid');
     } catch (e) {
       _log.warning('syncDeviceToken failed for $uid: $e');
@@ -163,7 +166,21 @@ class FcmService() {
   /// Handles sign out: cleans up device token from the user profile and unsubscribes from topics.
   Future<void> handleSignOut(String uid, {List<String> memberSectionIds = const []}) async {
     _activeUid = null;
-    final token = _currentToken;
+
+    // Prefer the cached token, but fall back to the platform token so a
+    // sign-out before `onRegistered`/`syncDeviceToken` completed still
+    // unregisters the device from the previous user's profile.
+    var token = _currentToken;
+    if (isSupported && (token == null || token.isEmpty)) {
+      try {
+        // See the note in syncDeviceToken: onRegistered is not a pull API.
+        // ignore: deprecated_member_use
+        token = await FirebaseMessaging.instance.getToken();
+      } catch (e) {
+        _log.warning('Failed to read FCM token on sign out: $e');
+      }
+    }
+    _currentToken = null;
 
     if (token != null && token.isNotEmpty) {
       try {

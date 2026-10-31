@@ -18,8 +18,13 @@ class const UserFormInitial() extends UserProfileFormState;
 
 class const UserFormSaving() extends UserProfileFormState;
 
-class const UserFormSuccess(this.user) extends UserProfileFormState {
+class const UserFormSuccess(this.user, {this.verificationEmailSentTo}) extends UserProfileFormState {
   final UserProfile user;
+
+  /// Non-null when a verification link was sent to this address. The Auth
+  /// email (and therefore the stored profile email) does not change until the
+  /// link is clicked.
+  final String? verificationEmailSentTo;
 }
 
 class const UserFormError(this.message) extends UserProfileFormState {
@@ -37,6 +42,7 @@ class UserProfileCubit(this.user, [this.authUser]) extends CubitSignal<UserProfi
     emit(const UserFormSaving());
     try {
       final currentAuthUser = authUser ?? FirebaseAuth.instance.currentUser;
+      String? pendingVerificationEmail;
       if (currentAuthUser != null) {
         final trimmedDisplayName = displayName?.trim();
         if (trimmedDisplayName != null && trimmedDisplayName != currentAuthUser.displayName) {
@@ -44,12 +50,19 @@ class UserProfileCubit(this.user, [this.authUser]) extends CubitSignal<UserProfi
         }
         final trimmedEmail = email?.trim();
         if (trimmedEmail != null && trimmedEmail.isNotEmpty && trimmedEmail != currentAuthUser.email) {
+          // This only sends a verification link. The Auth email does not change
+          // until the user clicks it, so the new address must not be written to
+          // the profile yet (that would show an unverified email as the real
+          // one and diverge from Firebase Auth).
           await currentAuthUser.verifyBeforeUpdateEmail(trimmedEmail);
+          pendingVerificationEmail = trimmedEmail;
         }
         await currentAuthUser.reload();
         authUser = FirebaseAuth.instance.currentUser;
       }
-      // Mirror the auth email and photoURL into the profile so other clients can display it.
+      // Mirror the *verified* auth email and photoURL into the profile so other
+      // clients can display them. While a change is pending this is still the
+      // old address; the UI reports that a verification email was sent.
       final withSyncedAuth = updatedUser.copyWith(
         email: authUser?.email,
         photoUrl: updatedUser.photoUrl ?? authUser?.photoURL,
@@ -59,7 +72,7 @@ class UserProfileCubit(this.user, [this.authUser]) extends CubitSignal<UserProfi
       // Merge the saved profile into app state without a network reload (see
       // UserStateCubit.applyProfile for why).
       userStateCubit.applyProfile(withSyncedAuth);
-      emit(UserFormSuccess(withSyncedAuth));
+      emit(UserFormSuccess(withSyncedAuth, verificationEmailSentTo: pendingVerificationEmail));
     } on FirebaseAuthException catch (e) {
       emit(UserFormError(e.message ?? e.code));
     } catch (e) {
@@ -321,11 +334,17 @@ class const _UserProfileForm({required this.user, this.authUser}) extends HookWi
                 listenWhen: (previous, current) => current is UserFormSuccess,
                 listener: (context, state) async {
                   if (state is UserFormSuccess) {
+                    final pendingEmail = state.verificationEmailSentTo;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         behavior: SnackBarBehavior.floating,
-                        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        content: Text('Profile saved.'),
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        content: Text(
+                          pendingEmail == null
+                              ? 'Profile saved.'
+                              : 'Verification email sent to $pendingEmail. '
+                                    'Your email changes after you confirm it.',
+                        ),
                       ),
                     );
                     final popped = await context.pop();

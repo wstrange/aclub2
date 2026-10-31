@@ -17,7 +17,6 @@ class _ParticipantInfo({
   required this.emergencyContactPhone,
   required this.emergencyContactRelation,
   required this.medicalConditions,
-  required this.status,
   required this.isDriver,
   required this.needsRide,
 }) {
@@ -28,22 +27,20 @@ class _ParticipantInfo({
   final String emergencyContactPhone;
   final String? emergencyContactRelation;
   final String? medicalConditions;
-  final RegistrationStatus status;
   final bool? isDriver;
   final bool? needsRide;
 }
 
 /// Fetches approved/attended registrations and their profiles, returning them
 /// sorted alphabetically by display name.
+///
+/// Pending (and waitlisted) registrations are deliberately excluded: this
+/// roster contains phone numbers, emergency contacts and medical notes, and
+/// only confirmed participants should receive that exposure.
 Future<List<_ParticipantInfo>> _loadParticipants(String sectionId, String eventId) async {
   final registrations = await repository.getEventRegistrations(sectionId, eventId);
   final active = registrations
-      .where(
-        (r) =>
-            r.status == RegistrationStatus.approved ||
-            r.status == RegistrationStatus.attended ||
-            r.status == RegistrationStatus.pending,
-      )
+      .where((r) => r.status == RegistrationStatus.approved || r.status == RegistrationStatus.attended)
       .toList();
 
   final userIds = active.map((r) => r.userId).toList();
@@ -59,7 +56,6 @@ Future<List<_ParticipantInfo>> _loadParticipants(String sectionId, String eventI
       emergencyContactPhone: profile?.emergencyContactPhone ?? '',
       emergencyContactRelation: profile?.emergencyContactRelation,
       medicalConditions: profile?.medicalConditions,
-      status: r.status,
       isDriver: r.isDriver,
       needsRide: r.needsRide,
     );
@@ -100,8 +96,6 @@ String _formatAsText(Event event, List<_ParticipantInfo> participants) {
 
     final carpoolParts = <String>[if (p.isDriver == true) '🚗 Driver', if (p.needsRide == true) '🙋 Needs ride'];
     if (carpoolParts.isNotEmpty) buf.writeln('   ${carpoolParts.join('  ')}');
-
-    if (p.status == RegistrationStatus.pending) buf.writeln('   ⏳ Pending approval');
 
     buf.writeln();
   }

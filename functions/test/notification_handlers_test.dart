@@ -1,4 +1,3 @@
-import 'package:aclub_functions/functions.dart';
 import 'package:shared_models/shared_models.dart';
 import 'package:test/test.dart';
 

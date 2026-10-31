@@ -8,6 +8,7 @@ import 'package:shared_models/shared_models.dart';
 
 import '../repo.dart';
 import '../routes.dart';
+import '../services/fcm_service.dart';
 import '../state/user_state.dart';
 import '../widgets/calendar_agenda_view.dart';
 import '../widgets/calendar_view.dart';
@@ -62,7 +63,13 @@ class const HomePage({super.key}) extends HookWidget {
                 icon: const Icon(Icons.logout),
                 tooltip: 'Sign out',
                 onPressed: () async {
+                  // Remove the device token while the user is still signed in:
+                  // the Firestore rules reject writes to users/{uid} after
+                  // sign-out, so cleanup must happen first.
+                  final uid = state.userProfile.id;
+                  final sectionIds = state.userSections.map((s) => s.id).toList();
                   repository.clearProfileCache();
+                  await fcmService.handleSignOut(uid, memberSectionIds: sectionIds);
                   userStateCubit.clear();
                   await FirebaseAuth.instance.signOut();
                   if (context.mounted) context.replaceTop(const SignInRoute());
@@ -112,7 +119,7 @@ class const HomePage({super.key}) extends HookWidget {
                     context.push(MembersDirectoryRoute(sectionId: state.currentSection.id));
                   },
                 ),
-                if (canManage) const _TemplatesDrawerTile(),
+                if (state.isAdmin) const _TemplatesDrawerTile(),
                 ListTile(
                   leading: const Icon(Icons.group),
                   title: const Text('My Sections'),
@@ -148,8 +155,8 @@ class const HomePage({super.key}) extends HookWidget {
 
 /// Drawer entry for the Templates feature.
 ///
-/// Shown when the current user is a global admin, or a manager/trip leader of
-/// the currently selected section (read from the loaded [UserState]).
+/// Templates drive event content, so they are admin-managed: this is shown only
+/// to global admins, matching the Firestore rules.
 class const _TemplatesDrawerTile() extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -165,13 +172,41 @@ class const _TemplatesDrawerTile() extends StatelessWidget {
 }
 
 /// App bar icon button displaying a badge with the count of unread notifications.
-class const _NotificationIconButton({required this.userId}) extends StatelessWidget {
+///
+/// The notification stream is created once and shared with the sheet, so the
+/// badge and the list observe the same Firestore listener instead of opening
+/// two independent ones with potentially divergent ordering.
+class const _NotificationIconButton({required this.userId}) extends StatefulWidget {
   final String userId;
+
+  @override
+  State<_NotificationIconButton> createState() => _NotificationIconButtonState();
+}
+
+class _NotificationIconButtonState() extends State<_NotificationIconButton> {
+  late Stream<List<NotificationModel>> _notifications;
+
+  @override
+  void initState() {
+    super.initState();
+    _notifications = _createStream(widget.userId);
+  }
+
+  @override
+  void didUpdateWidget(covariant _NotificationIconButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _notifications = _createStream(widget.userId);
+    }
+  }
+
+  Stream<List<NotificationModel>> _createStream(String userId) =>
+      repository.streamNotifications(userId).asBroadcastStream();
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<NotificationModel>>(
-      stream: repository.streamNotifications(userId),
+      stream: _notifications,
       builder: (context, snapshot) {
         final notifications = snapshot.data ?? const [];
         final unreadCount = notifications.where((n) => !n.isRead).length;
@@ -183,164 +218,207 @@ class const _NotificationIconButton({required this.userId}) extends StatelessWid
             child: const Icon(Icons.notifications_outlined),
           ),
           tooltip: unreadCount > 0 ? '$unreadCount unread notification${unreadCount == 1 ? '' : 's'}' : 'Notifications',
-          onPressed: () => _showNotificationsSheet(context, userId),
+          onPressed: () => _showNotificationsSheet(context, widget.userId, _notifications),
         );
       },
     );
   }
 }
 
-void _showNotificationsSheet(BuildContext context, String userId) {
+void _showNotificationsSheet(BuildContext context, String userId, Stream<List<NotificationModel>> notifications) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (sheetContext) {
-      return DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) {
-          return StreamBuilder<List<NotificationModel>>(
-            stream: repository.streamNotifications(userId),
-            builder: (context, snapshot) {
-              final notifications = snapshot.data ?? const [];
-              final unreadList = notifications.where((n) => !n.isRead).toList();
+    builder: (_) => _NotificationsSheet(userId: userId, notifications: notifications),
+  );
+}
 
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      children: [
-                        const Text('Notifications', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        const Spacer(),
-                        if (unreadList.isNotEmpty)
-                          TextButton(
-                            onPressed: () async {
-                              for (final n in unreadList) {
-                                await repository.markNotificationAsRead(n.id);
-                              }
-                            },
-                            child: const Text('Mark all as read'),
+/// The notification list sheet.
+///
+/// Deletes are applied optimistically: a dismissed row must leave the widget
+/// tree immediately (a `Dismissible` still present after `onDismissed` throws),
+/// but the Firestore snapshot may not arrive for a moment. IDs are therefore
+/// hidden until the write completes and restored if it fails.
+class const _NotificationsSheet({required this.userId, required this.notifications}) extends StatefulWidget {
+  final String userId;
+  final Stream<List<NotificationModel>> notifications;
+
+  @override
+  State<_NotificationsSheet> createState() => _NotificationsSheetState();
+}
+
+class _NotificationsSheetState() extends State<_NotificationsSheet> {
+  final Set<String> _pendingDeletes = {};
+
+  Future<void> _deleteNotification(String id) async {
+    setState(() => _pendingDeletes.add(id));
+    try {
+      await repository.deleteNotification(id);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _pendingDeletes.remove(id));
+      _showError('Could not delete notification: $e');
+    }
+  }
+
+  Future<void> _deleteAll(List<String> ids) async {
+    setState(() => _pendingDeletes.addAll(ids));
+    try {
+      await repository.deleteAllNotifications(widget.userId);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _pendingDeletes.removeAll(ids));
+      _showError('Could not clear notifications: $e');
+    }
+  }
+
+  Future<void> _markAllAsRead() async {
+    try {
+      await repository.markAllNotificationsAsRead(widget.userId);
+    } catch (e) {
+      if (!mounted) return;
+      _showError('Could not mark notifications as read: $e');
+    }
+  }
+
+  Future<void> _confirmDeleteAll(List<String> ids) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Clear all notifications?'),
+        content: const Text('This will delete all of your notifications.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Clear all')),
+        ],
+      ),
+    );
+    if (confirm == true) await _deleteAll(ids);
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) {
+        return StreamBuilder<List<NotificationModel>>(
+          stream: widget.notifications,
+          builder: (context, snapshot) {
+            final notifications = (snapshot.data ?? const <NotificationModel>[])
+                .where((n) => !_pendingDeletes.contains(n.id))
+                .toList();
+            final unreadList = notifications.where((n) => !n.isRead).toList();
+
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Text('Notifications', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      if (unreadList.isNotEmpty)
+                        TextButton(onPressed: _markAllAsRead, child: const Text('Mark all as read')),
+                      if (notifications.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.delete_sweep_outlined),
+                          tooltip: 'Clear all notifications',
+                          onPressed: () => _confirmDeleteAll(notifications.map((n) => n.id).toList()),
+                        ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                if (notifications.isEmpty)
+                  const Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.notifications_none, size: 48, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text('No notifications', style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      itemCount: notifications.length,
+                      separatorBuilder: (context, index) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final notification = notifications[index];
+                        return Dismissible(
+                          key: ValueKey(notification.id),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            color: Theme.of(context).colorScheme.error,
+                            child: const Icon(Icons.delete, color: Colors.white),
                           ),
-                        if (notifications.isNotEmpty)
-                          IconButton(
-                            icon: const Icon(Icons.delete_sweep_outlined),
-                            tooltip: 'Clear all notifications',
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (dialogContext) => AlertDialog(
-                                  title: const Text('Clear all notifications?'),
-                                  content: const Text('This will delete all of your notifications.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.of(dialogContext).pop(false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () => Navigator.of(dialogContext).pop(true),
-                                      child: const Text('Clear all'),
-                                    ),
-                                  ],
+                          onDismissed: (_) => _deleteNotification(notification.id),
+                          child: ListTile(
+                            leading: Icon(
+                              notification.isRead ? Icons.notifications_none : Icons.mark_email_unread_rounded,
+                              color: notification.isRead ? Colors.grey : Theme.of(context).colorScheme.primary,
+                            ),
+                            title: Text(
+                              notification.title,
+                              style: TextStyle(fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(notification.message),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatNotificationTime(notification.createdAt),
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
                                 ),
-                              );
-                              if (confirm == true) {
-                                await repository.deleteAllNotifications(userId);
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              tooltip: 'Delete',
+                              onPressed: () => _deleteNotification(notification.id),
+                            ),
+                            onTap: () {
+                              if (!notification.isRead) {
+                                repository.markNotificationAsRead(notification.id);
+                              }
+                              if (notification.relatedSectionId != null && notification.relatedEventId != null) {
+                                Navigator.of(context).pop();
+                                routerConfig.router.push(
+                                  EventDetailRoute(
+                                    sectionId: notification.relatedSectionId!,
+                                    eventId: notification.relatedEventId!,
+                                  ),
+                                );
                               }
                             },
                           ),
-                      ],
+                        );
+                      },
                     ),
                   ),
-                  const Divider(height: 1),
-                  if (notifications.isEmpty)
-                    const Expanded(
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.notifications_none, size: 48, color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text('No notifications', style: TextStyle(color: Colors.grey)),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    Expanded(
-                      child: ListView.separated(
-                        controller: scrollController,
-                        itemCount: notifications.length,
-                        separatorBuilder: (context, index) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final notification = notifications[index];
-                          return Dismissible(
-                            key: ValueKey(notification.id),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              color: Theme.of(context).colorScheme.error,
-                              child: const Icon(Icons.delete, color: Colors.white),
-                            ),
-                            onDismissed: (_) {
-                              repository.deleteNotification(notification.id);
-                            },
-                            child: ListTile(
-                              leading: Icon(
-                                notification.isRead ? Icons.notifications_none : Icons.mark_email_unread_rounded,
-                                color: notification.isRead ? Colors.grey : Theme.of(context).colorScheme.primary,
-                              ),
-                              title: Text(
-                                notification.title,
-                                style: TextStyle(fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(notification.message),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _formatNotificationTime(notification.createdAt),
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.close, size: 18),
-                                tooltip: 'Delete',
-                                onPressed: () => repository.deleteNotification(notification.id),
-                              ),
-                              onTap: () {
-                                if (!notification.isRead) {
-                                  repository.markNotificationAsRead(notification.id);
-                                }
-                                if (notification.relatedSectionId != null && notification.relatedEventId != null) {
-                                  Navigator.of(sheetContext).pop();
-                                  context.push(
-                                    EventDetailRoute(
-                                      sectionId: notification.relatedSectionId!,
-                                      eventId: notification.relatedEventId!,
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              );
-            },
-          );
-        },
-      );
-    },
-  );
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 String _formatNotificationTime(DateTime dt) {

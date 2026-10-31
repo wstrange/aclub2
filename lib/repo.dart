@@ -66,7 +66,10 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
     final snapshot = await query.get();
     return MembersPage(
       members: snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList(),
-      nextCursor: snapshot.docs.isEmpty ? null : snapshot.docs.last,
+      // Only a full page can have a successor. A short (or empty) page means
+      // the collection is exhausted, so clear the cursor and `hasMore` with
+      // it; otherwise callers keep requesting empty pages forever.
+      nextCursor: snapshot.docs.length == limit ? snapshot.docs.last : null,
     );
   }
 
@@ -96,21 +99,10 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
     ) {
       return MembersPage(
         members: snapshot.docs.map((doc) => SectionMember.fromJson({...doc.data(), 'id': doc.id})).toList(),
-        nextCursor: snapshot.docs.isEmpty ? null : snapshot.docs.last,
+        // A short window cannot have a successor (see getSectionMembersPage).
+        nextCursor: snapshot.docs.length == limit ? snapshot.docs.last : null,
       );
     });
-  }
-
-  Stream<List<Event>> streamPublicEvents() {
-    return _firestore
-        .collection('events')
-        .where('status', isEqualTo: 'published')
-        .where('visibility', isEqualTo: 'public')
-        .orderBy('startDateTime')
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) => Event.fromJson({...doc.data(), 'id': doc.id})).toList();
-        });
   }
 
   /// Streams published section events, optionally including drafts created or
@@ -230,17 +222,6 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
       );
       rethrow;
     }
-  }
-
-  Stream<List<Event>> streamLeaderDrafts(String userUid) {
-    return _firestore
-        .collection('events')
-        .where('tripLeaders', arrayContains: userUid)
-        .where('status', isEqualTo: 'draft')
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) => Event.fromJson({...doc.data(), 'id': doc.id})).toList();
-        });
   }
 
   Stream<List<Registration>> streamEventRegistrations(String sectionId, String eventId) {
@@ -712,15 +693,39 @@ class AlpineRepository({FirebaseFirestore? firestore}) {
     await _firestore.collection('notifications').doc(notificationId).delete();
   }
 
+  /// Firestore caps a single [WriteBatch] at 500 operations.
+  static const int _maxBatchSize = 500;
+
+  /// Applies [apply] to [docs], committing in batches of at most
+  /// [_maxBatchSize]. Any operation built from an unbounded query must use
+  /// this helper; a single oversized batch fails the whole commit.
+  Future<void> _writeInBatches(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    void Function(WriteBatch batch, QueryDocumentSnapshot<Map<String, dynamic>> doc) apply,
+  ) async {
+    for (var start = 0; start < docs.length; start += _maxBatchSize) {
+      final end = start + _maxBatchSize < docs.length ? start + _maxBatchSize : docs.length;
+      final batch = _firestore.batch();
+      for (final doc in docs.sublist(start, end)) {
+        apply(batch, doc);
+      }
+      await batch.commit();
+    }
+  }
+
   /// Deletes all notifications for a given recipient [userId].
   Future<void> deleteAllNotifications(String userId) async {
     _log.fine('Deleting all notifications for user $userId');
     final snapshot = await _firestore.collection('notifications').where('recipientId', isEqualTo: userId).get();
-    final batch = _firestore.batch();
-    for (final doc in snapshot.docs) {
-      batch.delete(doc.reference);
-    }
-    await batch.commit();
+    await _writeInBatches(snapshot.docs, (batch, doc) => batch.delete(doc.reference));
+  }
+
+  /// Marks every unread notification for [userId] as read, in bounded batches.
+  Future<void> markAllNotificationsAsRead(String userId) async {
+    _log.fine('Marking all notifications as read for user $userId');
+    final snapshot = await _firestore.collection('notifications').where('recipientId', isEqualTo: userId).get();
+    final unread = snapshot.docs.where((doc) => doc.data()['isRead'] != true).toList();
+    await _writeInBatches(unread, (batch, doc) => batch.update(doc.reference, {'isRead': true}));
   }
 
   /// Creates a new notification document.

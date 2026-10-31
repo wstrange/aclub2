@@ -12,7 +12,7 @@ The codebase is in good shape mechanically: the analyzer is clean, the test suit
 
 The risks are concentrated in **authorization**, not in compile-time correctness:
 
-1. **`firestore.rules` grants users write access to fields that determine their own privileges.** A signed-in user can set their own `sections/{id}/members/{uid}.sectionRole = 'sectionManager'`. This is a complete privilege escalation reachable from a browser console. *(The equivalent `users/{uid}.isAdmin` escalation was removed — admin status now comes only from Auth custom claims; see C1.)*
+1. ~~**`firestore.rules` grants users write access to fields that determine their own privileges.** A signed-in user could set their own `sections/{id}/members/{uid}.sectionRole = 'sectionManager'`.~~ *(Resolved — role changes are admin-only and self-join is constrained to a plain `member`; the equivalent `users/{uid}.isAdmin` escalation was also removed, so admin status now comes only from Auth custom claims. See C1 and C2.)*
 2. ~~**`storage.rules` is fully open** (`allow read, write: if true`) and is deployed by `firebase.json`.~~ *(Resolved — Storage is unused and now denies all; see C4.)*
 3. **The notification HTTPS functions have no authentication or signature verification** and trust caller-supplied bodies, so anyone who can reach them can send arbitrary notifications (and, depending on IAM, write with the Admin SDK).
 4. ~~**Registrations can be self-approved.** A member may update their own registration's `status` to `approved`/`attended`, and `create` does not validate the document ID, allowing multiple registrations per event.~~ *(Resolved — see C3.)*
@@ -21,15 +21,15 @@ Several high/medium issues follow from those: draft events leak to all section m
 
 On the client side the notable issues are correctness/UX rather than security: `context.watch` is used where `context.select`/`BlocSignalBuilder` semantics are required (screens can get stuck), new events default to `published` and notify immediately, and the Android emulator host override is broken.
 
-**Recommendation:** treat the remaining critical items (C2 and the C5 Cloud Run IAM lockdown) as release blockers. They are small, local rule/configuration changes and do not require architectural work.
+**Recommendation:** the only remaining critical action is the **C5 Cloud Run IAM lockdown** — set the notification services to non-public invokers. It is a small configuration change and does not require architectural work. All rule-level critical findings (C1–C4) are resolved.
 
 ### Severity counts
 
 | Severity | Count |
 | --- | --- |
-| Critical | 1 open, 1 mitigated (C1, C3, C4 resolved; C5 mitigated) |
+| Critical | 0 open, 1 mitigated (C1–C4 resolved; C5 mitigated pending IAM lockdown) |
 | High | 6 |
-| Medium | 12 |
+| Medium | 12 (all resolved) |
 | Low / nits | 12 |
 
 ---
@@ -56,7 +56,9 @@ The claim shape is `{ "role": "admin" }` everywhere. The client derives `UserSta
 
 **Follow-up (not blocking):** `/users/{userId}` still permits the owner to write every profile field. No field there grants privileges any more, but field-level `hasOnly(...)` restrictions would still be worth adding to protect server-managed fields (e.g. `defaultSectionId`, notification preferences) and to prevent profile-shape drift. A regression test asserting that setting `isAdmin: true` on a user document does **not** grant admin access belongs in the rule suite.
 
-### C2. Any user can make themselves a section manager (`firestore.rules:64-72`) - **Resolved**
+### C2. ~~Any user can make themselves a section manager~~ — **Resolved**
+
+Previously:
 
 ```rules
 match /members/{userId} {
@@ -65,20 +67,37 @@ match /members/{userId} {
 }
 ```
 
-`isUser(userId)` permits the owner to write **all** fields of their member document, including `sectionRole`. A user can therefore self-promote to `sectionManager`, and can also self-join *any* section by creating `sections/{anyId}/members/{uid}` — bypassing the external membership sync that the README says is authoritative.
+`isUser(userId)` let the owner write **all** fields of their member document, including `sectionRole`, so any user could self-promote to `sectionManager` (or self-join any section).
 
-**Fix:** self-service writes must be limited to removal/withdrawal, never role or membership creation.
+**Resolution:** the members subcollection now enforces three invariants:
+
+1. **Role changes are admin-only.** `create`/`update`/`delete` require `isSectionAdmin(sectionId) || isGlobalAdmin()`.
+2. **Self-service join is narrow.** The "My Sections" flow (`setUserSections` → `addMemberToSection`) still works, but only for the caller, only in an existing section, and only as a plain member:
+   - `isUser(userId)` — the path id must be the caller's UID;
+   - `request.resource.data.id == userId` and `sectionId == sectionId` — no spoofed ids;
+   - `sectionRole == 'member'` and `externalSystemId == null` — no privileged role or external-membership claim;
+   - `joinedAt` must be a timestamp and the field set must exactly match the `SectionMember` shape;
+   - the parent section must exist.
+3. **Leaving is self-service.** A user may delete only their own membership (`allow delete: if isUser(userId)`).
 
 ```rules
-match /members/{userId} {
-  allow read: if isSignedIn();
-  allow create, update, delete: if isSectionAdmin(sectionId) || isGlobalAdmin();
-  // A user may only remove their own membership.
-  allow delete: if isUser(userId);
-}
+allow create, update, delete: if isSectionAdmin(sectionId) || isGlobalAdmin();
+
+allow create: if isUser(userId)
+  && exists(/databases/$(database)/documents/sections/$(sectionId))
+  && request.resource.data.id == userId
+  && request.resource.data.sectionId == sectionId
+  && request.resource.data.sectionRole == 'member'
+  && (!('externalSystemId' in request.resource.data)
+    || request.resource.data.externalSystemId == null)
+  && request.resource.data.joinedAt is timestamp
+  && request.resource.data.keys().hasAll(['id', 'sectionId', 'sectionRole', 'joinedAt'])
+  && request.resource.data.keys().hasOnly(['id', 'sectionId', 'sectionRole', 'externalSystemId', 'joinedAt']);
+
+allow delete: if isUser(userId);
 ```
 
-If self-join is genuinely required, add a narrow rule that forces `sectionRole == 'member'` and `status == 'pending'` and forbids later role changes by the owner. Prefer keeping membership creation server-side.
+**Verified** with the emulator rule suite (`test/rules/firestore_rules_test.sh`): self-promotion denied, privileged self-join denied, member self-join allowed, post-join promotion denied, spoofed ids / nonexistent sections / external ids / extra fields denied, self-leave allowed, deleting another member denied, and a section manager can still change roles. The suite now runs 28 checks (C2 + C3 + M11), all passing.
 
 ### C3. ~~Registration status can be self-approved; duplicate registrations possible~~ — **Resolved**
 
@@ -132,7 +151,7 @@ allow update: if isSectionMember(sectionId) && (
 );
 ```
 
-**Verified** with an emulator smoke test (Auth + Firestore): self-approve on create/update denied, pending create allowed, withdraw/re-register allowed, arbitrary doc ID denied, registering another user denied, open-event self-registration allowed, self-mark-attended denied, leader approve/register allowed, member hard-delete denied, leader hard-delete allowed (13/13 checks).
+**Verified** with the emulator rule suite (`test/rules/firestore_rules_test.sh`): self-approve on create/update denied, pending create allowed, withdraw/re-register allowed, arbitrary doc ID denied, registering another user denied, open-event self-registration allowed, self-mark-attended denied, leader approve/register allowed, member hard-delete denied, leader hard-delete allowed.
 
 **Residual limitation:** `maxParticipants` cannot be enforced in rules (no count aggregation), so capacity remains a client-side check; a determined user can still over-register for an open event. Enforce capacity in a Cloud Function/transaction if that matters.
 
@@ -261,7 +280,7 @@ notification.
 
 **Fix:** restrict reads to self, global admins, and members who share a section (or expose a reduced public profile and keep sensitive fields in a `private` subcollection readable only by leaders/admins). A shared-section check needs a membership lookup; a cheaper design is a `publicProfiles` projection plus a leader-only `profiles/{uid}/private`.
 
-### H2. Draft events are visible to all section members (`firestore.rules:84-87`, `lib/repo.dart:111-115`)
+### H2. Draft events are visible to all section members (`firestore.rules:84-87`, `lib/repo.dart:111-115`) **Resolved**
 
 The README (`README.md:29,37,194`) says events start as `draft` and drafts are visible only to the creator and trip leaders, and must not appear in the event list. In practice:
 
@@ -326,7 +345,7 @@ This contradicts the documented draft-first workflow and means a half-filled eve
 
 **Fix:** default to `EventStatus.draft`; publish explicitly from the edit screen, and only fire the notification function on the draft → published transition.
 
-### H6. Profile cache is a single global slot (`lib/repo.dart:377,451-461`)
+### H6. Profile cache is a single global slot (`lib/repo.dart:377,451-461`) **Resolved**
 
 `_cachedProfile` holds one `UserProfile`. `getUserProfile(uid)` overwrites it on every call, so:
 
@@ -339,72 +358,55 @@ This contradicts the documented draft-first workflow and means a half-filled eve
 
 ## 3. Medium
 
-### M1. `deleteAllNotifications` can exceed the Firestore batch limit (`lib/repo.dart:643-651`)
+### M1. ~~`deleteAllNotifications` can exceed the Firestore batch limit~~ — **Resolved**
 
-A single `WriteBatch` is capped at 500 operations. A user with more than 500 notifications gets a failed commit and nothing is deleted.
+`lib/repo.dart` now has a `_writeInBatches` helper that commits at most 500 operations per batch. `deleteAllNotifications` uses it, as does the new `markAllNotificationsAsRead` (see M8). It was the only `WriteBatch` built from an unbounded query in `lib/`.
 
-**Fix:** chunk into batches of ≤500, or use a recursive/bulk-delete helper. Same pattern should be audited anywhere else batches are built from unbounded queries.
+### M2. ~~Pagination `hasMore` is wrong for short pages~~ — **Resolved**
 
-### M2. Pagination `hasMore` is wrong for short pages (`lib/repo.dart:20,56-80`)
+`getSectionMembersPage` and `streamSectionMembers` now set `nextCursor` only when `docs.length == limit`. A short page clears the cursor and `hasMore` with it, so `MemberDirectoryCubit.loadMore` stops instead of repeatedly fetching empty pages.
 
-`MembersPage.hasMore => nextCursor != null`; if the query returns fewer than `limit` documents, the caller still believes more exist. Compare `docs.length == limit` (and clear the cursor when shorter).
+### M3. ~~`pickDateTime` hardcodes `firstDate: DateTime(2026)`~~ — **Resolved**
 
-### M3. `pickDateTime` hardcodes `firstDate: DateTime(2026)` (`lib/pages/event_edit_page.dart:138`)
+`lib/pages/event_edit_page.dart` now uses a window of `now.year - 5` … `now.year + 5` and clamps `initialDate` into that range, so editing an older (or far-future) event no longer trips the picker assertion.
 
-Editing an event whose start is before 2026 makes the picker throw or clamp. Use a relative window, e.g. `DateTime(now.year - 5)` … `DateTime(now.year + 5)`, and set `initialDate` inside that range.
+### M4. ~~`updateUserProfile` silently keeps the old email~~ — **Resolved**
 
-### M4. `updateUserProfile` silently keeps the old email (`lib/pages/user_profile_page.dart:39-63`)
-
-The flow calls `verifyBeforeUpdateEmail` (which only sends a verification link), then `reload()` (which still reports the *old* email until the link is clicked), and finally writes `copyWith(email: authUser?.email)` — i.e. the current email. The UI appears to accept a new address but the stored profile does not change.
-
-**Fix:** do not persist the email until verification completes (use the `onAuthStateChanged`/reload path), and surface "verification email sent" instead of silently succeeding.
+`verifyBeforeUpdateEmail` only sends a link, so the new address is no longer written to the profile. `UserFormSuccess` carries the pending address (`verificationEmailSentTo`) and the success snackbar reports "Verification email sent to …". The profile continues to store the current, verified Auth email until the user confirms the change.
 
 ### M5. ~~Debug UI in production~~ — **Resolved**
 
 The profile form previously exposed a `Status (Remove latet)` section with a user-toggleable **Profile completed** switch (`lib/pages/user_profile_page.dart`). Both the heading and the toggle have been removed; the section is now titled `Status` and only shows the read-only waiver state. Profile completion is still set to `true` automatically when the form is saved.
 
-### M6. `MembersDirectoryPage` crashes for a global admin with no sections (`lib/pages/members_directory_page.dart:64-73`)
+### M6. ~~`MembersDirectoryPage` crashes for a global admin with no sections~~ — **Resolved**
 
-```dart
-: sections.first.id;
-```
+The global-admin branch now lives in `_GlobalAdminDirectory`, which caches the `getSections()` future in `initState`, renders `_NoSectionsView` when the section list is empty, and keys the `MemberDirectoryCubit` provider by section. The non-admin branch also guards an empty `userSections` before constructing the view.
 
-If `getSections()` returns empty and `userState.userSections` is empty, `.first` throws. Guard the empty case and render an empty state. Also, the `FutureBuilder` re-fetches on every rebuild and constructs a new `MemberDirectoryCubit` provider keyed only by position — cache the future in `initState` and give the provider a stable key.
+### M7. ~~Roster export includes pending registrations~~ — **Resolved**
 
-### M7. Roster export includes pending registrations (`lib/widgets/roster_export.dart:36-45`)
+`_loadParticipants` now includes only `approved`/`attended` registrations. Pending and waitlisted members are excluded from the safety roster, and the unused `status` field was removed from `_ParticipantInfo`.
 
-The doc comment says "approved/attended", but the filter also accepts `RegistrationStatus.pending`, and the export contains phone numbers and emergency contacts. Either fix the comment or, preferably, exclude pending participants from safety rosters (or make it an explicit opt-in).
+### M8. ~~Notification sheet duplicates the badge stream and has unsafe mutations~~ — **Resolved**
 
-### M8. Notification sheet duplicates the badge stream and has unsafe mutations
+`_NotificationIconButton` owns a single broadcast stream, shared by the badge and the sheet. `_NotificationsSheet` hides an optimistically deleted ID until the write completes and restores it (with an error snackbar) on failure, so a `Dismissible` is never left in the tree. "Mark all as read" calls the new batched `repository.markAllNotificationsAsRead`, and "Clear all" reverts its optimistic removal on failure.
 
-- Opening the sheet creates a second `notifications` stream alongside the badge stream → duplicate reads and possible ordering divergence.
-- `Dismissible` deletion is not awaited and has no rollback on failure; the item reappears on the next snapshot.
-- "Mark all as read" loops without a batch/error guard.
+### M9. ~~FCM token removal can be a no-op~~ — **Resolved**
 
-**Fix:** share one cubit/stream between badge and sheet; await deletes with optimistic update + revert; batch the mark-all operation.
+`syncDeviceToken` now reads and caches the current token (falling back to the deprecated `getToken()` because `onRegistered` is not a pull API) before syncing. `handleSignOut` falls back to `getToken()` when no token was cached and clears `_currentToken`. The home-page sign-out button now calls `handleSignOut` *before* `FirebaseAuth.signOut()` — the rules reject post-sign-out writes to `users/{uid}`, and the old code cleared `userStateCubit` first so the auth listener could not clean up either.
 
-### M9. FCM token removal can be a no-op (`lib/services/fcm_service.dart:34,121-129,166`)
+### M10. ~~Dead/broken event queries~~ — **Resolved**
 
-`_currentToken` is only assigned from `onRegistered`. `syncDeviceToken` calls `FirebaseMessaging.instance.register()` but does not read the returned token, so on sign-out `_currentToken` may be null and the server-side token is never removed → the next user on the device can receive the previous user's notifications.
+Removed `streamPublicEvents` and `streamLeaderDrafts` from `lib/repo.dart`; both targeted a schema that does not exist and had no callers.
 
-**Fix:** assign the token returned by `register()`/`getToken()` to `_currentToken` before syncing, and remove it on sign-out even if registration has not fired.
+### M11. ~~`templates` is writable by any signed-in user~~ — **Resolved**
 
-### M10. Dead/broken event queries (`lib/repo.dart:99-109,212-221`)
+`firestore.rules` now uses `allow read: if isSignedIn(); allow write: if isGlobalAdmin();`, and the Templates drawer entry is gated on `UserState.isAdmin` to match. Verified with the emulator: signed-in read allowed, non-admin write denied, unauthenticated write denied.
 
-`streamPublicEvents` queries top-level `events` with `status`/`visibility`; `streamLeaderDrafts` queries `tripLeaders`. Actual data lives in `sections/{id}/events` with `tripLeaderIds` and no `visibility` field. These streams will always be empty (or fail on missing indexes). Either delete them or rewrite against the real schema. Empty queries that "work" are worse than absent ones because they hide the drift.
+### M12. ~~Duplicated notification-topic logic~~ — **Resolved**
 
-### M11. `templates` is writable by any signed-in user (`firestore.rules:109-112`)
+`sanitizeTopicName` and `sectionEventsTopic` now live in `packages/shared_models/lib/fcm_topics.dart`, exported by `shared_models`. Both `lib/services/fcm_service.dart` and `functions/lib/src/notification_dispatcher.dart` import them from there, so publisher and subscriber cannot drift. The client and functions tests were updated to use the shared implementation.
 
-The comment itself says "Tighten this to a global admin role if required". Templates drive event content; treat them as admin-managed.
-
-```rules
-allow read: if isSignedIn();
-allow write: if isGlobalAdmin();
-```
-
-### M12. Duplicated notification-topic logic (`lib/` vs `functions/lib/src/notification_dispatcher.dart`)
-
-`sanitizeTopicName`/`sectionEventsTopic` are implemented in both the client and the functions package. If one changes, FCM topics silently diverge and notifications stop. Move the logic into `shared_models` (or a tiny shared package) and import from both.
+**Medium verification:** `flutter analyze` clean, `flutter test` 68/68, `functions` `dart analyze` clean and `dart test` 27/27, `shared_models` `dart analyze` clean, and the emulator rules suite 28/28 (C2 membership, C3 registration, and M11 template checks).
 
 ---
 
@@ -436,7 +438,7 @@ The README is a design document as much as a usage guide, and it has diverged fr
 | Events have `visibility` and `tripLeaders` (`README.md:29`) | Events are stored under `sections/{id}/events`, use `tripLeaderIds`, and have no `visibility` field. |
 | New events default to `draft` (`README.md:37,194`) | `EventEditPage` creates `EventStatus.published` (`lib/pages/event_edit_page.dart:50`). |
 | Drafts visible only to creator + trip leaders | All section members can read them (H2). |
-| Section membership managed by an external system | Any user can self-join via rules (C2). |
+| Section membership managed by an external system | Members self-join via rules as a plain `member`; privileged roles require a section/global admin (C2). |
 | Profile fields | `UserProfile`/`Section` doc comments still describe removed/renamed fields. |
 
 **Recommendation:** update the README schema and role tables to match `shared_models`, and add a CI check (or a short doc test) that keeps the enum lists in sync. Where the README describes intended behaviour that is not implemented (draft visibility, external-only membership), either implement it or mark it explicitly as "planned".
@@ -449,21 +451,25 @@ The README is a design document as much as a usage guide, and it has diverged fr
 
 **Gaps, in priority order:**
 
-1. **No security-rule tests.** There is no `@firebase/rules-unit-testing` (or emulator-based) suite. The open critical findings would be caught by tests that attempt `sectionRole: 'sectionManager'` as a normal user and self-approval of a registration. Add a regression test asserting that `isAdmin: true` on a user document does *not* grant admin (C1). This is the highest-value test investment in the repo.
+1. **Security-rule regression suite exists.** `test/rules/firestore_rules_test.sh` runs against the Firestore/Auth emulators and covers C2 (role escalation, narrow self-join, self-leave), C3 (registration status, doc IDs, duplicates), and M11 (templates). Run it with:
+   ```bash
+   firebase emulators:exec --only firestore,auth "bash test/rules/firestore_rules_test.sh"
+   ```
+   Still to add: a check that `isAdmin: true` on a user document does *not* grant admin (C1), and a CI job that runs the suite.
 2. **HTTPS handler verification** is now unit-tested via `verifyNotificationRequest` (see C5), but there is no test that Cloud Run IAM rejects unauthenticated callers at the platform level.
 3. **No repository tests** for pagination (`hasMore`), the profile cache, or batch limits.
 4. **No routing/guard tests** for the auth/profile-completion redirects.
 5. **`functions/test/notification_handlers_test.dart` describes itself as "AI generated, and mostly useless".** Either rewrite it against real payloads and assert side effects, or delete it; a misleading green test is a liability.
-6. **CI:** workflows exist but do not appear to run the rules tests (none exist) or a `flutter build web` smoke job consistently. Consider a matrix of `analyze`, `test`, `build web`, and (once added) `firebase emulators:exec --only firestore 'npm test'`.
+6. **CI:** workflows exist but do not run the rules suite or a `flutter build web` smoke job consistently. Consider a matrix of `analyze`, `test`, `build web`, and `firebase emulators:exec --only firestore,auth "bash test/rules/firestore_rules_test.sh"`.
 
 ---
 
 ## 7. Suggested remediation order
 
-1. **Ship-blockers (hours):** C2 rule fix; set the Cloud Run invoker to non-public for the notification endpoints. (C1, C3 and C4 are resolved; C5's lightweight check is implemented, but the IAM lockdown is still required.)
+1. **Ship-blocker (minutes):** set the Cloud Run invoker to non-public for the notification endpoints (C5). All rule-level critical findings (C1, C2, C3, C4) are resolved and covered by the emulator rule suite.
 2. **Same release (days):** H1 (PII projection), H2 (draft filtering), H3 (event-scoped leadership), H5 (draft default), H4 (watch → builder).
-3. **Next iteration:** H6 cache, M1/M2 pagination and batching, M6 crash guard, M9 FCM token lifecycle.
-4. **Ongoing:** rule tests in CI, README schema sync, remove dead queries and debug UI.
+3. **Next iteration:** H6 cache, plus the remaining High items. (M1/M2 pagination and batching, M6 crash guard, M9 FCM token lifecycle and the rest of section 3 are resolved.)
+4. **Ongoing:** run the rule suite in CI, add the C1 no-admin-escalation check, README schema sync. (Dead queries and debug UI have been removed; see M5/M10.)
 
 ---
 

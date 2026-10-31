@@ -78,8 +78,27 @@ service cloud.firestore {
         // isSectionMember() here would be circular (it does an exists()/get()
         // on this same subcollection) and fails on the first rules evaluation.
         allow read: if isSignedIn();
+
+        // Section admins/global admins manage membership and roles.
         allow create, update, delete: if isSectionAdmin(sectionId) || isGlobalAdmin();
-        // A user may only remove their own membership.
+
+        // Narrow self-service join (used by "My Sections"): a signed-in user
+        // may add *themselves* to an existing section, but only as a plain
+        // member. They cannot choose a privileged role, spoof the document or
+        // section id, claim an external membership id, or add extra fields.
+        // Role changes remain admin-only via the rule above.
+        allow create: if isUser(userId)
+          && exists(/databases/$(database)/documents/sections/$(sectionId))
+          && request.resource.data.id == userId
+          && request.resource.data.sectionId == sectionId
+          && request.resource.data.sectionRole == 'member'
+          && (!('externalSystemId' in request.resource.data)
+            || request.resource.data.externalSystemId == null)
+          && request.resource.data.joinedAt is timestamp
+          && request.resource.data.keys().hasAll(['id', 'sectionId', 'sectionRole', 'joinedAt'])
+          && request.resource.data.keys().hasOnly(['id', 'sectionId', 'sectionRole', 'externalSystemId', 'joinedAt']);
+
+        // A user may only remove their own membership (leave a section).
         allow delete: if isUser(userId);
       }
 
@@ -164,10 +183,11 @@ service cloud.firestore {
       allow create: if isSignedIn() && (request.resource.data.recipientId == request.auth.uid || request.resource.data.userId == request.auth.uid);
     }
 
-    // Templates collection
+    // Templates collection. Templates drive event content, so only global
+    // admins may create, update or delete them.
     match /templates/{templateId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn(); // Tighten this to a global admin role if required
+      allow write: if isGlobalAdmin();
     }
   }
 }

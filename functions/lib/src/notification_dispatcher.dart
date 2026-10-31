@@ -5,15 +5,6 @@ import 'package:firebase_functions/firebase_functions.dart';
 import 'package:shared_models/shared_models.dart';
 import 'package:firebase_functions/logger.dart' as logger;
 
-/// Sanitizes a string to conform to FCM topic naming rules:
-/// `[a-zA-Z0-9-_.~%]{1,900}`.
-String sanitizeTopicName(String input) =>
-    input.replaceAll(RegExp(r'[^a-zA-Z0-9-_.~%]'), '_');
-
-/// Builds the generic event topic name for a given section.
-String sectionEventsTopic(String sectionId) =>
-    'section_${sanitizeTopicName(sectionId)}_events';
-
 /// Sends a notification to a single user via in-app and FCM push channels,
 /// respecting the user's [NotificationPreferences].
 Future<void> sendNotificationToUser({

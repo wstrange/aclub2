@@ -132,11 +132,19 @@ class const _EventEditForm({required this.sectionId, required this.initialEvent,
       required DateTime initial,
       required ValueChanged<DateTime> onPicked,
     }) async {
+      // Use a window relative to today rather than a hardcoded year: events
+      // can be edited long after they were created, and an `initialDate`
+      // outside `firstDate`..`lastDate` makes showDatePicker assert.
+      final now = DateTime.now();
+      final firstDate = DateTime(now.year - 5);
+      final lastDate = DateTime(now.year + 5, 12, 31);
+      final clampedInitial = initial.isBefore(firstDate) ? firstDate : (initial.isAfter(lastDate) ? lastDate : initial);
+
       final pickedDate = await showDatePicker(
         context: context,
-        initialDate: initial,
-        firstDate: DateTime(2026),
-        lastDate: DateTime(2035),
+        initialDate: clampedInitial,
+        firstDate: firstDate,
+        lastDate: lastDate,
       );
       if (pickedDate == null || !context.mounted) return;
 

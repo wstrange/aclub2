@@ -7,3 +7,4 @@ library;
 
 export 'models.dart';
 export 'firestore_converter.dart';
+export 'fcm_topics.dart';

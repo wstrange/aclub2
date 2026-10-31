@@ -7,8 +7,8 @@ import '../repo.dart';
 import '../routes.dart';
 
 /// Lists markdown templates that can be inserted into event descriptions.
-/// Accessible only to section managers and trip leaders (menu item is hidden
-/// for everyone else).
+/// Templates are admin-managed; the drawer entry is hidden for everyone else
+/// and the Firestore rules reject non-admin writes.
 class const TemplateListPage({super.key}) extends HookWidget {
   @override
   Widget build(BuildContext context) {
