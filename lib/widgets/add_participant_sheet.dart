@@ -128,7 +128,7 @@ class AddParticipantSheet extends HookWidget {
     final filtered =
         members.value
             .where((m) => !excludedIds.contains(m.id))
-            .where((m) => q.isEmpty || displayName(m).toLowerCase().contains(q) || emailOf(m).contains(q))
+            .where((m) => q.isEmpty || displayName(m).toLowerCase().contains(q) || emailOf(m).toLowerCase().contains(q))
             .toList()
           ..sort((a, b) => displayName(a).compareTo(displayName(b)));
 

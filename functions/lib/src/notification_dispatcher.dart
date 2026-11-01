@@ -4,6 +4,14 @@ import 'package:firebase_admin_sdk/messaging.dart' as admin_messaging;
 import 'package:firebase_functions/firebase_functions.dart';
 import 'package:shared_models/shared_models.dart';
 import 'package:firebase_functions/logger.dart' as logger;
+import 'package:google_cloud_firestore/google_cloud_firestore.dart' show FieldValue;
+
+/// FCM error codes that mean a token can never be used again and should be
+/// removed from the recipient's profile.
+const _invalidTokenCodes = {
+  'messaging/invalid-registration-token',
+  'messaging/registration-token-not-registered',
+};
 
 /// Sends a notification to a single user via in-app and FCM push channels,
 /// respecting the user's [NotificationPreferences].
@@ -71,6 +79,21 @@ Future<void> sendNotificationToUser({
         ),
       );
       logger.info('FCM push sent to $userId: success=${response.successCount}, failure=${response.failureCount}.');
+
+      // Prune tokens FCM reports as permanently invalid so dead devices do not
+      // inflate every future multicast. `responses[i]` corresponds to
+      // `profile.fcmTokens[i]`.
+      final invalidTokens = <String>[];
+      for (var i = 0; i < response.responses.length && i < profile.fcmTokens.length; i++) {
+        final result = response.responses[i];
+        if (!result.success && _invalidTokenCodes.contains(result.error?.code)) {
+          invalidTokens.add(profile.fcmTokens[i]);
+        }
+      }
+      if (invalidTokens.isNotEmpty) {
+        await firestore.doc('users/$userId').update({'fcmTokens': FieldValue.arrayRemove(invalidTokens)});
+        logger.info('Pruned ${invalidTokens.length} invalid FCM token(s) for $userId.');
+      }
     }
   }
 }

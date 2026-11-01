@@ -11,6 +11,7 @@ import '../repo.dart';
 import '../routes.dart';
 import '../state/event_details_cubit.dart';
 import '../state/event_details_state.dart';
+import '../state/registration_view.dart';
 import '../state/user_state_cubit.dart';
 import '../utils/snackbars.dart';
 import '../widgets/add_participant_sheet.dart';
@@ -18,7 +19,7 @@ import '../widgets/calendar_common.dart';
 import '../widgets/external_link.dart';
 import '../widgets/member_search_bar.dart';
 import '../widgets/roster_export.dart';
-import '../widgets/user_display.dart' show UserDisplay, UserChip, resolveUserDisplay;
+import '../widgets/user_display.dart' show UserChip, resolveUserDisplay;
 
 final _log = Logger('EventDetailPage');
 
@@ -82,9 +83,8 @@ class const _EventDetailView({required this.sectionId, required this.event}) ext
   @override
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final userState = context.watch<UserStateCubit>().state.value;
-    final canManage =
-        currentUid != null && userState != null && context.read<UserStateCubit>().canManageSection(sectionId);
+    final canManageByRole = context.select<UserStateCubit, bool>((cubit) => cubit.canManageSection(sectionId));
+    final canManage = currentUid != null && canManageByRole;
 
     Future<void> openEdit() async {
       await context.push(EventEditRoute(sectionId: sectionId, eventId: event.id));
@@ -317,11 +317,32 @@ class const _LeadershipSection({required this.sectionId, required this.event}) e
   @override
   Widget build(BuildContext context) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final userState = context.watch<UserStateCubit>().state.value;
-    final canManage =
-        currentUid != null && userState != null && context.read<UserStateCubit>().canManageSection(sectionId);
+    final canManageByRole = context.select<UserStateCubit, bool>((cubit) => cubit.canManageSection(sectionId));
+    final canManage = currentUid != null && canManageByRole;
 
     final leaderIds = event.tripLeaderIds;
+
+    // Batch-load creator + leader profiles once per event instead of issuing a
+    // point read from each UserChip.
+    final profileIds = <String>{event.creatorId, ...leaderIds}.where((id) => id.isNotEmpty).toList();
+    final profiles = useState<Map<String, UserProfile>>({});
+    final profilesResolved = useState(false);
+    useEffect(() {
+      var disposed = false;
+      profilesResolved.value = false;
+      repository
+          .getUserProfiles(profileIds)
+          .then((loaded) {
+            if (!disposed) {
+              profiles.value = {...profiles.value, ...loaded};
+              profilesResolved.value = true;
+            }
+          })
+          .catchError((_) {
+            if (!disposed) profilesResolved.value = true;
+          });
+      return () => disposed = true;
+    }, [profileIds.join(',')]);
 
     Future<void> assignLeader(String uid) async {
       if (leaderIds.contains(uid)) return;
@@ -397,7 +418,12 @@ class const _LeadershipSection({required this.sectionId, required this.event}) e
                 child: Text('Created by', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               ),
               Expanded(
-                child: UserChip(userId: event.creatorId, style: const TextStyle(fontSize: 14)),
+                child: UserChip(
+                  userId: event.creatorId,
+                  profile: profiles.value[event.creatorId],
+                  profileResolved: profilesResolved.value,
+                  style: const TextStyle(fontSize: 14),
+                ),
               ),
             ],
           ),
@@ -425,7 +451,12 @@ class const _LeadershipSection({required this.sectionId, required this.event}) e
                                   const Icon(Icons.emoji_people_outlined, size: 18),
                                   const SizedBox(width: 8),
                                   Expanded(
-                                    child: UserChip(userId: leaderId, style: const TextStyle(fontSize: 14)),
+                                    child: UserChip(
+                                      userId: leaderId,
+                                      profile: profiles.value[leaderId],
+                                      profileResolved: profilesResolved.value,
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
                                   ),
                                   if (canManage && leaderId != event.creatorId)
                                     IconButton(
@@ -472,24 +503,21 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eventDetails = context.watch<EventDetailsCubit>().state.value;
+    final eventDetails = context.value<EventDetailsCubit, EventDetailsState>();
     final registrations = eventDetails.registrations;
     final isRegistrationsLoading = eventDetails.isRegistrationsLoading;
 
     final isSaving = useState(false);
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
 
-    final myRegistration = currentUid == null ? null : registrations.where((r) => r.userId == currentUid).firstOrNull;
+    final view = RegistrationView.from(event: event, details: eventDetails, currentUid: currentUid);
+    final myRegistration = view.myRegistration;
+    final approvedCount = view.approvedCount;
+    final hasSpace = view.hasSpace;
+    final hasEnded = view.hasEnded;
 
-    final canManage = currentUid != null && context.read<UserStateCubit>().canManageSection(event.sectionId);
-
-    // Only approved registrations count towards the event's capacity.
-    final approvedCount = registrations.where((r) => r.status == RegistrationStatus.approved).length;
-    final hasSpace = approvedCount < event.maxParticipants;
-
-    // Registering is impossible once the event has passed. Managers can
-    // still manage existing registrations (e.g. recording attendance).
-    final hasEnded = isEventPast(event);
+    final canManageByRole = context.select<UserStateCubit, bool>((cubit) => cubit.canManageSection(event.sectionId));
+    final canManage = currentUid != null && canManageByRole;
 
     Future<void> setStatus(Registration registration, RegistrationStatus status) async {
       isSaving.value = true;
@@ -718,35 +746,12 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
       );
     }
 
-    final waitlist = eventDetails.waitlist;
-    final pending = eventDetails.pendingRegistrations;
-    final approved = eventDetails.approvedRegistrations;
-
-    final myWaitlistIndex = currentUid != null && myRegistration?.status == RegistrationStatus.waitlisted
-        ? waitlist.indexWhere((r) => r.userId == currentUid)
-        : -1;
-    final myWaitlistPosition = myWaitlistIndex >= 0 ? myWaitlistIndex + 1 : null;
-
-    final String statusLabel = switch (myRegistration?.status) {
-      null => 'Not registered',
-      RegistrationStatus.approved => 'Approved',
-      RegistrationStatus.pending => 'Pending approval',
-      RegistrationStatus.waitlisted =>
-        myWaitlistPosition != null ? 'On waitlist (#$myWaitlistPosition of ${waitlist.length})' : 'On waitlist',
-      RegistrationStatus.rejected => 'Rejected',
-      RegistrationStatus.attended => 'Attended',
-      RegistrationStatus.absent => 'Absent',
-      RegistrationStatus.withdrawn => 'Withdrawn',
-    };
-
-    final bool canRegister =
-        currentUid != null &&
-        !hasEnded &&
-        (myRegistration == null || myRegistration.status == RegistrationStatus.withdrawn) &&
-        (hasSpace || event.requiresApproval);
-
-    // Registrations a leader/manager can act on: pending, waitlisted, approved.
-    final manageable = [...approved, ...pending, ...waitlist];
+    final waitlist = view.waitlist;
+    final pending = view.pending;
+    final approved = view.approved;
+    final statusLabel = view.statusLabel;
+    final canRegister = view.canRegister;
+    final manageable = view.manageable;
     final participantIds = registrations.map((registration) => registration.userId).toSet().toList();
     final participantProfiles = useState<Map<String, UserProfile>>({});
     final areParticipantProfilesLoaded = useState(false);
@@ -985,8 +990,9 @@ class const _RegistrationSection({required this.event}) extends HookWidget {
 /// Bottom-sheet picker for assigning a trip leader from the section's members.
 ///
 /// Shows a [MemberSearchBar] at the top that filters the candidate list
-/// client-side. Uses plain [UserDisplay] (no popover) so the hover card
-/// doesn't interfere with tapping to assign.
+/// client-side. Profiles are batch-loaded and rendered as plain text (no
+/// [UserChip] popover) so the hover card doesn't interfere with tapping to
+/// assign.
 class const _AssignLeaderSheet({required this.sectionId, required this.excludedIds, required this.onPick})
     extends HookWidget {
   final String sectionId;

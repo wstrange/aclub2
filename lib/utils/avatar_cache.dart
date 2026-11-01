@@ -15,6 +15,7 @@
 //    [avatarCacheStalePeriod], so avatars that were fetched once keep working
 //    offline-ish and don't re-hit Google on subsequent launches.
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
@@ -50,10 +51,15 @@ final BaseCacheManager avatarCacheManager = CacheManager(
 // mutable field, so use a classic constructor with the lint opt-out below.
 class AvatarHttpFileService extends HttpFileService {
   // ignore: use_primary_constructors
-  AvatarHttpFileService({http.Client? httpClient, this.maxRetries = 3, Duration? initialBackoff})
-    : _httpClient = httpClient ?? http.Client(),
-      _initialBackoff = initialBackoff ?? const Duration(milliseconds: 500) {
-    concurrentFetches = _maxConcurrentFetches;
+  AvatarHttpFileService({
+    http.Client? httpClient,
+    this.maxRetries = 3,
+    Duration? initialBackoff,
+    int concurrentFetches = _maxConcurrentFetches,
+  }) : assert(concurrentFetches > 0),
+       _httpClient = httpClient ?? http.Client(),
+       _initialBackoff = initialBackoff ?? const Duration(milliseconds: 500) {
+    this.concurrentFetches = concurrentFetches;
   }
 
   final http.Client _httpClient;
@@ -64,28 +70,55 @@ class AvatarHttpFileService extends HttpFileService {
 
   final Duration _initialBackoff;
 
-  @override
-  Future<FileServiceResponse> get(String url, {Map<String, String>? headers}) async {
-    var attempt = 0;
-    while (true) {
-      final request = http.Request('GET', Uri.parse(url));
-      if (headers != null) request.headers.addAll(headers);
-      final response = await _httpClient.send(request);
+  // In-flight requests admitted by this service. The cache manager already
+  // queues downloads via [FileService.concurrentFetches], but enforcing the
+  // cap here as well makes the option honest for direct callers (and for the
+  // retry loop, which holds one slot for all attempts).
+  int _activeFetches = 0;
+  final Queue<Completer<void>> _fetchWaiters = Queue<Completer<void>>();
 
-      final retriable = response.statusCode == 429 || (response.statusCode >= 500 && response.statusCode < 600);
-      if (!retriable || attempt >= maxRetries) {
-        if (retriable) {
-          // Setup never succeeded; final attempt also failed — report the
-          // status as-is so the caller's error path handles it.
-        }
-        return AvatarHttpGetResponse(response);
-      }
-
-      // Free the unused response body before waiting.
-      await response.stream.drain<void>();
-      await Future.delayed(_backoffDelay(response.headers['retry-after'], attempt));
-      attempt++;
+  Future<T> _withFetchSlot<T>(Future<T> Function() action) async {
+    if (_activeFetches < concurrentFetches) {
+      _activeFetches++;
+    } else {
+      // The releasing request hands its slot directly to this waiter, so the
+      // cap cannot be exceeded by a newly arriving request in the meantime.
+      final waiter = Completer<void>();
+      _fetchWaiters.add(waiter);
+      await waiter.future;
     }
+
+    try {
+      return await action();
+    } finally {
+      if (_fetchWaiters.isNotEmpty) {
+        _fetchWaiters.removeFirst().complete();
+      } else {
+        _activeFetches--;
+      }
+    }
+  }
+
+  @override
+  Future<FileServiceResponse> get(String url, {Map<String, String>? headers}) {
+    return _withFetchSlot(() async {
+      var attempt = 0;
+      while (true) {
+        final request = http.Request('GET', Uri.parse(url));
+        if (headers != null) request.headers.addAll(headers);
+        final response = await _httpClient.send(request);
+
+        final retriable = response.statusCode == 429 || (response.statusCode >= 500 && response.statusCode < 600);
+        if (!retriable || attempt >= maxRetries) {
+          return AvatarHttpGetResponse(response);
+        }
+
+        // Free the unused response body before waiting.
+        await response.stream.drain<void>();
+        await Future.delayed(_backoffDelay(response.headers['retry-after'], attempt));
+        attempt++;
+      }
+    });
   }
 
   Duration _backoffDelay(String? retryAfter, int attempt) {

@@ -50,6 +50,16 @@ class const CalendarAgendaView({super.key, required this.sectionId, this.userId,
       }
     }
 
+    // Events that overlap the displayed month, counted once even when they
+    // span several days.
+    final monthStart = DateTime(year, month, 1);
+    final monthEnd = DateTime(year, month, daysInMonth);
+    final monthEvents = filteredEvents.where((e) {
+      final s = DateTime(e.startDate.year, e.startDate.month, e.startDate.day);
+      final en = DateTime(e.endDate.year, e.endDate.month, e.endDate.day);
+      return s.compareTo(monthEnd) <= 0 && en.compareTo(monthStart) >= 0;
+    }).length;
+
     // ── Navigation ───────────────────────────────────────────────────────
     void goToPreviousMonth() {
       final current = displayedMonth.value;
@@ -88,13 +98,7 @@ class const CalendarAgendaView({super.key, required this.sectionId, this.userId,
             child: Text(
               dayEntries.isEmpty
                   ? 'No events this month'
-                  : '${filteredEvents.where((e) {
-                      final s = DateTime(e.startDate.year, e.startDate.month, e.startDate.day);
-                      final en = DateTime(e.endDate.year, e.endDate.month, e.endDate.day);
-                      final monthStart = DateTime(year, month, 1);
-                      final monthEnd = DateTime(year, month, daysInMonth);
-                      return s.compareTo(monthEnd) <= 0 && en.compareTo(monthStart) >= 0;
-                    }).length} event${filteredEvents.length == 1 ? '' : 's'} across ${dayEntries.length} day${dayEntries.length == 1 ? '' : 's'}',
+                  : '$monthEvents event${monthEvents == 1 ? '' : 's'} across ${dayEntries.length} day${dayEntries.length == 1 ? '' : 's'}',
               style: Theme.of(context).textTheme.bodySmall
                   ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
@@ -163,7 +167,15 @@ class const _AgendaList({required this.dayEntries, required this.now, this.onEve
 
     final scrollController = useScrollController();
 
-    // Auto-scroll to today on first build.
+    // A compact signature of the agenda contents. Keying on the number of days
+    // alone misses same-length updates (e.g. a different month with the same
+    // event count), so include each date and its event IDs.
+    final agendaSignature = dayEntries
+        .map((entry) => '${entry.date.year}-${entry.date.month}-${entry.date.day}:'
+            '${entry.events.map((event) => event.id).join(',')}')
+        .join('|');
+
+    // Auto-scroll to today on first build and whenever the agenda changes.
     useEffect(() {
       if (initialScrollIndex > 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -183,7 +195,7 @@ class const _AgendaList({required this.dayEntries, required this.now, this.onEve
         });
       }
       return null;
-    }, [dayEntries.length]);
+    }, [agendaSignature, initialScrollIndex]);
 
     return ListView.builder(
       controller: scrollController,
@@ -224,8 +236,12 @@ class const _DateHeader({required this.date, required this.now}) extends Statele
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
-    final isTomorrow = date.year == now.year && date.month == now.month && date.day == now.day + 1;
-    final isYesterday = date.year == now.year && date.month == now.month && date.day == now.day - 1;
+    // Compare normalised dates so "tomorrow"/"yesterday" still work across
+    // month and year boundaries (e.g. Oct 31 → Nov 1).
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    final today = DateTime(now.year, now.month, now.day);
+    final isTomorrow = dateOnly == today.add(const Duration(days: 1));
+    final isYesterday = dateOnly == today.subtract(const Duration(days: 1));
 
     final weekDay = calendarShortWeekDayNames[date.weekday % 7];
 

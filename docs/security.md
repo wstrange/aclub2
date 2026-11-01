@@ -171,8 +171,8 @@ These are tracked in `docs/review.md` with more detail:
 ## Rule tests
 
 `test/rules/firestore_rules_test.sh` is an emulator-based regression suite. It
-currently runs 28 checks covering section membership (C2), event registration
-(C3), and templates (M11).
+currently runs 37 checks covering section membership (C2), event registration
+(C3), templates (M11), section creation (L6), and notification ownership (L7).
 
 ```bash
 firebase emulators:exec --only firestore,auth \

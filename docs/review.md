@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-29
 **Scope:** full repository — `lib/`, `functions/`, `packages/`, `firestore.rules`, `storage.rules`, `test/`, CI and build configuration.
-**Baseline verification:** `flutter analyze` → *No issues found!*; `flutter test` → 68/68 passing; `flutter build web --no-tree-shake-icons` → succeeds.
+**Baseline verification (at review time):** `flutter analyze` → *No issues found!*; `flutter test` → 68/68 passing; `flutter build web --no-tree-shake-icons` → succeeds.
 
 ---
 
@@ -19,7 +19,7 @@ The risks are concentrated in **authorization**, not in compile-time correctness
 
 Several high/medium issues follow from those: draft events leak to all section members, any trip leader can edit any event in the section, and profile PII (medical conditions, emergency contacts, phone) is readable by every signed-in user.
 
-On the client side the notable issues are correctness/UX rather than security: `context.watch` is used where `context.select`/`BlocSignalBuilder` semantics are required (screens can get stuck), new events default to `published` and notify immediately, and the Android emulator host override is broken.
+On the client side the notable issues were correctness/UX rather than security: `context.watch` was used where `context.select`/`BlocSignalBuilder` semantics are required (screens could get stuck), new events defaulted to `published` and notified immediately, and the Android emulator host override was broken. These are fixed in H4, H5, and L1 respectively.
 
 **Recommendation:** the only remaining critical action is the **C5 Cloud Run IAM lockdown** — set the notification services to non-public invokers. It is a small configuration change and does not require architectural work. All rule-level critical findings (C1–C4) are resolved.
 
@@ -28,9 +28,9 @@ On the client side the notable issues are correctness/UX rather than security: `
 | Severity | Count |
 | --- | --- |
 | Critical | 0 open, 1 mitigated (C1–C4 resolved; C5 mitigated pending IAM lockdown) |
-| High | 6 |
+| High | 6 (H1 and H3 open; H2 UI-resolved with a rule-level limitation; H4–H6 resolved) |
 | Medium | 12 (all resolved) |
-| Low / nits | 12 |
+| Low / nits | 12 (all resolved) |
 
 ---
 
@@ -97,7 +97,7 @@ allow create: if isUser(userId)
 allow delete: if isUser(userId);
 ```
 
-**Verified** with the emulator rule suite (`test/rules/firestore_rules_test.sh`): self-promotion denied, privileged self-join denied, member self-join allowed, post-join promotion denied, spoofed ids / nonexistent sections / external ids / extra fields denied, self-leave allowed, deleting another member denied, and a section manager can still change roles. The suite now runs 28 checks (C2 + C3 + M11), all passing.
+**Verified** with the emulator rule suite (`test/rules/firestore_rules_test.sh`): self-promotion denied, privileged self-join denied, member self-join allowed, post-join promotion denied, spoofed ids / nonexistent sections / external ids / extra fields denied, self-leave allowed, deleting another member denied, and a section manager can still change roles. The suite now runs 37 checks (C2 + C3 + M11 + L6 + L7), all passing.
 
 ### C3. ~~Registration status can be self-approved; duplicate registrations possible~~ — **Resolved**
 
@@ -319,7 +319,7 @@ allow create: if isTripLeader(sectionId)
   && request.resource.data.createdByUserId == request.auth.uid;
 ```
 
-### H4. `context.watch` does not rebuild on state changes (`lib/pages/event_edit_page.dart:23`, `lib/pages/event_detail_page.dart:85,320`)
+### H4. `context.watch` does not rebuild on state changes (`lib/pages/event_edit_page.dart:23`, `lib/pages/event_detail_page.dart:85,320`) **Resolved**
 
 ```dart
 final userState = context.watch<UserStateCubit>().state.value;
@@ -337,7 +337,9 @@ BlocSignalBuilder<UserStateCubit, UserState?>(
 
 or `context.select((UserStateCubit c) => c.state.value)` if a selector API is available. This is exactly the trap the bloc-signals guidance warns about.
 
-### H5. New events are published immediately and notify members (`lib/pages/event_edit_page.dart:50`)
+**Resolution:** every `context.watch` was replaced. Permission checks use `context.select<UserStateCubit, bool>((cubit) => cubit.canManageSection(sectionId))`, which subscribes to the selected value, and registration state uses `context.value<EventDetailsCubit, EventDetailsState>()`, which re-renders on each emission. `grep -r "context.watch" lib/` is now empty.
+
+### H5. New events are published immediately and notify members (`lib/pages/event_edit_page.dart:50`) **Resolved**
 
 ```dart
 status: EventStatus.published,
@@ -346,6 +348,8 @@ status: EventStatus.published,
 This contradicts the documented draft-first workflow and means a half-filled event is visible and triggers notifications before the leader has reviewed it. Combined with C5, the notification path depends on Cloud Run IAM plus the lightweight handler check.
 
 **Fix:** default to `EventStatus.draft`; publish explicitly from the edit screen, and only fire the notification function on the draft → published transition.
+
+**Resolution:** new events default to `EventStatus.draft` (`event_edit_page.dart:48`), and the create handler skips notifications unless the event is published (`event_handlers.dart:44-47`). `handleEventUpdated` only notifies on the non-published → published transition, so editing a live event does not re-notify. Combined with C5's handler verification, the notification path is now gated on an explicit publish.
 
 ### H6. Profile cache is a single global slot (`lib/repo.dart:377,451-461`) **Resolved**
 
@@ -408,24 +412,24 @@ Removed `streamPublicEvents` and `streamLeaderDrafts` from `lib/repo.dart`; both
 
 `sanitizeTopicName` and `sectionEventsTopic` now live in `packages/shared_models/lib/fcm_topics.dart`, exported by `shared_models`. Both `lib/services/fcm_service.dart` and `functions/lib/src/notification_dispatcher.dart` import them from there, so publisher and subscriber cannot drift. The client and functions tests were updated to use the shared implementation.
 
-**Medium verification:** `flutter analyze` clean, `flutter test` 68/68, `functions` `dart analyze` clean and `dart test` 27/27, `shared_models` `dart analyze` clean, and the emulator rules suite 28/28 (C2 membership, C3 registration, and M11 template checks).
+**Medium verification:** `flutter analyze` clean, `flutter test` 79/79, `functions` `dart analyze` clean and `dart test` 44/44, `shared_models` `dart analyze` clean, and the emulator rules suite 37/37 (C2 membership, C3 registration, M11 template checks, and the L6/L7 additions).
 
 ---
 
-## 4. Low / nits
+## 4. Low / nits — **Resolved**
 
-- **L1.** `main.dart:118-129`: `_connectToFirebaseEmulator` sets `localHost = 'localhost'` unconditionally at line 128, after the Android `10.0.2.2` branch, so Android emulator debug always points at the wrong host. Move the Android override after the final assignment or delete the redundant line.
-- **L2.** `lib/widgets/user_display.dart`: per-widget profile reads (see H6). Prefer passing a resolved `UserProfile` or using the batch helper.
-- **L3.** `lib/pages/event_detail_page.dart`: registration/capacity checks are recomputed in several builders; extract a single derived view-model to keep "can register / waitlist / full" consistent.
-- **L4.** `AddParticipantSheet`: email search lowercases the query but compares against the raw stored email; lowercase both sides.
-- **L5.** `calendar_agenda_view.dart:97`: pluralization uses `filteredEvents.length` instead of the per-month count. `isTomorrow`/`isYesterday` (lines 227-228) compare `day + 1` without handling month rollover. `useEffect` depends only on `dayEntries.length` (line 167), so same-length updates can be missed.
-- **L6.** `firestore.rules:62`: `allow write: if isSectionAdmin(sectionId)` is redundant/contradictory after the explicit `create/update/delete` rules and, because `write` includes `create`, re-permits section admins to create sections. Remove it.
-- **L7.** `firestore.rules:104-105`: notification rules are confusing (`resource` is undefined on create; the second `allow create` overrides). Consolidate into `allow read, update, delete` keyed on recipient and a single `allow create` keyed on `request.resource`.
-- **L8.** `functions/lib/src/notification_dispatcher.dart`: multicast failures are logged but invalid tokens are never pruned, so dead tokens accumulate and inflate every send.
-- **L9.** `functions/lib/src/registration_handlers.dart`: withdrawal notification transitions are not covered by tests; the status transition table is implicit. Centralise allowed transitions and test them.
-- **L10.** Tracked build artifact `android/build/reports/problems/problems-report.html` should be removed from git; `.gitignore` already covers `*.log` (the 1 GB `firestore-debug.log` is untracked but should be deleted from disk).
-- **L11.** `AvatarHttpFileService` ignores the `concurrentFetches` queue per request (bounded, so not a leak, but the option is misleading).
-- **L12.** `pubspec.yaml` pins are fine, but consider `dependency_overrides`/`resolution: workspace` consistency if the packages are developed together; currently `packages/` are path dependencies, which is correct.
+- **L1. Resolved.** `_connectToFirebaseEmulator` no longer overwrites the host with `localhost`. Android emulators use `10.0.2.2`; web/desktop use `localhost`; physical devices can pass `--dart-define=EMULATOR_HOST=localhost` after `adb reverse`. See `docs/development.md`.
+- **L2. Resolved.** `UserChip`/`UserDisplay` now accept a batch-resolved `profileResolved` profile, and the event leadership section batch-loads creator + leader profiles with `repository.getUserProfiles` instead of issuing one read per widget. H6's shared cache remains the fallback for one-off widgets.
+- **L3. Resolved.** `RegistrationView` (`lib/state/registration_view.dart`) derives capacity, waitlist position, status label, `canRegister`, and manageable registrations once. `event_detail_page.dart` consumes it, and `test/registration_view_test.dart` covers full/ended/withdrawn/waitlist cases.
+- **L4. Resolved.** `AddParticipantSheet` lowercases both the query and the stored email before matching.
+- **L5. Resolved.** The agenda summary counts events that overlap the displayed month, `isTomorrow`/`isYesterday` compare normalised dates (so month/year rollover works), and the auto-scroll effect keys on a full agenda signature rather than `dayEntries.length`.
+- **L6. Resolved.** The redundant `allow write: if isSectionAdmin(sectionId)` rule was removed. Only global admins can create/delete sections; section managers can update existing ones. The rules suite verifies a section manager cannot create a section.
+- **L7. Resolved.** Notification rules are now `allow read, update, delete` keyed on `resource.data.recipientId` plus one `allow create` keyed on `request.resource.data.recipientId`. The rules suite verifies create/read/update/delete for own vs. another recipient.
+- **L8. Resolved.** After a multicast, `sendNotificationToUser` removes tokens whose per-token response is `messaging/invalid-registration-token` or `messaging/registration-token-not-registered` via `FieldValue.arrayRemove`.
+- **L9. Resolved.** `functions/lib/src/registration_transitions.dart` centralises the create/update/delete notification transition table as pure functions. `functions/test/registration_transitions_test.dart` covers approval, waitlist, rejection, pending, self-withdrawal (all actor-field fallbacks), leader removal, and silent transitions.
+- **L10. Resolved.** Removed the tracked `android/build/reports/problems/problems-report.html`; the untracked 1 GB `firestore-debug.log` was deleted from disk (and remains covered by `.gitignore`).
+- **L11. Resolved.** `AvatarHttpFileService` now enforces its own FIFO concurrency limit (with a slot hand-off so the cap cannot be exceeded), exposes the cap as a constructor parameter, and holds one slot across retries. `test/avatar_cache_test.dart` verifies the default cap, the bound under load, and retry behaviour.
+- **L12. Resolved (documented, no change).** The path dependencies are correct. `docs/development.md` now records why `resolution: workspace` is deliberately not used and why the vendored `facebook_auth_desktop` is the only override.
 
 ---
 
@@ -466,7 +470,7 @@ is authoritative, but nothing enforces it.
 
 ## 6. Tests and CI
 
-**Current state:** 68 tests pass; `flutter analyze` is clean; the web build succeeds. That is a good baseline.
+**Current state:** 79 tests pass; `flutter analyze` is clean; the web build succeeds. That is a good baseline.
 
 **Gaps, in priority order:**
 
@@ -486,8 +490,8 @@ is authoritative, but nothing enforces it.
 ## 7. Suggested remediation order
 
 1. **Ship-blocker (minutes):** set the Cloud Run invoker to non-public for the notification endpoints (C5). All rule-level critical findings (C1, C2, C3, C4) are resolved and covered by the emulator rule suite.
-2. **Same release (days):** H1 (PII projection), H2 (draft filtering), H3 (event-scoped leadership), H5 (draft default), H4 (watch → builder).
-3. **Next iteration:** H6 cache, plus the remaining High items. (M1/M2 pagination and batching, M6 crash guard, M9 FCM token lifecycle and the rest of section 3 are resolved.)
+2. **Same release (days):** H1 (PII projection) and H3 (event-scoped leadership) remain; H2 (draft filtering) is UI-resolved with a documented rule-level limitation, and H4 (watch → builder), H5 (draft default), and H6 (profile cache) are resolved.
+3. **Next iteration:** H1 and H3, plus any remaining Medium items. (M1–M12, H4–H6, and the L1–L12 nits are resolved.)
 4. **Ongoing:** run the rule suite in CI, add the C1 no-admin-escalation check, README schema sync. (Dead queries and debug UI have been removed; see M5/M10.)
 
 ---

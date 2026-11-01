@@ -30,16 +30,21 @@ String resolveUserDisplay(String uid, UserProfile? profile) {
 }
 
 /// Resolves a user ID and renders the user's display name / email as text.
-class const UserDisplay({super.key, required this.userId, this.profile, this.style}) extends HookWidget {
+class const UserDisplay({super.key, required this.userId, this.profile, this.profileResolved = false, this.style})
+    extends HookWidget {
   final String userId;
   final UserProfile? profile;
+
+  /// Whether [profile] is the completed result of a batch lookup, including
+  /// the case where no profile document exists.
+  final bool profileResolved;
   final TextStyle? style;
 
   @override
   Widget build(BuildContext context) {
     final profileFuture = useMemoized(
-      () => this.profile == null ? repository.getUserProfile(userId) : Future.value(this.profile),
-      [userId, this.profile],
+      () => (this.profile != null || profileResolved) ? Future.value(this.profile) : repository.getUserProfile(userId),
+      [userId, this.profile, profileResolved],
     );
     final snapshot = useFuture(profileFuture);
 
@@ -84,7 +89,7 @@ class const UserChip({super.key, required this.userId, this.profile, this.profil
   @override
   Widget build(BuildContext context) {
     final profileFuture = useMemoized(
-      () => profileResolved ? Future.value(this.profile) : repository.getUserProfile(userId),
+      () => (this.profile != null || profileResolved) ? Future.value(this.profile) : repository.getUserProfile(userId),
       [userId, this.profile, profileResolved],
     );
     final snapshot = useFuture(profileFuture);

@@ -258,7 +258,7 @@ packages:
     source: hosted
     version: "0.5.5"
   google_cloud_firestore:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: google_cloud_firestore
       sha256: cabb0372a109933bbe4844ef42a82e9908952c50372c2b6ab74ca01f96b89304

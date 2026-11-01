@@ -67,10 +67,12 @@ service cloud.firestore {
     // Sections collection & subcollections
     match /sections/{sectionId} {
       allow read: if isSignedIn();
-       // Global admins can create completely new sections; section admins can update existing ones
+      // Only global admins can create or delete sections; section managers
+      // can update an existing section. `write` is intentionally not used
+      // here because it includes `create` and would let section managers
+      // create new sections.
       allow create, delete: if isGlobalAdmin();
       allow update: if isSectionAdmin(sectionId) || isGlobalAdmin();
-      allow write: if isSectionAdmin(sectionId); // or a global admin check if needed for creation
 
       match /members/{userId} {
         // Signed-in users may read member lists. Membership gating is enforced
@@ -177,10 +179,12 @@ service cloud.firestore {
       }
     }
 
-    // Notifications collection
+    // Notifications collection: a signed-in user may read and mutate only
+    // their own notifications. `resource` exists for reads, updates and
+    // deletes; creates are validated against `request.resource` instead.
     match /notifications/{notificationId} {
-      allow read, write: if isSignedIn() && (resource.data.recipientId == request.auth.uid || resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn() && (request.resource.data.recipientId == request.auth.uid || request.resource.data.userId == request.auth.uid);
+      allow read, update, delete: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.recipientId == request.auth.uid;
     }
 
     // Templates collection. Templates drive event content, so only global

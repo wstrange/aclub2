@@ -12,6 +12,7 @@ export 'src/event_handlers.dart';
 export 'src/https_handlers.dart';
 export 'src/notification_dispatcher.dart';
 export 'src/registration_handlers.dart';
+export 'src/registration_transitions.dart';
 
 /// Whether functions are currently running within a Firebase Emulator environment.
 bool get isFirebaseEmulator =>

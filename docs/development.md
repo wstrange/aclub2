@@ -37,6 +37,28 @@ owns the model, e.g. `packages/shared_models` or the app root):
 dart run build_runner build --delete-conflicting-outputs
 ```
 
+### Dependency layout
+
+`shared_models` is consumed as a **path dependency** by the app, `functions`,
+and `aclub_admin`:
+
+```yaml
+shared_models:
+  path: packages/shared_models   # ../packages/shared_models from subprojects
+```
+
+This is deliberate. The app is a Flutter package, `functions` is a pure-Dart
+package, and the admin CLI has its own toolchain; keeping separate lockfiles
+lets each resolve its own SDK constraints without forcing a single pub
+workspace. Run `pub get` in each package after changing a shared dependency
+(see [Setup](#setup)).
+
+A `resolution: workspace` setup was considered and rejected: it would require
+every package to share one SDK constraint and would churn all lockfiles for no
+functional benefit. The vendored `facebook_auth_desktop` is the only
+`dependency_overrides` entry, and it exists because the published plugin ships
+only CocoaPods metadata (see `packages/facebook_auth_desktop/README.md`).
+
 ## Firebase emulators
 
 Debug builds (`kDebugMode`) automatically connect Auth to `localhost:9099` and
@@ -56,12 +78,14 @@ Emulator ports: Auth `9099`, Firestore `8080`, Functions `5001`, Storage
 
 ### Android device / emulator
 
-The debug host override currently resolves to `localhost` for every platform
-(tracked as L1 in `docs/review.md`). Forward the emulator ports to the host so
-`localhost` works from the device:
+Debug builds resolve the emulator host automatically: `10.0.2.2` on the
+Android emulator, `localhost` elsewhere. For a physical Android device
+connected over USB, forward the emulator ports and point the app at
+`localhost`:
 
 ```bash
 ./adb_fix
+flutter run --dart-define=EMULATOR_HOST=localhost
 # or manually:
 adb reverse tcp:9099 tcp:9099
 adb reverse tcp:8080 tcp:8080
@@ -105,8 +129,9 @@ firebase emulators:exec --only firestore,auth \
   "bash test/rules/firestore_rules_test.sh"
 ```
 
-It currently runs 28 checks covering section membership, event registration,
-and templates. See `docs/security.md`.
+It currently runs 37 checks covering section membership, event registration,
+templates, section-creation authorization, and notification ownership. See
+`docs/security.md`.
 
 ## Building and deploying
 

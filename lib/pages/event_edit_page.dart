@@ -20,9 +20,7 @@ class EventEditPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userState = context.watch<UserStateCubit>().state.value;
-    final canManage = userState != null &&
-        context.read<UserStateCubit>().canManageSection(sectionId);
+    final canManage = context.select<UserStateCubit, bool>((cubit) => cubit.canManageSection(sectionId));
 
     if (!canManage) {
       return Scaffold(

@@ -201,6 +201,40 @@ check "member cannot delete another membership" 403 "$R"
 R=$(user_patch "sections/sec1/members/$ID2" "$(member_doc "$ID2" sec1 tripLeader)" "$T1")
 check "section manager can change a member role" 200 "$R"
 
+# ── L6: creating sections is global-admin only ────────────────────────────
+R=$(user_patch "sections/sec-manager-created" '{"fields":{"id":{"stringValue":"sec-manager-created"},"name":{"stringValue":"Nope"}}}' "$T1")
+check "section manager cannot create a section" 403 "$R"
+
+# ── L7: notifications are readable/writable only by their recipient ───────
+notif() { # recipientId [isRead]
+  local isRead="${2:-false}"
+  echo "{\"fields\":{\"id\":{\"stringValue\":\"n-$1\"},\"recipientId\":{\"stringValue\":\"$1\"},\"title\":{\"stringValue\":\"T\"},\"message\":{\"stringValue\":\"M\"},\"isRead\":{\"booleanValue\":$isRead},\"createdAt\":$TS}}"
+}
+
+R=$(user_patch "notifications/n-$ID2" "$(notif "$ID2")" "$T2")
+check "user can create own notification" 200 "$R"
+
+R=$(user_patch "notifications/n-$ID2-other" "$(notif "$ID2")" "$T1")
+check "user cannot create notification for another recipient" 403 "$R"
+
+R=$(curl -s -o /dev/null -w '%{http_code}' "$FS/notifications/n-$ID2" -H "Authorization: Bearer $T2")
+check "user can read own notification" 200 "$R"
+
+R=$(curl -s -o /dev/null -w '%{http_code}' "$FS/notifications/n-$ID2" -H "Authorization: Bearer $T1")
+check "user cannot read another user's notification" 403 "$R"
+
+R=$(user_patch "notifications/n-$ID2" "$(notif "$ID2" true)" "$T2")
+check "user can update own notification" 200 "$R"
+
+R=$(user_patch "notifications/n-$ID2" "$(notif "$ID2" false)" "$T1")
+check "user cannot update another user's notification" 403 "$R"
+
+R=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$FS/notifications/n-$ID2" -H "Authorization: Bearer $T1")
+check "user cannot delete another user's notification" 403 "$R"
+
+R=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$FS/notifications/n-$ID2" -H "Authorization: Bearer $T2")
+check "user can delete own notification" 200 "$R"
+
 echo "----"
 echo "passed=$pass failed=$fail"
 [ "$fail" -eq 0 ]

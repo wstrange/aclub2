@@ -115,17 +115,19 @@ void _runBootstrapErrorApp(Object error) {
 }
 
 Future<void> _connectToFirebaseEmulator() async {
-  String localHost;
-
-  // 1. Check if running on the Web FIRST to prevent dart:io crashes
-  if (kIsWeb) {
+  // Physical Android devices reach the host through `adb reverse`, which maps
+  // the device's localhost; the Android emulator reaches it at 10.0.2.2.
+  // Override explicitly with --dart-define=EMULATOR_HOST=localhost.
+  const override = String.fromEnvironment('EMULATOR_HOST');
+  final String localHost;
+  if (override.isNotEmpty) {
+    localHost = override;
+  } else if (kIsWeb) {
     localHost = 'localhost';
   } else {
-    // 2. If it's a native platform, it's safe to use dart:io's Platform check
     localHost = Platform.isAndroid ? '10.0.2.2' : 'localhost';
   }
 
-  localHost = 'localhost';
   _log.info('Connecting to Firebase Emulator at $localHost...');
 
   try {

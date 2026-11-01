@@ -3,6 +3,7 @@ import 'package:shared_models/shared_models.dart';
 import 'package:firebase_functions/logger.dart' as logger;
 import 'event_handlers.dart';
 import 'notification_dispatcher.dart';
+import 'registration_transitions.dart';
 
 /// Helper to fetch registration data from Firestore if not provided.
 Future<Map<String, dynamic>> fetchRegistrationData(
@@ -52,22 +53,24 @@ Future<void> handleRegistrationCreated({
   userId ??= registrationId;
   if (userId.isEmpty) return;
 
+  final notification = notificationForCreatedRegistration(status: status, userId: userId, authId: authId);
+  if (notification == RegistrationNotification.none) return;
+
   final eventData = await fetchEventData(firebase, sectionId, eventId);
   final eventTitle = eventData['title']?.toString() ?? 'Event';
 
-  if (status == RegistrationStatus.pending.name) {
-    logger.info('Pending registration created for $userId on event $eventId. Notifying leaders.');
-    await notifyTripLeadersOfPendingRegistration(
-      firebase: firebase,
-      sectionId: sectionId,
-      eventId: eventId,
-      eventTitle: eventTitle,
-      eventData: eventData,
-      applicantUserId: userId,
-    );
-  } else if (status == RegistrationStatus.approved.name) {
-    // If added by a leader or manager (not self-registered)
-    if (authId != null && authId != userId) {
+  switch (notification) {
+    case RegistrationNotification.pendingRequested:
+      logger.info('Pending registration created for $userId on event $eventId. Notifying leaders.');
+      await notifyTripLeadersOfPendingRegistration(
+        firebase: firebase,
+        sectionId: sectionId,
+        eventId: eventId,
+        eventTitle: eventTitle,
+        eventData: eventData,
+        applicantUserId: userId,
+      );
+    case RegistrationNotification.addedByLeader:
       logger.info('User $userId added to event $eventId by leader $authId.');
       await sendNotificationToUser(
         firebase: firebase,
@@ -79,19 +82,24 @@ Future<void> handleRegistrationCreated({
         sectionId: sectionId,
         eventId: eventId,
       );
-    }
-  } else if (status == RegistrationStatus.waitlisted.name) {
-    logger.info('User $userId added to waitlist for event $eventId.');
-    await sendNotificationToUser(
-      firebase: firebase,
-      userId: userId,
-      title: 'Waitlist: $eventTitle',
-      message: 'You are on the waitlist for "$eventTitle".',
-      link: '/events/$eventId',
-      type: 'registration_waitlisted',
-      sectionId: sectionId,
-      eventId: eventId,
-    );
+    case RegistrationNotification.waitlisted:
+      logger.info('User $userId added to waitlist for event $eventId.');
+      await sendNotificationToUser(
+        firebase: firebase,
+        userId: userId,
+        title: 'Waitlist: $eventTitle',
+        message: 'You are on the waitlist for "$eventTitle".',
+        link: '/events/$eventId',
+        type: 'registration_waitlisted',
+        sectionId: sectionId,
+        eventId: eventId,
+      );
+    case RegistrationNotification.none:
+    case RegistrationNotification.approved:
+    case RegistrationNotification.rejected:
+    case RegistrationNotification.selfWithdrawn:
+    case RegistrationNotification.removedByLeader:
+      break;
   }
 }
 
@@ -125,64 +133,67 @@ Future<void> handleRegistrationUpdated({
 
   userId ??= registrationId;
   if (userId.isEmpty) return;
-  if (beforeStatus == afterStatus) return;
+
+  final notification = notificationForUpdatedRegistration(
+    beforeStatus: beforeStatus,
+    afterStatus: afterStatus,
+    userId: userId,
+    authId: authId,
+    afterData: afterData,
+  );
+  if (notification == RegistrationNotification.none) return;
 
   final eventData = await fetchEventData(firebase, sectionId, eventId);
   final eventTitle = eventData['title']?.toString() ?? 'Event';
 
-  if (beforeStatus != RegistrationStatus.approved.name && afterStatus == RegistrationStatus.approved.name) {
-    logger.info('User $userId approved for event $eventId ($eventTitle)');
-    await sendNotificationToUser(
-      firebase: firebase,
-      userId: userId,
-      title: 'Registration Approved: $eventTitle',
-      message: 'You have been approved for "$eventTitle".',
-      link: '/events/$eventId',
-      type: 'registration_approved',
-      sectionId: sectionId,
-      eventId: eventId,
-    );
-  } else if (beforeStatus != RegistrationStatus.waitlisted.name && afterStatus == RegistrationStatus.waitlisted.name) {
-    logger.info('User $userId moved to waitlist for event $eventId ($eventTitle)');
-    await sendNotificationToUser(
-      firebase: firebase,
-      userId: userId,
-      title: 'Waitlist Update: $eventTitle',
-      message: 'You have been moved to the waitlist for "$eventTitle".',
-      link: '/events/$eventId',
-      type: 'registration_waitlisted',
-      sectionId: sectionId,
-      eventId: eventId,
-    );
-  } else if (beforeStatus != RegistrationStatus.rejected.name && afterStatus == RegistrationStatus.rejected.name) {
-    logger.info('User $userId registration rejected for event $eventId ($eventTitle)');
-    await sendNotificationToUser(
-      firebase: firebase,
-      userId: userId,
-      title: 'Registration Update: $eventTitle',
-      message: 'Your registration for "$eventTitle" was not approved.',
-      link: '/events/$eventId',
-      type: 'registration_rejected',
-      sectionId: sectionId,
-      eventId: eventId,
-    );
-  } else if (beforeStatus != RegistrationStatus.pending.name && afterStatus == RegistrationStatus.pending.name) {
-    logger.info('User $userId pending registration for event $eventId ($eventTitle)');
-    await notifyTripLeadersOfPendingRegistration(
-      firebase: firebase,
-      sectionId: sectionId,
-      eventId: eventId,
-      eventTitle: eventTitle,
-      eventData: eventData,
-      applicantUserId: userId,
-    );
-  } else if (afterStatus == RegistrationStatus.withdrawn.name) {
-    // Detect self-withdrawal vs leader/admin removal via withdrawnByUserId (or fallback to deletedByUserId / authId)
-    final withdrawnBy = afterData?['withdrawnByUserId']?.toString() ??
-        afterData?['deletedByUserId']?.toString() ??
-        authId;
-    final isSelfWithdrawal = withdrawnBy != null && withdrawnBy == userId;
-    if (isSelfWithdrawal) {
+  switch (notification) {
+    case RegistrationNotification.approved:
+      logger.info('User $userId approved for event $eventId ($eventTitle)');
+      await sendNotificationToUser(
+        firebase: firebase,
+        userId: userId,
+        title: 'Registration Approved: $eventTitle',
+        message: 'You have been approved for "$eventTitle".',
+        link: '/events/$eventId',
+        type: 'registration_approved',
+        sectionId: sectionId,
+        eventId: eventId,
+      );
+    case RegistrationNotification.waitlisted:
+      logger.info('User $userId moved to waitlist for event $eventId ($eventTitle)');
+      await sendNotificationToUser(
+        firebase: firebase,
+        userId: userId,
+        title: 'Waitlist Update: $eventTitle',
+        message: 'You have been moved to the waitlist for "$eventTitle".',
+        link: '/events/$eventId',
+        type: 'registration_waitlisted',
+        sectionId: sectionId,
+        eventId: eventId,
+      );
+    case RegistrationNotification.rejected:
+      logger.info('User $userId registration rejected for event $eventId ($eventTitle)');
+      await sendNotificationToUser(
+        firebase: firebase,
+        userId: userId,
+        title: 'Registration Update: $eventTitle',
+        message: 'Your registration for "$eventTitle" was not approved.',
+        link: '/events/$eventId',
+        type: 'registration_rejected',
+        sectionId: sectionId,
+        eventId: eventId,
+      );
+    case RegistrationNotification.pendingRequested:
+      logger.info('User $userId pending registration for event $eventId ($eventTitle)');
+      await notifyTripLeadersOfPendingRegistration(
+        firebase: firebase,
+        sectionId: sectionId,
+        eventId: eventId,
+        eventTitle: eventTitle,
+        eventData: eventData,
+        applicantUserId: userId,
+      );
+    case RegistrationNotification.selfWithdrawn:
       logger.info('User $userId withdrew from event $eventId ($eventTitle)');
       await notifyTripLeadersOfWithdrawal(
         firebase: firebase,
@@ -192,12 +203,8 @@ Future<void> handleRegistrationUpdated({
         eventData: eventData,
         withdrawingUserId: userId,
       );
-    } else if (beforeStatus == null ||
-        (beforeStatus == RegistrationStatus.approved.name ||
-            beforeStatus == RegistrationStatus.pending.name ||
-            beforeStatus == RegistrationStatus.waitlisted.name)) {
-      // Leader-initiated withdrawal/removal represented as withdrawn
-      logger.info('User $userId removed from event $eventId by leader (withdrawnBy: $withdrawnBy). Notifying user.');
+    case RegistrationNotification.removedByLeader:
+      logger.info('User $userId removed from event $eventId by leader. Notifying user.');
       await sendNotificationToUser(
         firebase: firebase,
         userId: userId,
@@ -208,9 +215,10 @@ Future<void> handleRegistrationUpdated({
         sectionId: sectionId,
         eventId: eventId,
       );
-    }
+    case RegistrationNotification.none:
+    case RegistrationNotification.addedByLeader:
+      break;
   }
-
 }
 /// Core logic for handling a deleted registration (used by emulator trigger & HTTPS endpoints).
 ///
@@ -242,45 +250,49 @@ Future<void> handleRegistrationDeleted({
 
   if (userId.isEmpty) return;
 
-  // Prefer the client-stamped field; fall back to authId for HTTPS-triggered paths.
-  final effectiveDeletedBy = regData?['withdrawnByUserId']?.toString() ??
-      regData?['deletedByUserId']?.toString() ??
-      authId;
-  final isSelfWithdrawal = effectiveDeletedBy != null && effectiveDeletedBy == userId;
+  final notification = notificationForDeletedRegistration(
+    status: status,
+    userId: userId,
+    authId: authId,
+    regData: regData,
+  );
+  if (notification == RegistrationNotification.none) return;
 
   final eventData = await fetchEventData(firebase, sectionId, eventId);
   final eventTitle = eventData['title']?.toString() ?? 'Event';
 
-  // Self-withdrawal: notify trip leaders and creator
-  if (isSelfWithdrawal) {
-    logger.info('User $userId withdrew from event $eventId. Notifying trip leaders.');
-    await notifyTripLeadersOfWithdrawal(
-      firebase: firebase,
-      sectionId: sectionId,
-      eventId: eventId,
-      eventTitle: eventTitle,
-      eventData: eventData,
-      withdrawingUserId: userId,
-    );
-    return;
-  }
-
-  // Leader removal: only notify if they held an active or waitlisted status prior to deletion
-  if (status == RegistrationStatus.approved.name ||
-      status == RegistrationStatus.pending.name ||
-      status == RegistrationStatus.waitlisted.name) {
-    logger.info('User $userId was removed from event $eventId by leader (authId: $authId). Notifying user.');
-
-    await sendNotificationToUser(
-      firebase: firebase,
-      userId: userId,
-      title: 'Event Update: $eventTitle',
-      message: 'You have been removed from "$eventTitle".',
-      link: '/events/$eventId',
-      type: 'registration_removed',
-      sectionId: sectionId,
-      eventId: eventId,
-    );
+  switch (notification) {
+    // Self-withdrawal: notify trip leaders and creator.
+    case RegistrationNotification.selfWithdrawn:
+      logger.info('User $userId withdrew from event $eventId. Notifying trip leaders.');
+      await notifyTripLeadersOfWithdrawal(
+        firebase: firebase,
+        sectionId: sectionId,
+        eventId: eventId,
+        eventTitle: eventTitle,
+        eventData: eventData,
+        withdrawingUserId: userId,
+      );
+    // Leader removal: the registration held an active or waitlisted status.
+    case RegistrationNotification.removedByLeader:
+      logger.info('User $userId was removed from event $eventId by leader (authId: $authId). Notifying user.');
+      await sendNotificationToUser(
+        firebase: firebase,
+        userId: userId,
+        title: 'Event Update: $eventTitle',
+        message: 'You have been removed from "$eventTitle".',
+        link: '/events/$eventId',
+        type: 'registration_removed',
+        sectionId: sectionId,
+        eventId: eventId,
+      );
+    case RegistrationNotification.none:
+    case RegistrationNotification.pendingRequested:
+    case RegistrationNotification.addedByLeader:
+    case RegistrationNotification.approved:
+    case RegistrationNotification.waitlisted:
+    case RegistrationNotification.rejected:
+      break;
   }
 }
 
