@@ -72,7 +72,7 @@ forwarding, deployment, and troubleshooting.
 | [docs/notifications.md](docs/notifications.md) | Channels, triggers, FCM topics, device tokens, endpoint security |
 | [docs/development.md](docs/development.md) | Setup, emulators, tests, builds, deployment, admin CLI |
 | [docs/facebook-login-setup.md](docs/facebook-login-setup.md) | Facebook sign-in configuration |
-| [docs/review.md](docs/review.md) | Security/code review findings and remediation status |
+| [docs/review.md](docs/review.md) | Open security/code review findings and known limitations |
 
 ## Project layout
 

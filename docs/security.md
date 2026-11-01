@@ -165,14 +165,13 @@ These are tracked in `docs/review.md` with more detail:
   section-scoped, not event-scoped (H3).
 - **Profile writes are field-unrestricted.** The owner may write every profile
   field. No field grants privileges any more, but server-managed fields such as
-  `defaultSectionId` and `fcmTokens` are not protected by `hasOnly(...)`
-  (follow-up to C1).
+  `defaultSectionId` and `fcmTokens` are not protected by `hasOnly(...)`.
 
 ## Rule tests
 
 `test/rules/firestore_rules_test.sh` is an emulator-based regression suite. It
-currently runs 37 checks covering section membership (C2), event registration
-(C3), templates (M11), section creation (L6), and notification ownership (L7).
+currently runs 37 checks covering section membership, event registration,
+templates, section creation, and notification ownership.
 
 ```bash
 firebase emulators:exec --only firestore,auth \
